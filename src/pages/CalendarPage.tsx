@@ -60,8 +60,8 @@ const CalendarPage = () => {
 
   const handleSimulateMatch = (fixture: Fixture) => {
     toast({
-      title: "Match Simulation",
-      description: `Simulating ${fixture.homeTeam} vs ${fixture.awayTeam}...`,
+      title: "Play Match",
+      description: `${fixture.homeTeam} vs ${fixture.awayTeam}`,
     });
     
     navigate("/match", { 
