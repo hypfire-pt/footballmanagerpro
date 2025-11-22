@@ -15,7 +15,7 @@ import {
 
 const menuItems = [
   { title: "Dashboard", url: "/dashboard", icon: Home },
-  { title: "Game", url: "/match", icon: Gamepad2 },
+  { title: "Game", url: "https://hypfire-pt.github.io/FootballStreamer1/#how-it-works", icon: Gamepad2, external: true },
   { title: "Squad", url: "/squad", icon: Users },
   { title: "Tactics", url: "/tactics", icon: Zap },
   { title: "Transfers", url: "/transfers", icon: ArrowLeftRight },
@@ -48,15 +48,27 @@ export function AppSidebar() {
               {menuItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
-                    <NavLink 
-                      to={item.url} 
-                      end 
-                      className="hover:bg-muted/50" 
-                      activeClassName="bg-muted text-primary font-medium"
-                    >
-                      <item.icon className="h-4 w-4" />
-                      {open && <span>{item.title}</span>}
-                    </NavLink>
+                    {item.external ? (
+                      <a 
+                        href={item.url} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="hover:bg-muted/50"
+                      >
+                        <item.icon className="h-4 w-4" />
+                        {open && <span>{item.title}</span>}
+                      </a>
+                    ) : (
+                      <NavLink 
+                        to={item.url} 
+                        end 
+                        className="hover:bg-muted/50" 
+                        activeClassName="bg-muted text-primary font-medium"
+                      >
+                        <item.icon className="h-4 w-4" />
+                        {open && <span>{item.title}</span>}
+                      </NavLink>
+                    )}
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
