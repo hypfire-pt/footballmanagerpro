@@ -6,10 +6,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { AlertCircle, User, Lock, LogOut, Calendar } from "lucide-react";
+import { AlertCircle, User, Lock, LogOut, Calendar, Settings, Palette } from "lucide-react";
 import { format } from "date-fns";
 
 const OptionsPage = () => {
@@ -23,6 +25,19 @@ const OptionsPage = () => {
   const [passwordForm, setPasswordForm] = useState({
     newPassword: "",
     confirmPassword: "",
+  });
+
+  const [gamePreferences, setGamePreferences] = useState({
+    preferred_language: "en",
+    match_speed_default: "normal",
+    tutorial_hints_enabled: true,
+  });
+
+  const [displaySettings, setDisplaySettings] = useState({
+    theme_mode: "dark",
+    ui_compact_mode: false,
+    sidebar_default_collapsed: false,
+    animations_enabled: true,
   });
 
   useEffect(() => {
@@ -39,6 +54,18 @@ const OptionsPage = () => {
         console.error("Error fetching profile:", error);
       } else {
         setProfile(data);
+        // Load preferences into state
+        setGamePreferences({
+          preferred_language: data.preferred_language || "en",
+          match_speed_default: data.match_speed_default || "normal",
+          tutorial_hints_enabled: data.tutorial_hints_enabled ?? true,
+        });
+        setDisplaySettings({
+          theme_mode: data.theme_mode || "dark",
+          ui_compact_mode: data.ui_compact_mode || false,
+          sidebar_default_collapsed: data.sidebar_default_collapsed || false,
+          animations_enabled: data.animations_enabled ?? true,
+        });
       }
     };
 
@@ -98,13 +125,81 @@ const OptionsPage = () => {
     }
   };
 
+  const handleSaveGamePreferences = async () => {
+    setLoading(true);
+    setError(null);
+
+    const { error: updateError } = await supabase
+      .from("profiles")
+      .update({
+        preferred_language: gamePreferences.preferred_language,
+        match_speed_default: gamePreferences.match_speed_default,
+        tutorial_hints_enabled: gamePreferences.tutorial_hints_enabled,
+      })
+      .eq("user_id", user?.id);
+
+    if (updateError) {
+      setError(updateError.message);
+      toast({
+        title: "Error",
+        description: "Failed to save game preferences.",
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Preferences Saved",
+        description: "Your game preferences have been updated successfully.",
+      });
+    }
+
+    setLoading(false);
+  };
+
+  const handleSaveDisplaySettings = async () => {
+    setLoading(true);
+    setError(null);
+
+    const { error: updateError } = await supabase
+      .from("profiles")
+      .update({
+        theme_mode: displaySettings.theme_mode,
+        ui_compact_mode: displaySettings.ui_compact_mode,
+        sidebar_default_collapsed: displaySettings.sidebar_default_collapsed,
+        animations_enabled: displaySettings.animations_enabled,
+      })
+      .eq("user_id", user?.id);
+
+    if (updateError) {
+      setError(updateError.message);
+      toast({
+        title: "Error",
+        description: "Failed to save display settings.",
+        variant: "destructive",
+      });
+    } else {
+      // Apply theme changes immediately
+      if (displaySettings.theme_mode === "dark") {
+        document.documentElement.classList.add("dark");
+      } else if (displaySettings.theme_mode === "light") {
+        document.documentElement.classList.remove("dark");
+      }
+
+      toast({
+        title: "Settings Saved",
+        description: "Your display settings have been updated successfully.",
+      });
+    }
+
+    setLoading(false);
+  };
+
   return (
     <DashboardLayout>
       <div className="container mx-auto p-6 max-w-4xl">
         <h1 className="text-3xl font-bold mb-6">Settings</h1>
 
         <Tabs defaultValue="account" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 mb-6">
+          <TabsList className="grid w-full grid-cols-4 mb-6">
             <TabsTrigger value="account">
               <User className="h-4 w-4 mr-2" />
               Account
@@ -112,6 +207,14 @@ const OptionsPage = () => {
             <TabsTrigger value="security">
               <Lock className="h-4 w-4 mr-2" />
               Security
+            </TabsTrigger>
+            <TabsTrigger value="game">
+              <Settings className="h-4 w-4 mr-2" />
+              Game
+            </TabsTrigger>
+            <TabsTrigger value="display">
+              <Palette className="h-4 w-4 mr-2" />
+              Display
             </TabsTrigger>
           </TabsList>
 
@@ -249,6 +352,171 @@ const OptionsPage = () => {
                     </Button>
                   </div>
                 </form>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="game">
+            <Card className="border-primary/20">
+              <CardHeader>
+                <CardTitle>Game Preferences</CardTitle>
+                <CardDescription>
+                  Customize your gameplay experience and settings
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="language">Language</Label>
+                    <Select
+                      value={gamePreferences.preferred_language}
+                      onValueChange={(value) =>
+                        setGamePreferences({ ...gamePreferences, preferred_language: value })
+                      }
+                    >
+                      <SelectTrigger id="language">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="en">English</SelectItem>
+                        <SelectItem value="es">Español</SelectItem>
+                        <SelectItem value="fr">Français</SelectItem>
+                        <SelectItem value="de">Deutsch</SelectItem>
+                        <SelectItem value="it">Italiano</SelectItem>
+                        <SelectItem value="pt">Português</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="match-speed">Default Match Speed</Label>
+                    <Select
+                      value={gamePreferences.match_speed_default}
+                      onValueChange={(value) =>
+                        setGamePreferences({ ...gamePreferences, match_speed_default: value })
+                      }
+                    >
+                      <SelectTrigger id="match-speed">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="slow">Slow</SelectItem>
+                        <SelectItem value="normal">Normal</SelectItem>
+                        <SelectItem value="fast">Fast</SelectItem>
+                        <SelectItem value="instant">Instant</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="flex items-center justify-between p-4 bg-muted/50 rounded-md">
+                    <div className="space-y-0.5">
+                      <Label htmlFor="tutorial-hints">Tutorial Hints</Label>
+                      <p className="text-sm text-muted-foreground">
+                        Show helpful tooltips and guidance
+                      </p>
+                    </div>
+                    <Switch
+                      id="tutorial-hints"
+                      checked={gamePreferences.tutorial_hints_enabled}
+                      onCheckedChange={(checked) =>
+                        setGamePreferences({ ...gamePreferences, tutorial_hints_enabled: checked })
+                      }
+                    />
+                  </div>
+                </div>
+
+                <div className="flex gap-2 pt-4 border-t border-border">
+                  <Button onClick={handleSaveGamePreferences} disabled={loading}>
+                    {loading ? "Saving..." : "Save Preferences"}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="display">
+            <Card className="border-primary/20">
+              <CardHeader>
+                <CardTitle>Display Settings</CardTitle>
+                <CardDescription>
+                  Customize the appearance and interface of the game
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="theme">Theme Mode</Label>
+                    <Select
+                      value={displaySettings.theme_mode}
+                      onValueChange={(value) =>
+                        setDisplaySettings({ ...displaySettings, theme_mode: value })
+                      }
+                    >
+                      <SelectTrigger id="theme">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="light">Light</SelectItem>
+                        <SelectItem value="dark">Dark</SelectItem>
+                        <SelectItem value="auto">Auto (System)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="flex items-center justify-between p-4 bg-muted/50 rounded-md">
+                    <div className="space-y-0.5">
+                      <Label htmlFor="compact-mode">Compact Mode</Label>
+                      <p className="text-sm text-muted-foreground">
+                        Use a more dense layout with smaller spacing
+                      </p>
+                    </div>
+                    <Switch
+                      id="compact-mode"
+                      checked={displaySettings.ui_compact_mode}
+                      onCheckedChange={(checked) =>
+                        setDisplaySettings({ ...displaySettings, ui_compact_mode: checked })
+                      }
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between p-4 bg-muted/50 rounded-md">
+                    <div className="space-y-0.5">
+                      <Label htmlFor="sidebar-collapsed">Sidebar Default State</Label>
+                      <p className="text-sm text-muted-foreground">
+                        Start with sidebar collapsed on page load
+                      </p>
+                    </div>
+                    <Switch
+                      id="sidebar-collapsed"
+                      checked={displaySettings.sidebar_default_collapsed}
+                      onCheckedChange={(checked) =>
+                        setDisplaySettings({ ...displaySettings, sidebar_default_collapsed: checked })
+                      }
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between p-4 bg-muted/50 rounded-md">
+                    <div className="space-y-0.5">
+                      <Label htmlFor="animations">Enable Animations</Label>
+                      <p className="text-sm text-muted-foreground">
+                        Show smooth transitions and visual effects
+                      </p>
+                    </div>
+                    <Switch
+                      id="animations"
+                      checked={displaySettings.animations_enabled}
+                      onCheckedChange={(checked) =>
+                        setDisplaySettings({ ...displaySettings, animations_enabled: checked })
+                      }
+                    />
+                  </div>
+                </div>
+
+                <div className="flex gap-2 pt-4 border-t border-border">
+                  <Button onClick={handleSaveDisplaySettings} disabled={loading}>
+                    {loading ? "Saving..." : "Save Settings"}
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>

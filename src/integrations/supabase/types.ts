@@ -230,29 +230,47 @@ export type Database = {
       }
       profiles: {
         Row: {
+          animations_enabled: boolean | null
           avatar_url: string | null
           created_at: string
           id: string
           manager_name: string
+          match_speed_default: string | null
           preferred_language: string | null
+          sidebar_default_collapsed: boolean | null
+          theme_mode: string | null
+          tutorial_hints_enabled: boolean | null
+          ui_compact_mode: boolean | null
           updated_at: string
           user_id: string
         }
         Insert: {
+          animations_enabled?: boolean | null
           avatar_url?: string | null
           created_at?: string
           id?: string
           manager_name: string
+          match_speed_default?: string | null
           preferred_language?: string | null
+          sidebar_default_collapsed?: boolean | null
+          theme_mode?: string | null
+          tutorial_hints_enabled?: boolean | null
+          ui_compact_mode?: boolean | null
           updated_at?: string
           user_id: string
         }
         Update: {
+          animations_enabled?: boolean | null
           avatar_url?: string | null
           created_at?: string
           id?: string
           manager_name?: string
+          match_speed_default?: string | null
           preferred_language?: string | null
+          sidebar_default_collapsed?: boolean | null
+          theme_mode?: string | null
+          tutorial_hints_enabled?: boolean | null
+          ui_compact_mode?: boolean | null
           updated_at?: string
           user_id?: string
         }
