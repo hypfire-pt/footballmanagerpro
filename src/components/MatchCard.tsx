@@ -1,13 +1,17 @@
 import { Match } from "@/types/game";
 import { Card } from "./ui/card";
 import { Badge } from "./ui/badge";
-import { Calendar } from "lucide-react";
+import { Button } from "./ui/button";
+import { Calendar, Play } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 interface MatchCardProps {
   match: Match;
 }
 
 const MatchCard = ({ match }: MatchCardProps) => {
+  const navigate = useNavigate();
+
   const getStatusBadge = () => {
     switch (match.status) {
       case "finished":
@@ -33,7 +37,7 @@ const MatchCard = ({ match }: MatchCardProps) => {
         {getStatusBadge()}
       </div>
 
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between mb-4">
         <div className="flex-1 text-right">
           <p className="font-bold text-lg">{match.homeTeam}</p>
         </div>
@@ -56,6 +60,17 @@ const MatchCard = ({ match }: MatchCardProps) => {
           <p className="font-bold text-lg">{match.awayTeam}</p>
         </div>
       </div>
+
+      {match.status === "scheduled" && (
+        <Button
+          onClick={() => navigate('/match')}
+          className="w-full gap-2"
+          variant="outline"
+        >
+          <Play className="h-4 w-4" />
+          Simulate Match
+        </Button>
+      )}
     </Card>
   );
 };
