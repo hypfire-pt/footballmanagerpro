@@ -8,132 +8,134 @@
 
 @layer base {
   :root {
-    /* Core background with subtle gradient potential */
-    --background: 225 25% 97%;
-    --foreground: 225 15% 15%;
+    /* Premium Black & Blue Theme - Light Mode */
+    --background: 0 0% 98%;
+    --foreground: 215 25% 12%;
 
-    /* Cards with glassmorphism */
+    /* Cards with subtle depth */
     --card: 0 0% 100%;
-    --card-foreground: 225 15% 15%;
+    --card-foreground: 215 25% 12%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 225 15% 15%;
+    --popover-foreground: 215 25% 12%;
 
-    /* Vibrant primary colors - Electric Blue/Purple */
-    --primary: 250 95% 65%;
+    /* Electric Blue Primary */
+    --primary: 214 100% 60%;
     --primary-foreground: 0 0% 100%;
-    --primary-glow: 250 100% 75%;
+    --primary-glow: 214 100% 70%;
 
-    /* Secondary with gaming accent */
-    --secondary: 280 85% 55%;
+    /* Deep Blue Secondary */
+    --secondary: 220 40% 25%;
     --secondary-foreground: 0 0% 100%;
 
     /* Muted backgrounds */
-    --muted: 225 20% 95%;
-    --muted-foreground: 225 10% 45%;
+    --muted: 215 20% 94%;
+    --muted-foreground: 215 15% 45%;
 
-    /* Accent - Neon green gaming vibe */
-    --accent: 165 85% 50%;
+    /* Cyan Accent */
+    --accent: 195 100% 50%;
     --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 90% 60%;
+    --destructive: 0 85% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 225 15% 88%;
-    --input: 225 15% 88%;
-    --ring: 250 95% 65%;
+    --border: 215 15% 88%;
+    --input: 215 15% 88%;
+    --ring: 214 100% 60%;
 
     --radius: 0.75rem;
     
-    /* Gaming specific colors */
-    --pitch-green: 165 85% 50%;
-    --pitch-dark: 165 60% 35%;
+    /* Sport specific colors */
+    --pitch-green: 142 70% 45%;
+    --pitch-dark: 142 60% 30%;
     --stat-gold: 43 96% 56%;
-    --win-green: 142 85% 55%;
+    --win-green: 142 70% 50%;
     --draw-yellow: 38 92% 60%;
-    --loss-red: 0 90% 65%;
-    --neon-cyan: 180 100% 50%;
-    --neon-pink: 330 100% 60%;
+    --loss-red: 0 85% 60%;
+    --neon-cyan: 195 100% 50%;
+    --neon-blue: 214 100% 60%;
     
     /* Gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(250 95% 65%), hsl(280 85% 55%));
-    --gradient-accent: linear-gradient(135deg, hsl(165 85% 50%), hsl(180 100% 50%));
+    --gradient-primary: linear-gradient(135deg, hsl(214 100% 60%), hsl(195 100% 50%));
+    --gradient-accent: linear-gradient(135deg, hsl(195 100% 50%), hsl(180 100% 55%));
     --gradient-gold: linear-gradient(135deg, hsl(43 96% 56%), hsl(38 92% 60%));
-    --gradient-gaming: linear-gradient(135deg, hsl(250 95% 65%), hsl(330 100% 60%));
+    --gradient-gaming: linear-gradient(135deg, hsl(214 100% 60%), hsl(220 40% 25%));
 
-    /* Shadows with glow effects */
-    --shadow-glow: 0 0 30px hsl(250 95% 65% / 0.3);
-    --shadow-glow-strong: 0 0 40px hsl(250 95% 65% / 0.5);
-    --shadow-card: 0 10px 30px -10px hsl(225 15% 15% / 0.1);
+    /* Shadows with blue glow */
+    --shadow-glow: 0 0 30px hsl(214 100% 60% / 0.25);
+    --shadow-glow-strong: 0 0 50px hsl(214 100% 60% / 0.4);
+    --shadow-card: 0 8px 32px -8px hsl(215 25% 12% / 0.08);
 
     /* Sidebar */
     --sidebar-background: 0 0% 100%;
-    --sidebar-foreground: 225 15% 15%;
-    --sidebar-primary: 250 95% 65%;
+    --sidebar-foreground: 215 25% 12%;
+    --sidebar-primary: 214 100% 60%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 225 20% 95%;
-    --sidebar-accent-foreground: 225 15% 15%;
-    --sidebar-border: 225 15% 88%;
-    --sidebar-ring: 250 95% 65%;
+    --sidebar-accent: 215 20% 94%;
+    --sidebar-accent-foreground: 215 25% 12%;
+    --sidebar-border: 215 15% 88%;
+    --sidebar-ring: 214 100% 60%;
   }
 
   .dark {
-    /* Dark gaming background */
-    --background: 225 25% 8%;
+    /* Premium Black & Blue Theme - Dark Mode */
+    --background: 215 30% 6%;
     --foreground: 0 0% 98%;
 
-    /* Dark cards with glassmorphism */
-    --card: 225 20% 12%;
+    /* Deep black cards with blue tint */
+    --card: 215 25% 10%;
     --card-foreground: 0 0% 98%;
 
-    --popover: 225 20% 12%;
+    --popover: 215 25% 10%;
     --popover-foreground: 0 0% 98%;
 
-    /* Vibrant colors pop more in dark mode */
-    --primary: 250 100% 70%;
+    /* Vibrant Electric Blue */
+    --primary: 214 100% 65%;
     --primary-foreground: 0 0% 100%;
-    --primary-glow: 250 100% 80%;
+    --primary-glow: 214 100% 75%;
 
-    --secondary: 280 85% 60%;
+    /* Midnight Blue Secondary */
+    --secondary: 220 50% 30%;
     --secondary-foreground: 0 0% 100%;
 
-    --muted: 225 20% 15%;
-    --muted-foreground: 225 10% 65%;
+    --muted: 215 25% 15%;
+    --muted-foreground: 215 15% 65%;
 
-    --accent: 165 90% 55%;
-    --accent-foreground: 0 0% 100%;
+    /* Bright Cyan Accent */
+    --accent: 195 100% 55%;
+    --accent-foreground: 215 30% 6%;
 
-    --destructive: 0 90% 65%;
+    --destructive: 0 85% 65%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 225 20% 18%;
-    --input: 225 20% 18%;
-    --ring: 250 100% 70%;
+    --border: 215 25% 18%;
+    --input: 215 25% 18%;
+    --ring: 214 100% 65%;
     
-    /* Enhanced gaming colors for dark mode */
-    --pitch-green: 165 90% 55%;
-    --pitch-dark: 165 60% 35%;
+    /* Enhanced sport colors for dark mode */
+    --pitch-green: 142 70% 50%;
+    --pitch-dark: 142 60% 30%;
     --stat-gold: 43 96% 60%;
-    --win-green: 142 90% 60%;
+    --win-green: 142 70% 55%;
     --draw-yellow: 38 92% 65%;
-    --loss-red: 0 90% 70%;
-    --neon-cyan: 180 100% 60%;
-    --neon-pink: 330 100% 70%;
+    --loss-red: 0 85% 65%;
+    --neon-cyan: 195 100% 55%;
+    --neon-blue: 214 100% 70%;
 
-    /* Dark mode shadows with stronger glow */
-    --shadow-glow: 0 0 40px hsl(250 100% 70% / 0.4);
-    --shadow-glow-strong: 0 0 60px hsl(250 100% 70% / 0.6);
-    --shadow-card: 0 10px 40px -10px hsl(0 0% 0% / 0.5);
+    /* Dark mode shadows with blue glow */
+    --shadow-glow: 0 0 40px hsl(214 100% 65% / 0.35);
+    --shadow-glow-strong: 0 0 60px hsl(214 100% 65% / 0.5);
+    --shadow-card: 0 10px 40px -10px hsl(214 100% 65% / 0.15);
 
     /* Dark sidebar */
-    --sidebar-background: 225 25% 10%;
+    --sidebar-background: 215 30% 8%;
     --sidebar-foreground: 0 0% 98%;
-    --sidebar-primary: 250 100% 70%;
+    --sidebar-primary: 214 100% 65%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 225 20% 15%;
+    --sidebar-accent: 215 25% 15%;
     --sidebar-accent-foreground: 0 0% 98%;
-    --sidebar-border: 225 20% 18%;
-    --sidebar-ring: 250 100% 70%;
+    --sidebar-border: 215 25% 18%;
+    --sidebar-ring: 214 100% 65%;
   }
 }
 
@@ -148,6 +150,11 @@
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    background: linear-gradient(135deg, hsl(215 30% 8%), hsl(215 25% 10%), hsl(220 30% 12%));
+  }
+  
+  body.light {
+    background: linear-gradient(135deg, hsl(0 0% 98%), hsl(215 20% 96%), hsl(0 0% 100%));
   }
   
   /* Smooth scroll behavior */
@@ -181,17 +188,17 @@
     @apply opacity-100;
   }
 
-  /* Neon text effect */
+  /* Blue neon text effect */
   .neon-text {
-    @apply font-heading font-bold;
-    text-shadow: 0 0 10px hsl(var(--primary) / 0.5),
-                 0 0 20px hsl(var(--primary) / 0.3),
+    @apply font-heading font-bold text-primary;
+    text-shadow: 0 0 10px hsl(var(--primary) / 0.6),
+                 0 0 20px hsl(var(--primary) / 0.4),
                  0 0 30px hsl(var(--primary) / 0.2);
   }
 
-  /* Gradient text */
+  /* Blue gradient text */
   .gradient-text {
-    @apply bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent font-heading font-bold;
+    @apply bg-gradient-to-r from-primary via-accent to-neon-cyan bg-clip-text text-transparent font-heading font-bold;
   }
 
   /* Button glow effect */
@@ -248,12 +255,12 @@
     }
   }
 
-  /* Score display with gaming style */
+  /* Score display with blue style */
   .score-display {
     @apply font-heading text-5xl font-black;
-    @apply bg-gradient-to-br from-primary via-accent to-secondary;
+    @apply bg-gradient-to-br from-primary via-accent to-neon-cyan;
     @apply bg-clip-text text-transparent;
-    text-shadow: 0 2px 10px hsl(var(--primary) / 0.3);
+    text-shadow: 0 4px 20px hsl(var(--primary) / 0.4);
   }
 }
 

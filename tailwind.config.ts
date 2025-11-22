@@ -65,7 +65,7 @@ export default {
         },
         neon: {
           cyan: "hsl(var(--neon-cyan))",
-          pink: "hsl(var(--neon-pink))",
+          blue: "hsl(var(--neon-blue))",
         },
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",
@@ -129,8 +129,9 @@ export default {
       },
       backgroundImage: {
         'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
-        'gradient-gaming': 'linear-gradient(135deg, hsl(var(--primary)), hsl(var(--secondary)))',
-        'gradient-accent': 'linear-gradient(135deg, hsl(var(--accent)), hsl(var(--neon-cyan)))',
+        'gradient-gaming': 'linear-gradient(135deg, hsl(214 100% 60%), hsl(220 40% 25%))',
+        'gradient-accent': 'linear-gradient(135deg, hsl(195 100% 50%), hsl(180 100% 55%))',
+        'gradient-blue': 'linear-gradient(135deg, hsl(214 100% 65%), hsl(195 100% 55%))',
       },
     },
   },

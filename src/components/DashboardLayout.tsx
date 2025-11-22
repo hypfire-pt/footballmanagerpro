@@ -12,17 +12,17 @@ interface DashboardLayoutProps {
 export function DashboardLayout({ children }: DashboardLayoutProps) {
   return (
     <SidebarProvider defaultOpen={true}>
-      <div className="min-h-screen flex w-full bg-gradient-to-br from-background via-background to-muted/20">
+      <div className="min-h-screen flex w-full">
         <AppSidebar />
         
         <div className="flex-1 flex flex-col">
-          {/* Modern Gaming Header */}
-          <header className="h-16 border-b border-border/50 glass-strong flex items-center justify-between px-6 sticky top-0 z-50 backdrop-blur-xl">
+          {/* Premium Black & Blue Header */}
+          <header className="h-16 border-b border-border/30 glass-strong flex items-center justify-between px-6 sticky top-0 z-50 backdrop-blur-2xl bg-card/50">
             <div className="flex items-center gap-4">
-              <SidebarTrigger className="hover:bg-primary/10 transition-colors" />
+              <SidebarTrigger className="hover:bg-primary/10 transition-all hover:scale-105" />
               <div className="flex items-center gap-3">
-                <div className="relative w-10 h-10 bg-gradient-gaming rounded-xl flex items-center justify-center shadow-glow">
-                  <span className="text-white font-heading font-bold text-sm">MC</span>
+                <div className="relative w-10 h-10 bg-gradient-blue rounded-xl flex items-center justify-center shadow-glow ring-2 ring-primary/20">
+                  <span className="text-white font-heading font-bold text-sm drop-shadow-lg">MC</span>
                 </div>
                 <div className="hidden sm:block">
                   <p className="font-heading font-semibold text-sm">Manchester City</p>
