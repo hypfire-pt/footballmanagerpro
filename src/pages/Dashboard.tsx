@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { FastForward, Save, Calendar } from "lucide-react";
+import { europeanTeams } from "@/data/teams";
 
 const Dashboard = () => {
   const { currentDate, seasonStartDate, currentMatchweek } = useSeason();
@@ -97,41 +98,34 @@ const Dashboard = () => {
           </div>
         </div>
 
-        {/* Upcoming Fixtures with Glass Effect */}
+        {/* All Teams Logos */}
         <Card className="glass gaming-card border-border/50">
           <CardHeader>
             <CardTitle className="font-heading flex items-center gap-2">
-              <span className="text-primary">📅</span> Upcoming Fixtures
+              <span className="text-primary">⚽</span> European Clubs
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
-              {[
-                { date: '17 Jan', comp: 'PL', home: 'Man City', away: 'Arsenal', time: '15:00' },
-                { date: '21 Jan', comp: 'UCL', home: 'Bayern Munich', away: 'Man City', time: '20:00' },
-                { date: '24 Jan', comp: 'PL', home: 'Man City', away: 'Liverpool', time: '17:30' },
-                { date: '28 Jan', comp: 'FA', home: 'Man Utd', away: 'Man City', time: '19:45' },
-              ].map((fixture, idx) => (
-                <div 
-                  key={idx}
-                  className="flex items-center justify-between p-3 rounded-lg hover:bg-muted/50 transition-colors"
+            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-4">
+              {europeanTeams.map((team) => (
+                <div
+                  key={team.id}
+                  className="flex flex-col items-center gap-2 p-3 rounded-lg hover:bg-muted/50 transition-all hover:scale-105 cursor-pointer group"
+                  title={team.name}
                 >
-                  <div className="flex items-center gap-4 flex-1">
-                    <div className="text-sm text-muted-foreground w-16">{fixture.date}</div>
-                    <Badge variant="outline" className="w-10 justify-center">
-                      {fixture.comp}
-                    </Badge>
-                    <div className="flex-1 text-sm">
-                      <span className={fixture.home === 'Man City' ? 'font-semibold' : ''}>
-                        {fixture.home}
-                      </span>
-                      <span className="text-muted-foreground mx-2">vs</span>
-                      <span className={fixture.away === 'Man City' ? 'font-semibold' : ''}>
-                        {fixture.away}
-                      </span>
-                    </div>
-                    <span className="text-sm text-muted-foreground">{fixture.time}</span>
+                  <div
+                    className="w-12 h-12 rounded-full flex items-center justify-center shadow-glow group-hover:shadow-neon transition-all"
+                    style={{
+                      background: `linear-gradient(135deg, ${team.colors.primary}, ${team.colors.secondary})`,
+                    }}
+                  >
+                    <span className="text-white font-heading font-bold text-xs drop-shadow-lg">
+                      {team.shortName.substring(0, 3).toUpperCase()}
+                    </span>
                   </div>
+                  <span className="text-xs text-center font-medium text-muted-foreground group-hover:text-foreground transition-colors line-clamp-2">
+                    {team.shortName}
+                  </span>
                 </div>
               ))}
             </div>
