@@ -1,4 +1,4 @@
-import { Home, Users, Zap, ArrowLeftRight, Building, DollarSign, Trophy, Calendar, Globe, Inbox, Search, Settings } from "lucide-react";
+import { Home, Gamepad2, Users, Zap, ArrowLeftRight, Building, DollarSign, Trophy, Calendar, Globe, Inbox, Search, Settings } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
 import {
@@ -15,6 +15,7 @@ import {
 
 const menuItems = [
   { title: "Dashboard", url: "/dashboard", icon: Home },
+  { title: "Game", url: "/match", icon: Gamepad2 },
   { title: "Squad", url: "/squad", icon: Users },
   { title: "Tactics", url: "/tactics", icon: Zap },
   { title: "Transfers", url: "/transfers", icon: ArrowLeftRight },
