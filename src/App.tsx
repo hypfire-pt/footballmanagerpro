@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { SeasonProvider } from "@/contexts/SeasonContext";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { SaveProvider } from "@/contexts/SaveContext";
+import { GameFlowProvider } from "@/contexts/GameFlowContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { useEffect } from "react";
 import Index from "./pages/Index";
@@ -45,7 +46,8 @@ const App = () => {
           <BrowserRouter>
             <AuthProvider>
               <SaveProvider>
-                <Routes>
+                <GameFlowProvider>
+                  <Routes>
                   <Route path="/" element={<Index />} />
                   <Route path="/auth" element={<AuthPage />} />
                   <Route path="/new-game" element={<ProtectedRoute><NewGamePage /></ProtectedRoute>} />
@@ -64,9 +66,10 @@ const App = () => {
                 <Route path="/options" element={<ProtectedRoute><OptionsPage /></ProtectedRoute>} />
                 <Route path="/league" element={<ProtectedRoute><League /></ProtectedRoute>} />
                 <Route path="/match" element={<ProtectedRoute><PlayMatch /></ProtectedRoute>} />
-                {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-                <Route path="*" element={<NotFound />} />
-              </Routes>
+                  {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+                </GameFlowProvider>
               </SaveProvider>
             </AuthProvider>
           </BrowserRouter>

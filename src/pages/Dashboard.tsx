@@ -4,16 +4,32 @@ import { SquadStatusWidget } from "@/components/widgets/SquadStatusWidget";
 import { LeaguePositionWidget } from "@/components/widgets/LeaguePositionWidget";
 import { RecentResultsWidget } from "@/components/widgets/RecentResultsWidget";
 import { NewsFeedWidget } from "@/components/widgets/NewsFeedWidget";
+import { NextActionPrompt } from "@/components/NextActionPrompt";
 import { useSeason } from "@/contexts/SeasonContext";
+import { useGameFlow } from "@/contexts/GameFlowContext";
+import { useSave } from "@/contexts/SaveContext";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { FastForward, Save, Calendar } from "lucide-react";
 import { europeanTeams } from "@/data/teams";
+import { useNavigate } from "react-router-dom";
 
 const Dashboard = () => {
   const { currentDate, seasonStartDate, currentMatchweek } = useSeason();
+  const { getNextMatchPrompt } = useGameFlow();
+  const { currentSave } = useSave();
+  const navigate = useNavigate();
+  
+  const nextMatch = getNextMatchPrompt();
+
+  const handleContinue = () => {
+    if (nextMatch) {
+      navigate('/calendar');
+    }
+  };
+
   return (
     <DashboardLayout>
       <div className="container mx-auto p-6 space-y-8 animate-fade-in-up">
@@ -26,13 +42,13 @@ const Dashboard = () => {
             </p>
           </div>
           <div className="flex gap-3">
-            <Button variant="outline" size="sm" className="btn-glow hover:border-primary/50 transition-all">
-              <Save className="h-4 w-4 mr-2" />
-              Quick Save
-            </Button>
-            <Button size="sm" className="bg-gradient-gaming border-0 btn-glow font-heading font-semibold">
+            <Button 
+              onClick={handleContinue}
+              size="sm" 
+              className="bg-gradient-gaming border-0 btn-glow font-heading font-semibold"
+            >
               <FastForward className="h-4 w-4 mr-2" />
-              Continue
+              {nextMatch ? 'Next Match' : 'Continue Season'}
             </Button>
           </div>
         </div>
@@ -42,8 +58,12 @@ const Dashboard = () => {
           <NextMatchWidget />
         </div>
 
-        {/* Main Grid - 3 Columns */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Main Grid - 4 Columns with Next Action */}
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+          <div className="lg:col-span-1">
+            <NextActionPrompt />
+          </div>
+          
           <div className="gaming-card animate-fade-in" style={{ animationDelay: '0.1s' }}>
             <SquadStatusWidget />
           </div>

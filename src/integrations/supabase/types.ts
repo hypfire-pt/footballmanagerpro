@@ -20,6 +20,9 @@ export type Database = {
           game_date: string
           id: string
           is_active: boolean
+          last_match_id: string | null
+          next_action: string | null
+          pending_tasks: Json | null
           save_name: string
           season_year: number
           team_id: string
@@ -32,6 +35,9 @@ export type Database = {
           game_date?: string
           id?: string
           is_active?: boolean
+          last_match_id?: string | null
+          next_action?: string | null
+          pending_tasks?: Json | null
           save_name: string
           season_year?: number
           team_id: string
@@ -44,6 +50,9 @@ export type Database = {
           game_date?: string
           id?: string
           is_active?: boolean
+          last_match_id?: string | null
+          next_action?: string | null
+          pending_tasks?: Json | null
           save_name?: string
           season_year?: number
           team_id?: string
@@ -504,30 +513,39 @@ export type Database = {
           created_at: string
           current_game_week: number
           current_matchday: number
+          fixtures_state: Json | null
           id: string
           is_current: boolean
           save_id: string
+          season_current_date: string | null
           season_year: number
+          standings_state: Json | null
           updated_at: string
         }
         Insert: {
           created_at?: string
           current_game_week?: number
           current_matchday?: number
+          fixtures_state?: Json | null
           id?: string
           is_current?: boolean
           save_id: string
+          season_current_date?: string | null
           season_year: number
+          standings_state?: Json | null
           updated_at?: string
         }
         Update: {
           created_at?: string
           current_game_week?: number
           current_matchday?: number
+          fixtures_state?: Json | null
           id?: string
           is_current?: boolean
           save_id?: string
+          season_current_date?: string | null
           season_year?: number
+          standings_state?: Json | null
           updated_at?: string
         }
         Relationships: [
