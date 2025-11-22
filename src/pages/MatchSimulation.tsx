@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Header from "@/components/Header";
+import PitchVisualization from "@/components/PitchVisualization";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -14,9 +15,11 @@ import { toast } from "sonner";
 const MatchSimulation = () => {
   const navigate = useNavigate();
   const [isSimulating, setIsSimulating] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
   const [currentMinute, setCurrentMinute] = useState(0);
   const [result, setResult] = useState<SimulationResult | null>(null);
   const [speed, setSpeed] = useState<'normal' | 'fast' | 'instant'>('normal');
+  const [currentEventIndex, setCurrentEventIndex] = useState(0);
 
   // Create sample lineups (in real app, this would come from state/props)
   const homeLineup: TeamLineup = {
@@ -67,6 +70,7 @@ const MatchSimulation = () => {
 
   const startSimulation = () => {
     setIsSimulating(true);
+    setIsPaused(false);
     toast.success("Match started!");
 
     if (speed === 'instant') {
@@ -75,6 +79,7 @@ const MatchSimulation = () => {
       const simResult = engine.simulate();
       setResult(simResult);
       setCurrentMinute(90);
+      setCurrentEventIndex(simResult.events.length);
       setIsSimulating(false);
       toast.success(`Full Time: ${simResult.homeScore} - ${simResult.awayScore}`);
     } else {
@@ -85,18 +90,26 @@ const MatchSimulation = () => {
 
       const intervalTime = speed === 'fast' ? 100 : 500;
       let minute = 0;
+      let eventIndex = 0;
 
       const interval = setInterval(() => {
+        if (isPaused) return;
+
         minute += 1;
         setCurrentMinute(minute);
 
-        // Show goal notifications
-        const goalsAtMinute = simResult.events.filter(
-          e => e.type === 'goal' && e.minute === minute
-        );
-        goalsAtMinute.forEach(goal => {
-          toast.success(goal.description);
-        });
+        // Update events up to current minute
+        while (eventIndex < simResult.events.length && simResult.events[eventIndex].minute <= minute) {
+          const event = simResult.events[eventIndex];
+          setCurrentEventIndex(eventIndex);
+          
+          // Show goal notifications
+          if (event.type === 'goal') {
+            toast.success(event.description);
+          }
+          
+          eventIndex++;
+        }
 
         if (minute >= 90) {
           clearInterval(interval);
@@ -107,7 +120,13 @@ const MatchSimulation = () => {
     }
   };
 
+  const togglePause = () => {
+    setIsPaused(!isPaused);
+    toast.info(isPaused ? "Match resumed" : "Match paused");
+  };
+
   const eventsUpToCurrentMinute = result?.events.filter(e => e.minute <= currentMinute) || [];
+  const currentEvent = result?.events[currentEventIndex];
 
   const getEventIcon = (type: string) => {
     switch (type) {
@@ -192,48 +211,81 @@ const MatchSimulation = () => {
         </Card>
 
         {/* Controls */}
-        {!result && (
-          <Card className="p-6 mb-6">
-            <div className="flex items-center justify-center gap-4">
-              <div className="flex gap-2">
-                <Button
-                  variant={speed === 'normal' ? 'default' : 'outline'}
-                  onClick={() => setSpeed('normal')}
-                >
-                  Normal
-                </Button>
-                <Button
-                  variant={speed === 'fast' ? 'default' : 'outline'}
-                  onClick={() => setSpeed('fast')}
-                >
-                  Fast
-                </Button>
-                <Button
-                  variant={speed === 'instant' ? 'default' : 'outline'}
-                  onClick={() => setSpeed('instant')}
-                >
-                  Instant
-                </Button>
-              </div>
+        <Card className="p-6 mb-6">
+          <div className="flex items-center justify-center gap-4">
+            {!result && (
+              <>
+                <div className="flex gap-2">
+                  <Button
+                    variant={speed === 'normal' ? 'default' : 'outline'}
+                    onClick={() => setSpeed('normal')}
+                  >
+                    Normal
+                  </Button>
+                  <Button
+                    variant={speed === 'fast' ? 'default' : 'outline'}
+                    onClick={() => setSpeed('fast')}
+                  >
+                    Fast
+                  </Button>
+                  <Button
+                    variant={speed === 'instant' ? 'default' : 'outline'}
+                    onClick={() => setSpeed('instant')}
+                  >
+                    Instant
+                  </Button>
+                </div>
 
+                <Button
+                  onClick={startSimulation}
+                  disabled={isSimulating}
+                  size="lg"
+                  className="gap-2"
+                >
+                  <Play className="h-5 w-5" />
+                  Start Match
+                </Button>
+              </>
+            )}
+
+            {result && isSimulating && currentMinute < 90 && (
               <Button
-                onClick={startSimulation}
-                disabled={isSimulating}
+                onClick={togglePause}
                 size="lg"
+                variant="outline"
                 className="gap-2"
               >
-                <Play className="h-5 w-5" />
-                Start Match
+                {isPaused ? (
+                  <>
+                    <Play className="h-5 w-5" />
+                    Resume
+                  </>
+                ) : (
+                  <>
+                    <Pause className="h-5 w-5" />
+                    Pause
+                  </>
+                )}
               </Button>
-            </div>
-          </Card>
-        )}
+            )}
+          </div>
+        </Card>
 
-        {/* Match Statistics */}
+        {/* Match Visualization & Statistics */}
         {result && (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Pitch Visualization */}
+            <div className="lg:col-span-1">
+              <PitchVisualization
+                homeLineup={homeLineup}
+                awayLineup={awayLineup}
+                currentEvent={currentEvent}
+                currentMinute={currentMinute}
+                isPlaying={isSimulating && !isPaused}
+              />
+            </div>
             {/* Statistics */}
-            <Card className="p-6 lg:col-span-2">
+            <Card className="p-6 lg:col-span-1">
               <h3 className="text-xl font-bold mb-4">Match Statistics</h3>
               
               <div className="space-y-4">
@@ -325,7 +377,7 @@ const MatchSimulation = () => {
             </Card>
 
             {/* Match Events */}
-            <Card className="p-6">
+            <Card className="p-6 lg:col-span-1">
               <h3 className="text-xl font-bold mb-4">Match Events</h3>
               <div className="space-y-3 max-h-[600px] overflow-y-auto">
                 {eventsUpToCurrentMinute.length === 0 ? (
