@@ -11,7 +11,7 @@ import { Switch } from "@/components/ui/switch";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { AlertCircle, User, Lock, LogOut, Calendar, Settings, Palette } from "lucide-react";
+import { AlertCircle, User, Lock, LogOut, Calendar, Settings, Palette, Pencil, Check, X } from "lucide-react";
 import { format } from "date-fns";
 
 const OptionsPage = () => {
@@ -39,6 +39,9 @@ const OptionsPage = () => {
     sidebar_default_collapsed: false,
     animations_enabled: true,
   });
+
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [editedManagerName, setEditedManagerName] = useState("");
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -193,6 +196,62 @@ const OptionsPage = () => {
     setLoading(false);
   };
 
+  const handleEditManagerName = () => {
+    setEditedManagerName(profile?.manager_name || "");
+    setIsEditingName(true);
+  };
+
+  const handleCancelEditName = () => {
+    setIsEditingName(false);
+    setEditedManagerName("");
+  };
+
+  const handleSaveManagerName = async () => {
+    const trimmedName = editedManagerName.trim();
+    
+    if (!trimmedName) {
+      toast({
+        title: "Validation Error",
+        description: "Manager name cannot be empty.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (trimmedName.length > 50) {
+      toast({
+        title: "Validation Error",
+        description: "Manager name must be less than 50 characters.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setLoading(true);
+
+    const { error: updateError } = await supabase
+      .from("profiles")
+      .update({ manager_name: trimmedName })
+      .eq("user_id", user?.id);
+
+    if (updateError) {
+      toast({
+        title: "Error",
+        description: "Failed to update manager name.",
+        variant: "destructive",
+      });
+    } else {
+      setProfile({ ...profile, manager_name: trimmedName });
+      setIsEditingName(false);
+      toast({
+        title: "Manager Name Updated",
+        description: "Your manager name has been updated successfully.",
+      });
+    }
+
+    setLoading(false);
+  };
+
   return (
     <DashboardLayout>
       <div className="container mx-auto p-6 max-w-4xl">
@@ -230,10 +289,46 @@ const OptionsPage = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label className="text-muted-foreground">Manager Name</Label>
-                    <div className="flex items-center gap-2 p-3 bg-muted/50 rounded-md">
-                      <User className="h-4 w-4 text-primary" />
-                      <span className="font-medium">{profile?.manager_name || "Loading..."}</span>
-                    </div>
+                    {isEditingName ? (
+                      <div className="flex items-center gap-2">
+                        <Input
+                          value={editedManagerName}
+                          onChange={(e) => setEditedManagerName(e.target.value)}
+                          placeholder="Enter manager name"
+                          maxLength={50}
+                          disabled={loading}
+                        />
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={handleSaveManagerName}
+                          disabled={loading}
+                        >
+                          <Check className="h-4 w-4 text-primary" />
+                        </Button>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={handleCancelEditName}
+                          disabled={loading}
+                        >
+                          <X className="h-4 w-4 text-muted-foreground" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2 p-3 bg-muted/50 rounded-md">
+                        <User className="h-4 w-4 text-primary" />
+                        <span className="font-medium flex-1">{profile?.manager_name || "Loading..."}</span>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={handleEditManagerName}
+                          className="h-8 w-8"
+                        >
+                          <Pencil className="h-4 w-4 text-muted-foreground" />
+                        </Button>
+                      </div>
+                    )}
                   </div>
 
                   <div className="space-y-2">
