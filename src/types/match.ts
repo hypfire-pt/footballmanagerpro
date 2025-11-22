@@ -62,4 +62,23 @@ export interface SimulationResult {
     home: Record<string, number>;
     away: Record<string, number>;
   };
+  playerPerformance: {
+    home: PlayerPerformanceData[];
+    away: PlayerPerformanceData[];
+  };
+}
+
+export interface PlayerPerformanceData {
+  playerId: string;
+  name: string;
+  position: string;
+  distanceCovered: number;
+  sprints: number;
+  passesCompleted: number;
+  passesAttempted: number;
+  duelsWon: number;
+  duelsAttempted: number;
+  tackles: number;
+  interceptions: number;
+  rating: number;
 }

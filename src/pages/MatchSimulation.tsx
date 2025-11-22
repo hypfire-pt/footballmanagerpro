@@ -3,15 +3,20 @@ import { useNavigate } from "react-router-dom";
 import Header from "@/components/Header";
 import PitchVisualization from "@/components/PitchVisualization";
 import SubstitutionPanel from "@/components/SubstitutionPanel";
+import MatchCommentary from "@/components/MatchCommentary";
+import PlayerPerformanceTracker from "@/components/PlayerPerformanceTracker";
+import TacticalAdjustmentPanel from "@/components/TacticalAdjustmentPanel";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { MatchEngine } from "@/services/matchEngine";
 import { TeamLineup, SimulationResult } from "@/types/match";
 import { mockPlayers } from "@/data/mockData";
-import { Play, Pause, SkipForward, ArrowLeft } from "lucide-react";
-import { toast } from "sonner";
+import { Play, Pause, ArrowLeft, Gauge } from "lucide-react";
+import { toast } from "@/hooks/use-toast";
 
 const MatchSimulation = () => {
   const navigate = useNavigate();
@@ -23,7 +28,10 @@ const MatchSimulation = () => {
   const [currentEventIndex, setCurrentEventIndex] = useState(0);
   const [homeLineupState, setHomeLineupState] = useState<TeamLineup | null>(null);
   const [awayLineupState, setAwayLineupState] = useState<TeamLineup | null>(null);
+  const [showHeatMap, setShowHeatMap] = useState(false);
+  const [momentum, setMomentum] = useState({ home: 50, away: 50 });
   const matchEngineRef = useRef<MatchEngine | null>(null);
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // Create sample lineups (in real app, this would come from state/props)
   const homeLineup: TeamLineup = {
@@ -77,7 +85,9 @@ const MatchSimulation = () => {
     setIsPaused(false);
     setHomeLineupState(homeLineup);
     setAwayLineupState(awayLineup);
-    toast.success("Match started!");
+    toast({
+      title: "Match started!",
+    });
 
     if (speed === 'instant') {
       // Instant simulation
@@ -88,7 +98,10 @@ const MatchSimulation = () => {
       setCurrentMinute(90);
       setCurrentEventIndex(simResult.events.length);
       setIsSimulating(false);
-      toast.success(`Full Time: ${simResult.homeScore} - ${simResult.awayScore}`);
+      toast({
+        title: "Full Time",
+        description: `${simResult.homeScore} - ${simResult.awayScore}`,
+      });
     } else {
       // Animated simulation
       const engine = new MatchEngine(homeLineup, awayLineup);
@@ -100,11 +113,24 @@ const MatchSimulation = () => {
       let minute = 0;
       let eventIndex = 0;
 
-      const interval = setInterval(() => {
+      intervalRef.current = setInterval(() => {
         if (isPaused) return;
 
         minute += 1;
         setCurrentMinute(minute);
+
+        // Calculate momentum based on recent events
+        const recentEvents = simResult.events.filter(e => e.minute >= minute - 5 && e.minute <= minute);
+        const homeEvents = recentEvents.filter(e => e.team === 'home' && ['shot', 'shot_on_target', 'corner'].includes(e.type)).length;
+        const awayEvents = recentEvents.filter(e => e.team === 'away' && ['shot', 'shot_on_target', 'corner'].includes(e.type)).length;
+        const totalEvents = homeEvents + awayEvents;
+        
+        if (totalEvents > 0) {
+          setMomentum({
+            home: Math.min(80, Math.max(20, 50 + ((homeEvents - awayEvents) / totalEvents) * 30)),
+            away: Math.min(80, Math.max(20, 50 + ((awayEvents - homeEvents) / totalEvents) * 30))
+          });
+        }
 
         // Update events up to current minute
         while (eventIndex < simResult.events.length && simResult.events[eventIndex].minute <= minute) {
@@ -113,16 +139,22 @@ const MatchSimulation = () => {
           
           // Show goal notifications
           if (event.type === 'goal') {
-            toast.success(event.description);
+            toast({
+              title: "⚽ GOAL!",
+              description: event.description,
+            });
           }
           
           eventIndex++;
         }
 
         if (minute >= 90) {
-          clearInterval(interval);
+          clearInterval(intervalRef.current!);
           setIsSimulating(false);
-          toast.success(`Full Time: ${simResult.homeScore} - ${simResult.awayScore}`);
+          toast({
+            title: "Full Time",
+            description: `${simResult.homeScore} - ${simResult.awayScore}`,
+          });
         }
       }, intervalTime);
     }
@@ -130,7 +162,50 @@ const MatchSimulation = () => {
 
   const togglePause = () => {
     setIsPaused(!isPaused);
-    toast.info(isPaused ? "Match resumed" : "Match paused");
+    toast({
+      title: isPaused ? "Match resumed" : "Match paused",
+    });
+  };
+
+  const changeSpeed = (newSpeed: 'normal' | 'fast') => {
+    if (!isSimulating || !intervalRef.current) return;
+    
+    setSpeed(newSpeed);
+    
+    // Restart interval with new speed
+    if (result) {
+      clearInterval(intervalRef.current);
+      const intervalTime = newSpeed === 'fast' ? 100 : 500;
+      let minute = currentMinute;
+      let eventIndex = currentEventIndex;
+
+      intervalRef.current = setInterval(() => {
+        if (isPaused) return;
+        minute += 1;
+        setCurrentMinute(minute);
+
+        while (eventIndex < result.events.length && result.events[eventIndex].minute <= minute) {
+          const event = result.events[eventIndex];
+          setCurrentEventIndex(eventIndex);
+          if (event.type === 'goal') {
+            toast({
+              title: "⚽ GOAL!",
+              description: event.description,
+            });
+          }
+          eventIndex++;
+        }
+
+        if (minute >= 90) {
+          clearInterval(intervalRef.current!);
+          setIsSimulating(false);
+        }
+      }, intervalTime);
+    }
+    
+    toast({
+      title: `Speed changed to ${newSpeed}`,
+    });
   };
 
   const handleSubstitution = (team: 'home' | 'away', playerOutId: string, playerInId: string) => {
@@ -146,9 +221,35 @@ const MatchSimulation = () => {
         setAwayLineupState({ ...awayLineupState });
       }
       
-      toast.success("Substitution made!");
+      toast({
+        title: "Substitution made!",
+      });
     } else {
-      toast.error("Substitution failed - no substitutions remaining");
+      toast({
+        title: "Substitution failed",
+        description: "No substitutions remaining",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleTacticsChange = (team: 'home' | 'away', newTactics: any) => {
+    if (!matchEngineRef.current) return;
+
+    matchEngineRef.current.updateTactics(team, newTactics);
+    
+    if (team === 'home' && homeLineupState) {
+      setHomeLineupState({
+        ...homeLineupState,
+        formation: newTactics.formation || homeLineupState.formation,
+        tactics: { ...homeLineupState.tactics, ...newTactics }
+      });
+    } else if (team === 'away' && awayLineupState) {
+      setAwayLineupState({
+        ...awayLineupState,
+        formation: newTactics.formation || awayLineupState.formation,
+        tactics: { ...awayLineupState.tactics, ...newTactics }
+      });
     }
   };
 
@@ -238,62 +339,97 @@ const MatchSimulation = () => {
         </Card>
 
         {/* Controls */}
-        <Card className="p-6 mb-6">
-          <div className="flex items-center justify-center gap-4">
-            {!result && (
-              <>
-                <div className="flex gap-2">
-                  <Button
-                    variant={speed === 'normal' ? 'default' : 'outline'}
-                    onClick={() => setSpeed('normal')}
-                  >
-                    Normal
-                  </Button>
-                  <Button
-                    variant={speed === 'fast' ? 'default' : 'outline'}
-                    onClick={() => setSpeed('fast')}
-                  >
-                    Fast
-                  </Button>
-                  <Button
-                    variant={speed === 'instant' ? 'default' : 'outline'}
-                    onClick={() => setSpeed('instant')}
-                  >
-                    Instant
-                  </Button>
-                </div>
+        <Card className="p-4 mb-6">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              {!result && (
+                <>
+                  <div className="flex gap-2">
+                    <Button
+                      variant={speed === 'normal' ? 'default' : 'outline'}
+                      onClick={() => setSpeed('normal')}
+                      size="sm"
+                    >
+                      Normal
+                    </Button>
+                    <Button
+                      variant={speed === 'fast' ? 'default' : 'outline'}
+                      onClick={() => setSpeed('fast')}
+                      size="sm"
+                    >
+                      Fast
+                    </Button>
+                    <Button
+                      variant={speed === 'instant' ? 'default' : 'outline'}
+                      onClick={() => setSpeed('instant')}
+                      size="sm"
+                    >
+                      Instant
+                    </Button>
+                  </div>
 
-                <Button
-                  onClick={startSimulation}
-                  disabled={isSimulating}
-                  size="lg"
-                  className="gap-2"
-                >
-                  <Play className="h-5 w-5" />
-                  Start Match
-                </Button>
-              </>
-            )}
+                  <Button
+                    onClick={startSimulation}
+                    disabled={isSimulating}
+                    className="gap-2"
+                  >
+                    <Play className="h-4 w-4" />
+                    Start Match
+                  </Button>
+                </>
+              )}
 
-            {result && isSimulating && currentMinute < 90 && (
-              <Button
-                onClick={togglePause}
-                size="lg"
-                variant="outline"
-                className="gap-2"
-              >
-                {isPaused ? (
-                  <>
-                    <Play className="h-5 w-5" />
-                    Resume
-                  </>
-                ) : (
-                  <>
-                    <Pause className="h-5 w-5" />
-                    Pause
-                  </>
-                )}
-              </Button>
+              {result && isSimulating && currentMinute < 90 && (
+                <>
+                  <Button
+                    onClick={togglePause}
+                    size="sm"
+                    variant="outline"
+                    className="gap-2"
+                  >
+                    {isPaused ? (
+                      <>
+                        <Play className="h-4 w-4" />
+                        Resume
+                      </>
+                    ) : (
+                      <>
+                        <Pause className="h-4 w-4" />
+                        Pause
+                      </>
+                    )}
+                  </Button>
+
+                  <div className="flex items-center gap-2 border-l pl-3">
+                    <Gauge className="h-4 w-4 text-muted-foreground" />
+                    <Button
+                      variant={speed === 'normal' ? 'default' : 'outline'}
+                      onClick={() => changeSpeed('normal')}
+                      size="sm"
+                    >
+                      1x
+                    </Button>
+                    <Button
+                      variant={speed === 'fast' ? 'default' : 'outline'}
+                      onClick={() => changeSpeed('fast')}
+                      size="sm"
+                    >
+                      2x
+                    </Button>
+                  </div>
+                </>
+              )}
+            </div>
+
+            {result && (
+              <div className="flex items-center gap-3">
+                <Label htmlFor="heat-map" className="text-sm">Heat Map</Label>
+                <Switch
+                  id="heat-map"
+                  checked={showHeatMap}
+                  onCheckedChange={setShowHeatMap}
+                />
+              </div>
             )}
           </div>
         </Card>
@@ -326,17 +462,19 @@ const MatchSimulation = () => {
 
         {/* Match Visualization & Statistics */}
         {result && (
-          <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
-            {/* Pitch Visualization - Takes 2 columns */}
-            <div className="xl:col-span-2">
-              <PitchVisualization
-                homeLineup={homeLineupState || homeLineup}
-                awayLineup={awayLineupState || awayLineup}
-                currentEvent={currentEvent}
-                currentMinute={currentMinute}
-                isPlaying={isSimulating && !isPaused}
-              />
-            </div>
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
+              {/* Pitch Visualization - Takes 2 columns */}
+              <div className="xl:col-span-2">
+                <PitchVisualization
+                  homeLineup={homeLineupState || homeLineup}
+                  awayLineup={awayLineupState || awayLineup}
+                  currentEvent={currentEvent}
+                  currentMinute={currentMinute}
+                  isPlaying={isSimulating && !isPaused}
+                  showHeatMap={showHeatMap}
+                />
+              </div>
             
             {/* Statistics - Takes 1 column */}
             <Card className="p-6 xl:col-span-1">
@@ -430,8 +568,17 @@ const MatchSimulation = () => {
               </div>
             </Card>
 
-            {/* Substitution Panels */}
             <div className="xl:col-span-1 space-y-4">
+              <TacticalAdjustmentPanel
+                team="home"
+                teamName="Manchester City"
+                currentTactics={{
+                  formation: (homeLineupState || homeLineup).formation,
+                  ...(homeLineupState || homeLineup).tactics
+                }}
+                onTacticsChange={(tactics) => handleTacticsChange('home', tactics)}
+                isMatchRunning={isSimulating && currentMinute < 90}
+              />
               <SubstitutionPanel
                 team="home"
                 teamName="Manchester City"
@@ -440,16 +587,48 @@ const MatchSimulation = () => {
                 substitutionsRemaining={matchEngineRef.current?.getSubstitutionsRemaining('home') || 5}
                 isMatchRunning={isSimulating && currentMinute < 90}
               />
-              <SubstitutionPanel
-                team="away"
-                teamName="Arsenal"
-                players={(awayLineupState || awayLineup).players}
-                onSubstitute={(out, in_) => handleSubstitution('away', out, in_)}
-                substitutionsRemaining={matchEngineRef.current?.getSubstitutionsRemaining('away') || 5}
-                isMatchRunning={isSimulating && currentMinute < 90}
-              />
             </div>
           </div>
+
+          {/* Commentary and Performance */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+            <MatchCommentary
+              events={eventsUpToCurrentMinute}
+              currentMinute={currentMinute}
+              homeTeam="Manchester City"
+              awayTeam="Arsenal"
+              momentum={momentum}
+            />
+            <PlayerPerformanceTracker
+              homeTeam="Manchester City"
+              awayTeam="Arsenal"
+              homePlayers={result.playerPerformance.home}
+              awayPlayers={result.playerPerformance.away}
+            />
+          </div>
+
+          {/* Tactical Adjustment for Away Team */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+            <TacticalAdjustmentPanel
+              team="away"
+              teamName="Arsenal"
+              currentTactics={{
+                formation: (awayLineupState || awayLineup).formation,
+                ...(awayLineupState || awayLineup).tactics
+              }}
+              onTacticsChange={(tactics) => handleTacticsChange('away', tactics)}
+              isMatchRunning={isSimulating && currentMinute < 90}
+            />
+            <SubstitutionPanel
+              team="away"
+              teamName="Arsenal"
+              players={(awayLineupState || awayLineup).players}
+              onSubstitute={(out, in_) => handleSubstitution('away', out, in_)}
+              substitutionsRemaining={matchEngineRef.current?.getSubstitutionsRemaining('away') || 5}
+              isMatchRunning={isSimulating && currentMinute < 90}
+            />
+          </div>
+        </div>
         )}
 
         {/* Full Match Timeline */}
