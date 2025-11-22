@@ -101,6 +101,28 @@ const TacticsPage = () => {
 
   const allPlayers = getTeamPlayers("man-city");
 
+  // Helper function to get role for position
+  const getRoleForPosition = (position: string) => {
+    const roles: Record<string, string> = {
+      GK: "Sweeper Keeper",
+      CB: "Ball Playing Defender",
+      LB: "Wing Back",
+      RB: "Wing Back",
+      LWB: "Complete Wing Back",
+      RWB: "Complete Wing Back",
+      CDM: "Deep Lying Playmaker",
+      CM: "Box to Box",
+      CAM: "Advanced Playmaker",
+      LM: "Winger",
+      RM: "Winger",
+      LW: "Inside Forward",
+      RW: "Inside Forward",
+      ST: "Advanced Forward",
+      CF: "False Nine",
+    };
+    return roles[position] || "Support";
+  };
+
   // Assign players to positions
   const assignedPlayers = useMemo(() => {
     const formation = formations[selectedFormation];
@@ -145,27 +167,6 @@ const TacticsPage = () => {
       };
     });
   }, [selectedFormation, allPlayers]);
-
-  const getRoleForPosition = (position: string) => {
-    const roles: Record<string, string> = {
-      GK: "Sweeper Keeper",
-      CB: "Ball Playing Defender",
-      LB: "Wing Back",
-      RB: "Wing Back",
-      LWB: "Complete Wing Back",
-      RWB: "Complete Wing Back",
-      CDM: "Deep Lying Playmaker",
-      CM: "Box to Box",
-      CAM: "Advanced Playmaker",
-      LM: "Winger",
-      RM: "Winger",
-      LW: "Inside Forward",
-      RW: "Inside Forward",
-      ST: "Advanced Forward",
-      CF: "False Nine",
-    };
-    return roles[position] || "Support";
-  };
 
   const getMentalityLabel = (value: number) => {
     if (value < 20) return "Very Defensive";
