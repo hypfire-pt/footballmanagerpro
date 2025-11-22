@@ -271,11 +271,37 @@ const MatchSimulation = () => {
           </div>
         </Card>
 
+        {/* Recent Match Events */}
+        {result && eventsUpToCurrentMinute.length > 0 && (
+          <Card className="p-4 mb-6">
+            <h3 className="text-lg font-bold mb-3">Latest Events</h3>
+            <div className="flex gap-3 overflow-x-auto pb-2">
+              {eventsUpToCurrentMinute.slice(-5).reverse().map((event) => (
+                <div
+                  key={event.id}
+                  className={`flex-shrink-0 flex items-center gap-2 px-4 py-2 rounded-lg min-w-[200px] ${
+                    event.type === 'goal' ? 'bg-pitch-green/20 border border-pitch-green' : 'bg-muted'
+                  }`}
+                >
+                  <Badge variant="outline" className="w-10 justify-center flex-shrink-0">
+                    {event.minute}'
+                  </Badge>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">
+                      {getEventIcon(event.type)} {event.description}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Card>
+        )}
+
         {/* Match Visualization & Statistics */}
         {result && (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Pitch Visualization */}
-            <div className="lg:col-span-1">
+            {/* Pitch Visualization - Takes 2 columns */}
+            <div className="lg:col-span-2">
               <PitchVisualization
                 homeLineup={homeLineup}
                 awayLineup={awayLineup}
@@ -284,7 +310,8 @@ const MatchSimulation = () => {
                 isPlaying={isSimulating && !isPaused}
               />
             </div>
-            {/* Statistics */}
+            
+            {/* Statistics - Takes 1 column */}
             <Card className="p-6 lg:col-span-1">
               <h3 className="text-xl font-bold mb-4">Match Statistics</h3>
               
@@ -375,44 +402,40 @@ const MatchSimulation = () => {
                 </div>
               </div>
             </Card>
-
-            {/* Match Events */}
-            <Card className="p-6 lg:col-span-1">
-              <h3 className="text-xl font-bold mb-4">Match Events</h3>
-              <div className="space-y-3 max-h-[600px] overflow-y-auto">
-                {eventsUpToCurrentMinute.length === 0 ? (
-                  <p className="text-sm text-muted-foreground text-center py-8">
-                    No events yet...
-                  </p>
-                ) : (
-                  eventsUpToCurrentMinute.map((event) => (
-                    <div
-                      key={event.id}
-                      className={`flex gap-3 p-3 rounded-lg ${
-                        event.type === 'goal' ? 'bg-pitch-green/10' : 'bg-muted/30'
-                      }`}
-                    >
-                      <div className="flex-shrink-0">
-                        <Badge variant="outline" className="w-12 justify-center">
-                          {event.minute}'
-                        </Badge>
-                      </div>
-                      <div className="flex-1">
-                        <p className="text-sm font-medium">
-                          {getEventIcon(event.type)} {event.description}
-                        </p>
-                        {event.additionalInfo && (
-                          <p className="text-xs text-muted-foreground mt-1">
-                            {event.additionalInfo}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            </Card>
           </div>
+        )}
+
+        {/* Full Match Timeline */}
+        {result && eventsUpToCurrentMinute.length > 0 && (
+          <Card className="p-6 mt-6">
+            <h3 className="text-xl font-bold mb-4">Full Match Timeline</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 max-h-[400px] overflow-y-auto">
+              {eventsUpToCurrentMinute.map((event) => (
+                <div
+                  key={event.id}
+                  className={`flex gap-2 p-3 rounded-lg ${
+                    event.type === 'goal' ? 'bg-pitch-green/10 border border-pitch-green/30' : 'bg-muted/30'
+                  }`}
+                >
+                  <div className="flex-shrink-0">
+                    <Badge variant="outline" className="w-10 justify-center">
+                      {event.minute}'
+                    </Badge>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium">
+                      {getEventIcon(event.type)} {event.description}
+                    </p>
+                    {event.additionalInfo && (
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {event.additionalInfo}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Card>
         )}
       </main>
     </div>
