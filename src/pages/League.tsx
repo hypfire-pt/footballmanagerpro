@@ -1,12 +1,14 @@
 import { DashboardLayout } from "@/components/DashboardLayout";
 import LeagueTable from "@/components/LeagueTable";
-import { mockStandings } from "@/data/mockData";
 import { europeanLeagues } from "@/data/leagues";
-import { europeanTeams, Team } from "@/data/teams";
+import { europeanTeams } from "@/data/teams";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useSeason } from "@/contexts/SeasonContext";
 
 const League = () => {
+  const { leagueStandings } = useSeason();
+  
   // Get Premier League teams
   const premierLeague = europeanLeagues.find(l => l.id === "premier-league");
   const premierLeagueTeams = europeanTeams.filter(t => t.leagueId === "premier-league");
@@ -30,7 +32,7 @@ const League = () => {
           </TabsList>
 
           <TabsContent value="table">
-            <LeagueTable standings={mockStandings} />
+            <LeagueTable standings={leagueStandings} />
 
             <div className="mt-8 p-4 bg-muted/30 rounded-lg border border-border">
               <div className="flex gap-6 text-sm flex-wrap">

@@ -23,8 +23,14 @@ import { useSeason } from "@/contexts/SeasonContext";
 const PlayMatch = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { advanceDate } = useSeason();
+  const { advanceDate, processMatchResult } = useSeason();
   const fixture = location.state?.fixture;
+  
+  const homeTeamName = fixture?.homeTeam || "Manchester City";
+  const awayTeamName = fixture?.awayTeam || "Liverpool";
+  const matchId = fixture?.id || "1";
+  const competition = fixture?.competition || "Premier League";
+  const [matchEnded, setMatchEnded] = useState(false);
   
   const [isSimulating, setIsSimulating] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
@@ -105,19 +111,17 @@ const PlayMatch = () => {
       setCurrentMinute(90);
       setCurrentEventIndex(simResult.events.length);
       setIsSimulating(false);
+      setMatchEnded(true);
       
-      if (fixture) {
-        const matchDate = new Date(fixture.date);
-        const today = new Date();
-        const daysToAdvance = Math.ceil((matchDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)) + 1;
-        if (daysToAdvance > 0) {
-          advanceDate(daysToAdvance);
-        }
-      }
+      // Process match result to update standings and fixtures
+      processMatchResult(matchId, homeTeamName, awayTeamName, simResult);
+      
+      // Advance calendar by 1 day
+      advanceDate(1);
       
       toast({
         title: "⏱️ Full Time",
-        description: `Final Score: ${simResult.homeScore} - ${simResult.awayScore}`,
+        description: `Final Score: ${homeTeamName} ${simResult.homeScore} - ${simResult.awayScore} ${awayTeamName}`,
       });
     } else {
       const engine = new MatchEngine(homeLineup, awayLineup, stadiumCapacity, homeReputation);
@@ -164,19 +168,17 @@ const PlayMatch = () => {
         if (minute >= 90) {
           clearInterval(intervalRef.current!);
           setIsSimulating(false);
+          setMatchEnded(true);
           
-          if (fixture) {
-            const matchDate = new Date(fixture.date);
-            const today = new Date();
-            const daysToAdvance = Math.ceil((matchDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)) + 1;
-            if (daysToAdvance > 0) {
-              advanceDate(daysToAdvance);
-            }
-          }
+          // Process match result to update standings and fixtures
+          processMatchResult(matchId, homeTeamName, awayTeamName, simResult);
+          
+          // Advance calendar by 1 day
+          advanceDate(1);
           
           toast({
             title: "⏱️ Full Time",
-            description: `Final Score: ${simResult.homeScore} - ${simResult.awayScore}`,
+            description: `Final Score: ${homeTeamName} ${simResult.homeScore} - ${simResult.awayScore} ${awayTeamName}`,
           });
         }
       }, intervalTime);
@@ -226,19 +228,17 @@ const PlayMatch = () => {
       if (minute >= 90) {
         clearInterval(intervalRef.current!);
         setIsSimulating(false);
+        setMatchEnded(true);
         
-        if (fixture) {
-          const matchDate = new Date(fixture.date);
-          const today = new Date();
-          const daysToAdvance = Math.ceil((matchDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)) + 1;
-          if (daysToAdvance > 0) {
-            advanceDate(daysToAdvance);
-          }
-        }
+        // Process match result to update standings and fixtures
+        processMatchResult(matchId, homeTeamName, awayTeamName, result);
+        
+        // Advance calendar by 1 day
+        advanceDate(1);
         
         toast({
           title: "⏱️ Full Time",
-          description: `Final Score: ${result.homeScore} - ${result.awayScore}`,
+          description: `Final Score: ${homeTeamName} ${result.homeScore} - ${result.awayScore} ${awayTeamName}`,
         });
       }
     }, intervalTime);
@@ -308,9 +308,6 @@ const PlayMatch = () => {
     e => e.type === 'goal' && e.team === 'away'
   ).length;
 
-  const homeTeamName = fixture?.homeTeam || "Manchester City";
-  const awayTeamName = fixture?.awayTeam || "Arsenal";
-  const competition = fixture?.competition || "Premier League";
   const matchweek = fixture?.matchweek || 29;
 
   return (
@@ -450,7 +447,7 @@ const PlayMatch = () => {
                 </>
               )}
               
-              {result && currentMinute >= 90 && (
+              {result && matchEnded && (
                 <Button
                   onClick={() => navigate('/calendar')}
                   className="gap-2"
