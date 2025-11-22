@@ -7,6 +7,8 @@ import MatchCommentary from "@/components/MatchCommentary";
 import PlayerPerformanceTracker from "@/components/PlayerPerformanceTracker";
 import TacticalAdjustmentPanel from "@/components/TacticalAdjustmentPanel";
 import CrowdAtmosphere from "@/components/CrowdAtmosphere";
+import { MatchEventNotification } from "@/components/MatchEventNotification";
+import { MomentumVisualizer } from "@/components/MomentumVisualizer";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -14,7 +16,7 @@ import { Progress } from "@/components/ui/progress";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { MatchEngine } from "@/services/matchEngine";
-import { TeamLineup, SimulationResult } from "@/types/match";
+import { TeamLineup, SimulationResult, MatchEvent } from "@/types/match";
 import { mockPlayers } from "@/data/mockData";
 import { Play, Pause, ArrowLeft, Gauge, CheckCircle } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
@@ -44,6 +46,7 @@ const PlayMatch = () => {
   const [momentum, setMomentum] = useState({ home: 50, away: 50 });
   const [stadiumCapacity] = useState(60000);
   const [homeReputation] = useState(85);
+  const [activeEventNotifications, setActiveEventNotifications] = useState<MatchEvent[]>([]);
   const matchEngineRef = useRef<MatchEngine | null>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -155,11 +158,9 @@ const PlayMatch = () => {
           const event = simResult.events[eventIndex];
           setCurrentEventIndex(eventIndex);
           
-          if (event.type === 'goal') {
-            toast({
-              title: "⚽ GOAL!",
-              description: event.description,
-            });
+          // Show animated notification for important events
+          if (['goal', 'yellow_card', 'red_card', 'shot_on_target', 'substitution'].includes(event.type)) {
+            setActiveEventNotifications(prev => [...prev, event]);
           }
           
           eventIndex++;
@@ -211,19 +212,17 @@ const PlayMatch = () => {
       minute += newSpeed === 'fast' ? 2 : 1;
       setCurrentMinute(minute);
 
-      while (eventIndex < result.events.length && result.events[eventIndex].minute <= minute) {
-        const event = result.events[eventIndex];
-        setCurrentEventIndex(eventIndex);
-        
-        if (event.type === 'goal') {
-          toast({
-            title: "⚽ GOAL!",
-            description: event.description,
-          });
+        while (eventIndex < result.events.length && result.events[eventIndex].minute <= minute) {
+          const event = result.events[eventIndex];
+          setCurrentEventIndex(eventIndex);
+          
+          // Show animated notification for important events
+          if (['goal', 'yellow_card', 'red_card', 'shot_on_target', 'substitution'].includes(event.type)) {
+            setActiveEventNotifications(prev => [...prev, event]);
+          }
+          
+          eventIndex++;
         }
-        
-        eventIndex++;
-      }
 
       if (minute >= 90) {
         clearInterval(intervalRef.current!);
@@ -310,63 +309,79 @@ const PlayMatch = () => {
 
   const matchweek = fixture?.matchweek || 29;
 
+  const handleEventNotificationComplete = (event: MatchEvent) => {
+    setActiveEventNotifications(prev => prev.filter(e => e.id !== event.id));
+  };
+
   return (
     <DashboardLayout>
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 py-8 animate-fade-in-up">
+        {/* Event Notifications */}
+        {activeEventNotifications.map((event, index) => (
+          <div key={event.id} style={{ top: `${6 + index * 5}rem` }}>
+            <MatchEventNotification
+              event={event}
+              homeTeam={homeTeamName}
+              awayTeam={awayTeamName}
+              onComplete={() => handleEventNotificationComplete(event)}
+            />
+          </div>
+        ))}
+
         <div className="mb-6 flex items-center justify-between">
           <Button
             variant="ghost"
             onClick={() => navigate('/calendar')}
-            className="gap-2"
+            className="gap-2 btn-glow"
           >
             <ArrowLeft className="h-4 w-4" />
             Back to Calendar
           </Button>
         </div>
 
-        <Card className="p-6 mb-6">
+        <Card className="glass gaming-card p-6 mb-6 border-border/50">
           <div className="text-center mb-4">
             <Badge variant="outline" className="mb-2">{competition}</Badge>
-            <p className="text-sm text-muted-foreground">Matchweek {matchweek}</p>
+            <p className="text-sm text-muted-foreground font-medium">Matchweek {matchweek}</p>
           </div>
 
           <div className="flex items-center justify-between max-w-2xl mx-auto">
             <div className="flex-1 text-right">
-              <h2 className="text-2xl font-bold mb-2">{homeTeamName}</h2>
+              <h2 className="text-3xl font-heading font-bold mb-2 gradient-text">{homeTeamName}</h2>
               <p className="text-sm text-muted-foreground">4-2-3-1 • Balanced</p>
             </div>
 
             <div className="px-8">
               {result ? (
                 <div className="text-center">
-                  <p className="text-5xl font-bold">
+                  <p className="score-display">
                     {currentHomeScore} - {currentAwayScore}
                   </p>
-                  <p className="text-sm text-muted-foreground mt-2">
+                  <p className="text-sm text-muted-foreground mt-2 font-semibold">
                     {currentMinute < 90 ? `${currentMinute}'` : "FT"}
                   </p>
                 </div>
               ) : (
                 <div className="text-center">
-                  <p className="text-4xl font-bold text-muted-foreground">vs</p>
+                  <p className="text-4xl font-heading font-bold text-muted-foreground">vs</p>
                 </div>
               )}
             </div>
 
             <div className="flex-1 text-left">
-              <h2 className="text-2xl font-bold mb-2">{awayTeamName}</h2>
+              <h2 className="text-3xl font-heading font-bold mb-2 gradient-text">{awayTeamName}</h2>
               <p className="text-sm text-muted-foreground">4-4-2 • Defensive</p>
             </div>
           </div>
 
           {result && (
             <div className="mt-6">
-              <Progress value={(currentMinute / 90) * 100} className="h-2" />
+              <Progress value={(currentMinute / 90) * 100} className="h-3 bg-muted/30" />
             </div>
           )}
         </Card>
 
-        <Card className="p-4 mb-6">
+        <Card className="glass gaming-card p-4 mb-6 border-border/50">
           <div className="flex items-center justify-between gap-4 flex-wrap">
             <div className="flex items-center gap-3 flex-wrap">
               {!result && (
@@ -376,6 +391,7 @@ const PlayMatch = () => {
                       variant={speed === 'normal' ? 'default' : 'outline'}
                       onClick={() => setSpeed('normal')}
                       size="sm"
+                      className="font-heading"
                     >
                       Normal
                     </Button>
@@ -383,6 +399,7 @@ const PlayMatch = () => {
                       variant={speed === 'fast' ? 'default' : 'outline'}
                       onClick={() => setSpeed('fast')}
                       size="sm"
+                      className="font-heading"
                     >
                       Fast
                     </Button>
@@ -390,6 +407,7 @@ const PlayMatch = () => {
                       variant={speed === 'instant' ? 'default' : 'outline'}
                       onClick={() => setSpeed('instant')}
                       size="sm"
+                      className="font-heading"
                     >
                       Instant
                     </Button>
@@ -398,7 +416,7 @@ const PlayMatch = () => {
                   <Button
                     onClick={startSimulation}
                     disabled={isSimulating}
-                    className="gap-2"
+                    className="gap-2 btn-glow font-heading"
                   >
                     <Play className="h-4 w-4" />
                     Play Match
@@ -520,6 +538,17 @@ const PlayMatch = () => {
           </div>
 
           <div className="space-y-6">
+            {/* Momentum Visualizer */}
+            {result && isSimulating && (
+              <MomentumVisualizer
+                homeTeam={homeTeamName}
+                awayTeam={awayTeamName}
+                homeMomentum={momentum.home}
+                awayMomentum={momentum.away}
+                currentMinute={currentMinute}
+              />
+            )}
+
             <PlayerPerformanceTracker
               homeTeam={homeTeamName}
               awayTeam={awayTeamName}
