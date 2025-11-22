@@ -10,6 +10,9 @@ export class MatchEngine {
   private awaySubstitutionsUsed: number = 0;
   private maxSubstitutions: number = 5;
   private playerPerformance: Map<string, any> = new Map();
+  private homeAdvantage: number = 0;
+  private stadiumCapacity: number = 60000;
+  private homeReputation: number = 80;
   private stats: MatchStats = {
     possession: { home: 50, away: 50 },
     shots: { home: 0, away: 0 },
@@ -23,10 +26,24 @@ export class MatchEngine {
     passAccuracy: { home: 0, away: 0 },
   };
 
-  constructor(homeLineup: TeamLineup, awayLineup: TeamLineup) {
+  constructor(homeLineup: TeamLineup, awayLineup: TeamLineup, stadiumCapacity: number = 60000, homeReputation: number = 80) {
     this.homeLineup = homeLineup;
     this.awayLineup = awayLineup;
+    this.stadiumCapacity = stadiumCapacity;
+    this.homeReputation = homeReputation;
+    this.calculateHomeAdvantage();
     this.initializePlayerPerformance();
+  }
+
+  private calculateHomeAdvantage(): void {
+    // Home advantage based on stadium capacity and reputation
+    const capacityFactor = Math.min(10, this.stadiumCapacity / 6000);
+    const reputationFactor = Math.min(10, this.homeReputation / 8);
+    this.homeAdvantage = (capacityFactor + reputationFactor) / 2;
+  }
+
+  public getHomeAdvantage(): number {
+    return this.homeAdvantage;
   }
 
   private initializePlayerPerformance(): void {
@@ -56,7 +73,7 @@ export class MatchEngine {
   }
 
   // Calculate team strength based on players and tactics
-  private calculateTeamStrength(lineup: TeamLineup, aspect: 'attack' | 'midfield' | 'defense'): number {
+  private calculateTeamStrength(lineup: TeamLineup, aspect: 'attack' | 'midfield' | 'defense', isHome: boolean = false): number {
     const players = lineup.players;
     let strength = 0;
 
@@ -80,6 +97,11 @@ export class MatchEngine {
     if (aspect === 'midfield' && tactics.tempo === 'fast') strength *= 1.1;
     if (aspect === 'defense' && tactics.pressing === 'high') strength *= 1.1;
 
+    // Apply home advantage
+    if (isHome) {
+      strength *= (1 + this.homeAdvantage / 100);
+    }
+
     return strength / players.length;
   }
 
@@ -97,9 +119,9 @@ export class MatchEngine {
       }
     });
 
-    const attackStrength = this.calculateTeamStrength(attacking, 'attack');
-    const defenseStrength = this.calculateTeamStrength(defending, 'defense');
-    const midfieldControl = this.calculateTeamStrength(attacking, 'midfield');
+    const attackStrength = this.calculateTeamStrength(attacking, 'attack', attackingTeam === 'home');
+    const defenseStrength = this.calculateTeamStrength(defending, 'defense', attackingTeam !== 'home');
+    const midfieldControl = this.calculateTeamStrength(attacking, 'midfield', attackingTeam === 'home');
 
     // Calculate possession influence
     const possessionAdvantage = attackingTeam === 'home' 
@@ -273,8 +295,10 @@ export class MatchEngine {
       this.stats.fouls.away++;
     }
 
-    // Chance of yellow card
-    if (Math.random() < 0.2) {
+    // Referee bias - away team more likely to get cards due to crowd pressure
+    const cardChance = team === 'away' ? 0.25 : 0.15;
+    
+    if (Math.random() < cardChance) {
       if (team === 'home') {
         this.stats.yellowCards.home++;
       } else {
@@ -288,6 +312,7 @@ export class MatchEngine {
         team,
         player: player.name,
         description: `⚠️ Yellow card for ${player.name}`,
+        additionalInfo: team === 'away' ? 'Crowd pressure influences referee decision' : undefined
       });
     } else {
       this.events.push({
@@ -302,8 +327,8 @@ export class MatchEngine {
   }
 
   private calculatePossession(): void {
-    const homeMidfield = this.calculateTeamStrength(this.homeLineup, 'midfield');
-    const awayMidfield = this.calculateTeamStrength(this.awayLineup, 'midfield');
+    const homeMidfield = this.calculateTeamStrength(this.homeLineup, 'midfield', true);
+    const awayMidfield = this.calculateTeamStrength(this.awayLineup, 'midfield', false);
     
     const total = homeMidfield + awayMidfield;
     const homePossession = (homeMidfield / total) * 100;
