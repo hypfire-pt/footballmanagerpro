@@ -47,6 +47,18 @@ export default {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        pitch: {
+          green: "hsl(var(--pitch-green))",
+          dark: "hsl(var(--pitch-dark))",
+        },
+        stat: {
+          gold: "hsl(var(--stat-gold))",
+        },
+        result: {
+          win: "hsl(var(--win-green))",
+          draw: "hsl(var(--draw-yellow))",
+          loss: "hsl(var(--loss-red))",
+        },
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",
           foreground: "hsl(var(--sidebar-foreground))",
