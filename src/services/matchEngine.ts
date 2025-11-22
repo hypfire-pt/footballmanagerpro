@@ -9,6 +9,7 @@ export class MatchEngine {
   private homeSubstitutionsUsed: number = 0;
   private awaySubstitutionsUsed: number = 0;
   private maxSubstitutions: number = 5;
+  private playerPerformance: Map<string, any> = new Map();
   private stats: MatchStats = {
     possession: { home: 50, away: 50 },
     shots: { home: 0, away: 0 },
@@ -25,6 +26,33 @@ export class MatchEngine {
   constructor(homeLineup: TeamLineup, awayLineup: TeamLineup) {
     this.homeLineup = homeLineup;
     this.awayLineup = awayLineup;
+    this.initializePlayerPerformance();
+  }
+
+  private initializePlayerPerformance(): void {
+    [...this.homeLineup.players, ...this.awayLineup.players].forEach(player => {
+      this.playerPerformance.set(player.id, {
+        playerId: player.id,
+        name: player.name,
+        position: player.position,
+        distanceCovered: 0,
+        sprints: 0,
+        passesCompleted: 0,
+        passesAttempted: 0,
+        duelsWon: 0,
+        duelsAttempted: 0,
+        tackles: 0,
+        interceptions: 0,
+        rating: 6.0
+      });
+    });
+  }
+
+  private updatePlayerPerformance(playerId: string, updates: Partial<any>): void {
+    const current = this.playerPerformance.get(playerId);
+    if (current) {
+      this.playerPerformance.set(playerId, { ...current, ...updates });
+    }
   }
 
   // Calculate team strength based on players and tactics
@@ -60,6 +88,15 @@ export class MatchEngine {
     const attacking = attackingTeam === 'home' ? this.homeLineup : this.awayLineup;
     const defending = attackingTeam === 'home' ? this.awayLineup : this.homeLineup;
 
+    // Update player performance - distance and sprints
+    attacking.players.slice(0, 11).forEach(player => {
+      const perf = this.playerPerformance.get(player.id);
+      if (perf) {
+        perf.distanceCovered += Math.random() * 0.05;
+        if (Math.random() < 0.1) perf.sprints++;
+      }
+    });
+
     const attackStrength = this.calculateTeamStrength(attacking, 'attack');
     const defenseStrength = this.calculateTeamStrength(defending, 'defense');
     const midfieldControl = this.calculateTeamStrength(attacking, 'midfield');
@@ -94,6 +131,16 @@ export class MatchEngine {
 
     // Update passes
     const passCount = Math.floor(Math.random() * 8) + 3;
+    const successfulPasses = Math.floor(passCount * (Math.random() * 0.3 + 0.7));
+    
+    // Update player performance for passer
+    const passer = attacking.players[Math.floor(Math.random() * Math.min(11, attacking.players.length))];
+    const perf = this.playerPerformance.get(passer.id);
+    if (perf) {
+      perf.passesAttempted += passCount;
+      perf.passesCompleted += successfulPasses;
+    }
+    
     if (attackingTeam === 'home') {
       this.stats.passes.home += passCount;
     } else {
@@ -213,6 +260,13 @@ export class MatchEngine {
     const defenders = lineup.players.filter(p => ['CB', 'LB', 'RB', 'CDM'].includes(p.position));
     const player = defenders[Math.floor(Math.random() * defenders.length)] || lineup.players[0];
 
+    // Update duel stats
+    const perf = this.playerPerformance.get(player.id);
+    if (perf) {
+      perf.duelsAttempted++;
+      perf.tackles++;
+    }
+
     if (team === 'home') {
       this.stats.fouls.home++;
     } else {
@@ -281,6 +335,8 @@ export class MatchEngine {
       const lineup = team === 'home' ? this.homeLineup : this.awayLineup;
       lineup.players.forEach((player) => {
         let rating = 6.0; // Base rating
+        
+        const perf = this.playerPerformance.get(player.id);
 
         // Bonus for goals
         const goals = this.events.filter(
@@ -296,6 +352,18 @@ export class MatchEngine {
           rating += saves * 0.3;
         }
 
+        // Pass accuracy bonus
+        if (perf && perf.passesAttempted > 0) {
+          const accuracy = perf.passesCompleted / perf.passesAttempted;
+          rating += (accuracy - 0.7) * 2;
+        }
+
+        // Duel success bonus
+        if (perf && perf.duelsAttempted > 0) {
+          const success = perf.duelsWon / perf.duelsAttempted;
+          rating += (success - 0.5) * 1.5;
+        }
+
         // Penalty for yellow cards
         const yellows = this.events.filter(
           e => e.type === 'yellow_card' && e.team === team && e.player === player.name
@@ -305,7 +373,13 @@ export class MatchEngine {
         // Add some randomness based on overall
         rating += (Math.random() - 0.5) * 1.5 + (player.overall / 100);
 
-        ratings[team][player.name] = Math.max(4.0, Math.min(10.0, rating));
+        const finalRating = Math.max(4.0, Math.min(10.0, rating));
+        ratings[team][player.name] = finalRating;
+        
+        // Update performance rating
+        if (perf) {
+          perf.rating = finalRating;
+        }
       });
     });
 
@@ -397,12 +471,29 @@ export class MatchEngine {
     this.calculatePassAccuracy();
     const playerRatings = this.calculatePlayerRatings();
 
+    // Compile player performance
+    const homePerformance = this.homeLineup.players.slice(0, 11).map(p => 
+      this.playerPerformance.get(p.id)!
+    );
+    const awayPerformance = this.awayLineup.players.slice(0, 11).map(p => 
+      this.playerPerformance.get(p.id)!
+    );
+
     return {
       homeScore: this.homeScore,
       awayScore: this.awayScore,
       events: this.events.sort((a, b) => a.minute - b.minute),
       stats: this.stats,
       playerRatings,
+      playerPerformance: {
+        home: homePerformance,
+        away: awayPerformance
+      }
     };
+  }
+
+  public updateTactics(team: 'home' | 'away', newTactics: Partial<TeamLineup['tactics']>): void {
+    const lineup = team === 'home' ? this.homeLineup : this.awayLineup;
+    lineup.tactics = { ...lineup.tactics, ...newTactics };
   }
 }

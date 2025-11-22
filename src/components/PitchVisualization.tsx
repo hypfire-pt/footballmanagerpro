@@ -8,6 +8,7 @@ interface PitchVisualizationProps {
   currentEvent?: MatchEvent;
   currentMinute: number;
   isPlaying: boolean;
+  showHeatMap?: boolean;
 }
 
 interface PlayerPosition {
@@ -27,6 +28,12 @@ interface DynamicPlayerPosition extends PlayerPosition {
   currentY: number;
 }
 
+interface HeatMapPoint {
+  x: number;
+  y: number;
+  intensity: number;
+}
+
 interface BallPosition {
   x: number;
   y: number;
@@ -38,12 +45,14 @@ const PitchVisualization = ({
   awayLineup, 
   currentEvent,
   currentMinute,
-  isPlaying 
+  isPlaying,
+  showHeatMap = false
 }: PitchVisualizationProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [ballPosition, setBallPosition] = useState<BallPosition>({ x: 50, y: 50, visible: true });
   const [activePlayer, setActivePlayer] = useState<string | null>(null);
   const [dynamicPositions, setDynamicPositions] = useState<Map<string, DynamicPlayerPosition>>(new Map());
+  const [heatMapData, setHeatMapData] = useState<Map<string, HeatMapPoint[]>>(new Map());
   const animationRef = useRef<number>();
   const movementAnimationRef = useRef<number>();
 
@@ -252,6 +261,31 @@ const PitchVisualization = ({
     ctx.fill();
   };
 
+  const drawHeatMap = (
+    ctx: CanvasRenderingContext2D,
+    width: number,
+    height: number
+  ) => {
+    if (!showHeatMap) return;
+
+    heatMapData.forEach((points, playerId) => {
+      points.forEach(point => {
+        const pixelX = (point.x / 100) * width;
+        const pixelY = (point.y / 100) * height;
+        
+        // Draw heat point with gradient
+        const gradient = ctx.createRadialGradient(pixelX, pixelY, 0, pixelX, pixelY, 20);
+        gradient.addColorStop(0, `rgba(255, 100, 0, ${point.intensity * 0.3})`);
+        gradient.addColorStop(1, 'rgba(255, 100, 0, 0)');
+        
+        ctx.fillStyle = gradient;
+        ctx.beginPath();
+        ctx.arc(pixelX, pixelY, 20, 0, Math.PI * 2);
+        ctx.fill();
+      });
+    });
+  };
+
   const animateBallMovement = (
     from: { x: number; y: number },
     to: { x: number; y: number },
@@ -428,9 +462,24 @@ const PitchVisualization = ({
         playerPos.currentY += (targetY - playerPos.currentY) * speed;
         playerPos.x = playerPos.currentX;
         playerPos.y = playerPos.currentY;
+
+        // Record position for heat map
+        const heatPoints = heatMapData.get(playerId) || [];
+        heatPoints.push({
+          x: playerPos.x,
+          y: playerPos.y,
+          intensity: Math.random() * 0.5 + 0.5
+        });
+        
+        // Keep only recent points (last 50)
+        if (heatPoints.length > 50) {
+          heatPoints.shift();
+        }
+        heatMapData.set(playerId, heatPoints);
       });
 
       setDynamicPositions(new Map(newPositions));
+      setHeatMapData(new Map(heatMapData));
       movementAnimationRef.current = requestAnimationFrame(animateMovement);
     };
 
@@ -456,6 +505,11 @@ const PitchVisualization = ({
 
     // Draw pitch
     drawPitch(ctx, width, height);
+
+    // Draw heat map first (behind players)
+    if (showHeatMap) {
+      drawHeatMap(ctx, width, height);
+    }
 
     // Draw players using dynamic positions
     if (dynamicPositions.size > 0 && isPlaying) {
@@ -526,7 +580,7 @@ const PitchVisualization = ({
     ctx.fillText(`${currentMinute}'`, 20, 30);
     ctx.font = '12px Arial';
     ctx.fillText(isPlaying ? '⚽ LIVE' : '⏸ PAUSED', 20, 45);
-  }, [homeLineup, awayLineup, ballPosition, activePlayer, currentMinute, isPlaying, dynamicPositions]);
+  }, [homeLineup, awayLineup, ballPosition, activePlayer, currentMinute, isPlaying, dynamicPositions, showHeatMap, heatMapData]);
 
   return (
     <Card className="p-4 overflow-hidden">
@@ -539,10 +593,18 @@ const PitchVisualization = ({
           style={{ maxWidth: '100%', height: 'auto' }}
         />
         
-        {currentEvent && (
+        {currentEvent && !showHeatMap && (
           <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/80 text-white px-4 py-2 rounded-lg animate-fade-in">
             <p className="text-sm font-semibold text-center">
               {currentEvent.description}
+            </p>
+          </div>
+        )}
+
+        {showHeatMap && (
+          <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-black/80 text-white px-4 py-2 rounded-lg">
+            <p className="text-xs font-semibold text-center">
+              🔥 Heat Map View
             </p>
           </div>
         )}
