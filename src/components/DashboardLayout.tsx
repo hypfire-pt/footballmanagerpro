@@ -13,6 +13,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/contexts/AuthContext";
+import { useSave } from "@/contexts/SaveContext";
+import { useNavigate } from "react-router-dom";
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -20,6 +22,8 @@ interface DashboardLayoutProps {
 
 export function DashboardLayout({ children }: DashboardLayoutProps) {
   const { signOut, user } = useAuth();
+  const { currentSave, allSaves, loadSave } = useSave();
+  const navigate = useNavigate();
   
   return (
     <SidebarProvider defaultOpen={true}>
@@ -31,21 +35,72 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
           <header className="h-16 border-b border-border/30 glass-strong flex items-center justify-between px-6 sticky top-0 z-50 backdrop-blur-2xl bg-card/50">
             <div className="flex items-center gap-4">
               <SidebarTrigger className="hover:bg-primary/10 transition-all hover:scale-105" />
-              <div className="flex items-center gap-3">
-                <div className="relative w-10 h-10 bg-gradient-blue rounded-xl flex items-center justify-center shadow-glow ring-2 ring-primary/20">
-                  <span className="text-white font-heading font-bold text-sm drop-shadow-lg">MC</span>
+              
+              {currentSave ? (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button className="flex items-center gap-3 hover:bg-primary/5 p-2 rounded-lg transition-all">
+                      <div className="relative w-10 h-10 bg-gradient-blue rounded-xl flex items-center justify-center shadow-glow ring-2 ring-primary/20">
+                        <span className="text-white font-heading font-bold text-sm drop-shadow-lg">
+                          {currentSave.team_name.substring(0, 2).toUpperCase()}
+                        </span>
+                      </div>
+                      <div className="hidden sm:block text-left">
+                        <p className="font-heading font-semibold text-sm">{currentSave.team_name}</p>
+                        <p className="text-xs text-muted-foreground">Season {currentSave.season_year}</p>
+                      </div>
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" className="w-64">
+                    <DropdownMenuLabel>Your Careers</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    {allSaves.map((save) => (
+                      <DropdownMenuItem
+                        key={save.id}
+                        onClick={() => {
+                          loadSave(save.id);
+                          window.location.reload();
+                        }}
+                        className={save.id === currentSave.id ? "bg-primary/10" : ""}
+                      >
+                        <div className="flex flex-col gap-1">
+                          <span className="font-medium">{save.save_name}</span>
+                          <span className="text-xs text-muted-foreground">{save.team_name}</span>
+                        </div>
+                      </DropdownMenuItem>
+                    ))}
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => navigate("/careers")}>
+                      Manage Careers
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => navigate("/new-game")}>
+                      New Career
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ) : (
+                <div className="flex items-center gap-3">
+                  <div className="relative w-10 h-10 bg-gradient-blue rounded-xl flex items-center justify-center shadow-glow ring-2 ring-primary/20">
+                    <span className="text-white font-heading font-bold text-sm drop-shadow-lg">FM</span>
+                  </div>
+                  <div className="hidden sm:block">
+                    <p className="font-heading font-semibold text-sm">No Career Active</p>
+                    <p className="text-xs text-muted-foreground">Start a new career</p>
+                  </div>
                 </div>
-                <div className="hidden sm:block">
-                  <p className="font-heading font-semibold text-sm">Manchester City</p>
-                  <p className="text-xs text-muted-foreground">Season 2024/25</p>
-                </div>
-              </div>
+              )}
             </div>
 
             <div className="flex items-center gap-3">
-              <Button variant="ghost" size="sm" className="text-xs font-medium hover:bg-primary/10">
-                15 January 2025
-              </Button>
+              {currentSave && (
+                <Button variant="ghost" size="sm" className="text-xs font-medium hover:bg-primary/10">
+                  {new Date(currentSave.game_date).toLocaleDateString('en-GB', { 
+                    day: 'numeric', 
+                    month: 'long', 
+                    year: 'numeric' 
+                  })}
+                </Button>
+              )}
               <Button variant="outline" size="icon" className="relative hover:bg-primary/10 transition-all hover:scale-105">
                 <Bell className="h-4 w-4" />
                 <Badge 
