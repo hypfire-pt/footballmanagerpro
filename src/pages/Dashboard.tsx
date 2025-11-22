@@ -15,66 +15,72 @@ const Dashboard = () => {
   const { currentDate, seasonStartDate, currentMatchweek } = useSeason();
   return (
     <DashboardLayout>
-      <div className="container mx-auto p-6 space-y-6">
-        {/* Page Title & Actions */}
+      <div className="container mx-auto p-6 space-y-8 animate-fade-in-up">
+        {/* Page Title & Actions with Gaming Flair */}
         <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold">Manager Dashboard</h1>
-            <p className="text-muted-foreground">
-              {format(currentDate, "EEEE, MMMM d, yyyy")} • Season {format(seasonStartDate, "yyyy/yy")} • Matchweek {currentMatchweek}
+          <div className="space-y-1">
+            <h1 className="text-4xl font-heading font-bold gradient-text">Manager Dashboard</h1>
+            <p className="text-sm text-muted-foreground font-medium">
+              {format(currentDate, "EEEE, MMMM d, yyyy")} • <span className="text-primary font-semibold">Season {format(seasonStartDate, "yyyy/yy")}</span> • Matchweek {currentMatchweek}
             </p>
           </div>
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm">
+          <div className="flex gap-3">
+            <Button variant="outline" size="sm" className="btn-glow hover:border-primary/50 transition-all">
               <Save className="h-4 w-4 mr-2" />
               Quick Save
             </Button>
-            <Button size="sm">
+            <Button size="sm" className="bg-gradient-gaming border-0 btn-glow font-heading font-semibold">
               <FastForward className="h-4 w-4 mr-2" />
               Continue
             </Button>
           </div>
         </div>
 
-        {/* Next Match - Full Width */}
-        <NextMatchWidget />
+        {/* Next Match - Full Width with Gaming Card */}
+        <div className="gaming-card">
+          <NextMatchWidget />
+        </div>
 
         {/* Main Grid - 3 Columns */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <SquadStatusWidget />
-          <LeaguePositionWidget />
+          <div className="gaming-card animate-fade-in" style={{ animationDelay: '0.1s' }}>
+            <SquadStatusWidget />
+          </div>
+          <div className="gaming-card animate-fade-in" style={{ animationDelay: '0.2s' }}>
+            <LeaguePositionWidget />
+          </div>
           
-          {/* Transfer Activity Widget */}
-          <Card>
+          {/* Transfer Activity Widget with Modern Design */}
+          <Card className="glass gaming-card border-border/50 animate-fade-in" style={{ animationDelay: '0.3s' }}>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                Transfer Activity
+              <CardTitle className="flex items-center gap-2 font-heading">
+                <span className="text-primary">💰</span> Transfer Activity
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="space-y-2">
+              <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium">Offers Received</span>
-                  <Badge>2</Badge>
+                  <span className="text-sm font-semibold">Offers Received</span>
+                  <Badge className="bg-primary/20 text-primary border-primary/30">2</Badge>
                 </div>
-                <div className="text-xs text-muted-foreground pl-4 space-y-1">
-                  <p>• Real Madrid interested in E. Haaland (£150M)</p>
-                  <p>• PSG monitoring B. Silva (£75M)</p>
+                <div className="text-xs text-muted-foreground pl-4 space-y-2 font-medium">
+                  <p className="hover:text-foreground transition-colors cursor-pointer">• Real Madrid interested in E. Haaland <span className="text-stat-gold">£150M</span></p>
+                  <p className="hover:text-foreground transition-colors cursor-pointer">• PSG monitoring B. Silva <span className="text-stat-gold">£75M</span></p>
                 </div>
               </div>
 
-              <div className="space-y-2 pt-2 border-t">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium">Transfer Budget</span>
-                  <span className="text-sm font-bold text-green-600">£180M</span>
+              <div className="space-y-2 pt-3 border-t border-border/50">
+                <div className="flex items-center justify-between stat-card">
+                  <span className="text-sm font-semibold">Transfer Budget</span>
+                  <span className="text-sm font-bold text-result-win">£180M</span>
                 </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium">Wage Budget</span>
-                  <span className="text-sm font-bold">£250k/week</span>
+                <div className="flex items-center justify-between stat-card">
+                  <span className="text-sm font-semibold">Wage Budget</span>
+                  <span className="text-sm font-bold text-primary">£250k/week</span>
                 </div>
               </div>
 
-              <Button variant="outline" className="w-full">
+              <Button variant="outline" className="w-full btn-glow hover:border-primary/50 font-heading font-semibold transition-all">
                 Open Transfer Centre
               </Button>
             </CardContent>
@@ -83,17 +89,23 @@ const Dashboard = () => {
 
         {/* Recent Results & News - 2 Columns */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <RecentResultsWidget />
-          <NewsFeedWidget />
+          <div className="gaming-card animate-slide-in">
+            <RecentResultsWidget />
+          </div>
+          <div className="gaming-card animate-slide-in" style={{ animationDelay: '0.1s' }}>
+            <NewsFeedWidget />
+          </div>
         </div>
 
-        {/* Upcoming Fixtures */}
-        <Card>
+        {/* Upcoming Fixtures with Glass Effect */}
+        <Card className="glass gaming-card border-border/50">
           <CardHeader>
-            <CardTitle>Upcoming Fixtures</CardTitle>
+            <CardTitle className="font-heading flex items-center gap-2">
+              <span className="text-primary">📅</span> Upcoming Fixtures
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-2">
+            <div className="space-y-3">
               {[
                 { date: '17 Jan', comp: 'PL', home: 'Man City', away: 'Arsenal', time: '15:00' },
                 { date: '21 Jan', comp: 'UCL', home: 'Bayern Munich', away: 'Man City', time: '20:00' },
