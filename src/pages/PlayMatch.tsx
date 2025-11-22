@@ -247,7 +247,7 @@ const PlayMatch = () => {
   const handleSubstitution = (playerOut: any, playerIn: any, team: 'home' | 'away') => {
     if (!matchEngineRef.current) return;
 
-    matchEngineRef.current.makeSubstitution(playerOut.id, playerIn.id, team);
+    matchEngineRef.current.makeSubstitution(team, playerOut.id, playerIn.id, currentMinute);
     
     if (team === 'home' && homeLineupState) {
       const updatedPlayers = homeLineupState.players.map(p =>
@@ -504,14 +504,19 @@ const PlayMatch = () => {
                 homeLineup={homeLineupState || homeLineup}
                 awayLineup={awayLineupState || awayLineup}
                 currentEvent={currentEvent}
+                currentMinute={currentMinute}
+                isPlaying={isSimulating && !isPaused}
                 showHeatMap={showHeatMap}
               />
             </Card>
 
             <CrowdAtmosphere
+              homeTeam={homeTeamName}
+              awayTeam={awayTeamName}
+              currentEvent={currentEvent}
+              currentMinute={currentMinute}
               homeScore={currentHomeScore}
               awayScore={currentAwayScore}
-              momentum={momentum}
               stadiumCapacity={stadiumCapacity}
               homeReputation={homeReputation}
             />
@@ -519,25 +524,38 @@ const PlayMatch = () => {
 
           <div className="space-y-6">
             <PlayerPerformanceTracker
-              homeLineup={homeLineupState || homeLineup}
-              awayLineup={awayLineupState || awayLineup}
-              events={eventsUpToCurrentMinute}
+              homeTeam={homeTeamName}
+              awayTeam={awayTeamName}
+              homePlayers={result?.playerPerformance.home || []}
+              awayPlayers={result?.playerPerformance.away || []}
             />
 
             {isSimulating && (
               <>
                 <TacticalAdjustmentPanel
                   team="home"
-                  currentTactics={homeLineupState?.tactics || homeLineup.tactics}
+                  teamName={homeTeamName}
+                  currentTactics={{
+                    formation: homeLineupState?.formation || homeLineup.formation,
+                    ...(homeLineupState?.tactics || homeLineup.tactics)
+                  }}
                   onTacticsChange={(tactics) => handleTacticsChange('home', tactics)}
+                  isMatchRunning={isSimulating}
                 />
 
                 <SubstitutionPanel
                   team="home"
-                  lineup={homeLineupState || homeLineup}
-                  onSubstitution={(playerOut, playerIn) =>
-                    handleSubstitution(playerOut, playerIn, 'home')
-                  }
+                  teamName={homeTeamName}
+                  players={(homeLineupState || homeLineup).players}
+                  onSubstitute={(playerOutId, playerInId) => {
+                    const playerOut = (homeLineupState || homeLineup).players.find(p => p.id === playerOutId);
+                    const playerIn = (homeLineupState || homeLineup).players.find(p => p.id === playerInId);
+                    if (playerOut && playerIn) {
+                      handleSubstitution(playerOut, playerIn, 'home');
+                    }
+                  }}
+                  substitutionsRemaining={3}
+                  isMatchRunning={isSimulating}
                 />
               </>
             )}
@@ -546,7 +564,13 @@ const PlayMatch = () => {
 
         {result && (
           <Card className="mt-6 p-6">
-            <MatchCommentary events={eventsUpToCurrentMinute} />
+            <MatchCommentary 
+              events={eventsUpToCurrentMinute}
+              currentMinute={currentMinute}
+              homeTeam={homeTeamName}
+              awayTeam={awayTeamName}
+              momentum={momentum}
+            />
           </Card>
         )}
       </div>
