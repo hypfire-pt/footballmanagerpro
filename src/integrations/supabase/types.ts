@@ -53,6 +53,39 @@ export type Database = {
         }
         Relationships: []
       }
+      leagues: {
+        Row: {
+          confederation: string
+          country: string
+          created_at: string
+          founded: number
+          id: string
+          name: string
+          reputation: number
+          tier: number
+        }
+        Insert: {
+          confederation: string
+          country: string
+          created_at?: string
+          founded: number
+          id: string
+          name: string
+          reputation: number
+          tier: number
+        }
+        Update: {
+          confederation?: string
+          country?: string
+          created_at?: string
+          founded?: number
+          id?: string
+          name?: string
+          reputation?: number
+          tier?: number
+        }
+        Relationships: []
+      }
       manager_performance: {
         Row: {
           achievements: Json | null
@@ -102,6 +135,95 @@ export type Database = {
             columns: ["save_id"]
             isOneToOne: true
             referencedRelation: "game_saves"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      players: {
+        Row: {
+          age: number
+          contract_expiry: string
+          created_at: string
+          date_of_birth: string
+          defending: number
+          height: number
+          id: string
+          market_value: number
+          mental: number
+          name: string
+          nationality: string
+          overall: number
+          pace: number
+          passing: number
+          physical: number
+          position: string
+          potential: number
+          preferred_foot: string | null
+          shooting: number
+          team_id: string
+          technical: number
+          updated_at: string
+          wage: number
+          weight: number
+        }
+        Insert: {
+          age: number
+          contract_expiry: string
+          created_at?: string
+          date_of_birth: string
+          defending: number
+          height: number
+          id: string
+          market_value: number
+          mental: number
+          name: string
+          nationality: string
+          overall: number
+          pace: number
+          passing: number
+          physical: number
+          position: string
+          potential: number
+          preferred_foot?: string | null
+          shooting: number
+          team_id: string
+          technical: number
+          updated_at?: string
+          wage: number
+          weight: number
+        }
+        Update: {
+          age?: number
+          contract_expiry?: string
+          created_at?: string
+          date_of_birth?: string
+          defending?: number
+          height?: number
+          id?: string
+          market_value?: number
+          mental?: number
+          name?: string
+          nationality?: string
+          overall?: number
+          pace?: number
+          passing?: number
+          physical?: number
+          position?: string
+          potential?: number
+          preferred_foot?: string | null
+          shooting?: number
+          team_id?: string
+          technical?: number
+          updated_at?: string
+          wage?: number
+          weight?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "players_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
             referencedColumns: ["id"]
           },
         ]
@@ -296,6 +418,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "fk_save_players_player_id"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "players"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "save_players_save_id_fkey"
             columns: ["save_id"]
             isOneToOne: false
@@ -409,6 +538,62 @@ export type Database = {
             columns: ["season_id"]
             isOneToOne: false
             referencedRelation: "save_seasons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      teams: {
+        Row: {
+          balance: number
+          capacity: number
+          country: string
+          created_at: string
+          founded: number | null
+          id: string
+          league_id: string
+          name: string
+          primary_color: string
+          reputation: number
+          secondary_color: string
+          short_name: string | null
+          stadium: string
+        }
+        Insert: {
+          balance?: number
+          capacity: number
+          country: string
+          created_at?: string
+          founded?: number | null
+          id: string
+          league_id: string
+          name: string
+          primary_color: string
+          reputation: number
+          secondary_color: string
+          short_name?: string | null
+          stadium: string
+        }
+        Update: {
+          balance?: number
+          capacity?: number
+          country?: string
+          created_at?: string
+          founded?: number | null
+          id?: string
+          league_id?: string
+          name?: string
+          primary_color?: string
+          reputation?: number
+          secondary_color?: string
+          short_name?: string | null
+          stadium?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "teams_league_id_fkey"
+            columns: ["league_id"]
+            isOneToOne: false
+            referencedRelation: "leagues"
             referencedColumns: ["id"]
           },
         ]

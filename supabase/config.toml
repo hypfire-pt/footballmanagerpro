@@ -1,1 +1,4 @@
 project_id = "tjukbsdfuuqnvbcxetph"
+
+[functions.seed-game-data]
+verify_jwt = false
