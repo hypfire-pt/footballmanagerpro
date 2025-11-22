@@ -6,6 +6,7 @@ import SubstitutionPanel from "@/components/SubstitutionPanel";
 import MatchCommentary from "@/components/MatchCommentary";
 import PlayerPerformanceTracker from "@/components/PlayerPerformanceTracker";
 import TacticalAdjustmentPanel from "@/components/TacticalAdjustmentPanel";
+import CrowdAtmosphere from "@/components/CrowdAtmosphere";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -30,6 +31,8 @@ const MatchSimulation = () => {
   const [awayLineupState, setAwayLineupState] = useState<TeamLineup | null>(null);
   const [showHeatMap, setShowHeatMap] = useState(false);
   const [momentum, setMomentum] = useState({ home: 50, away: 50 });
+  const [stadiumCapacity] = useState(60000);
+  const [homeReputation] = useState(85);
   const matchEngineRef = useRef<MatchEngine | null>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -91,7 +94,7 @@ const MatchSimulation = () => {
 
     if (speed === 'instant') {
       // Instant simulation
-      const engine = new MatchEngine(homeLineup, awayLineup);
+      const engine = new MatchEngine(homeLineup, awayLineup, stadiumCapacity, homeReputation);
       matchEngineRef.current = engine;
       const simResult = engine.simulate();
       setResult(simResult);
@@ -104,7 +107,7 @@ const MatchSimulation = () => {
       });
     } else {
       // Animated simulation
-      const engine = new MatchEngine(homeLineup, awayLineup);
+      const engine = new MatchEngine(homeLineup, awayLineup, stadiumCapacity, homeReputation);
       matchEngineRef.current = engine;
       const simResult = engine.simulate();
       setResult(simResult);
@@ -591,13 +594,23 @@ const MatchSimulation = () => {
           </div>
 
           {/* Commentary and Performance */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
             <MatchCommentary
               events={eventsUpToCurrentMinute}
               currentMinute={currentMinute}
               homeTeam="Manchester City"
               awayTeam="Arsenal"
               momentum={momentum}
+            />
+            <CrowdAtmosphere
+              homeTeam="Manchester City"
+              awayTeam="Arsenal"
+              currentEvent={currentEvent}
+              currentMinute={currentMinute}
+              homeScore={currentHomeScore}
+              awayScore={currentAwayScore}
+              stadiumCapacity={stadiumCapacity}
+              homeReputation={homeReputation}
             />
             <PlayerPerformanceTracker
               homeTeam="Manchester City"
