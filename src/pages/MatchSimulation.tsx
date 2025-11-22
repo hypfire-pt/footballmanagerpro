@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import Header from "@/components/Header";
 import PitchVisualization from "@/components/PitchVisualization";
+import SubstitutionPanel from "@/components/SubstitutionPanel";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -20,6 +21,9 @@ const MatchSimulation = () => {
   const [result, setResult] = useState<SimulationResult | null>(null);
   const [speed, setSpeed] = useState<'normal' | 'fast' | 'instant'>('normal');
   const [currentEventIndex, setCurrentEventIndex] = useState(0);
+  const [homeLineupState, setHomeLineupState] = useState<TeamLineup | null>(null);
+  const [awayLineupState, setAwayLineupState] = useState<TeamLineup | null>(null);
+  const matchEngineRef = useRef<MatchEngine | null>(null);
 
   // Create sample lineups (in real app, this would come from state/props)
   const homeLineup: TeamLineup = {
@@ -71,11 +75,14 @@ const MatchSimulation = () => {
   const startSimulation = () => {
     setIsSimulating(true);
     setIsPaused(false);
+    setHomeLineupState(homeLineup);
+    setAwayLineupState(awayLineup);
     toast.success("Match started!");
 
     if (speed === 'instant') {
       // Instant simulation
       const engine = new MatchEngine(homeLineup, awayLineup);
+      matchEngineRef.current = engine;
       const simResult = engine.simulate();
       setResult(simResult);
       setCurrentMinute(90);
@@ -85,6 +92,7 @@ const MatchSimulation = () => {
     } else {
       // Animated simulation
       const engine = new MatchEngine(homeLineup, awayLineup);
+      matchEngineRef.current = engine;
       const simResult = engine.simulate();
       setResult(simResult);
 
@@ -123,6 +131,25 @@ const MatchSimulation = () => {
   const togglePause = () => {
     setIsPaused(!isPaused);
     toast.info(isPaused ? "Match resumed" : "Match paused");
+  };
+
+  const handleSubstitution = (team: 'home' | 'away', playerOutId: string, playerInId: string) => {
+    if (!matchEngineRef.current || !result) return;
+
+    const success = matchEngineRef.current.makeSubstitution(team, playerOutId, playerInId, currentMinute);
+    
+    if (success) {
+      // Update lineup state
+      if (team === 'home' && homeLineupState) {
+        setHomeLineupState({ ...homeLineupState });
+      } else if (team === 'away' && awayLineupState) {
+        setAwayLineupState({ ...awayLineupState });
+      }
+      
+      toast.success("Substitution made!");
+    } else {
+      toast.error("Substitution failed - no substitutions remaining");
+    }
   };
 
   const eventsUpToCurrentMinute = result?.events.filter(e => e.minute <= currentMinute) || [];
@@ -299,12 +326,12 @@ const MatchSimulation = () => {
 
         {/* Match Visualization & Statistics */}
         {result && (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
             {/* Pitch Visualization - Takes 2 columns */}
-            <div className="lg:col-span-2">
+            <div className="xl:col-span-2">
               <PitchVisualization
-                homeLineup={homeLineup}
-                awayLineup={awayLineup}
+                homeLineup={homeLineupState || homeLineup}
+                awayLineup={awayLineupState || awayLineup}
                 currentEvent={currentEvent}
                 currentMinute={currentMinute}
                 isPlaying={isSimulating && !isPaused}
@@ -312,7 +339,7 @@ const MatchSimulation = () => {
             </div>
             
             {/* Statistics - Takes 1 column */}
-            <Card className="p-6 lg:col-span-1">
+            <Card className="p-6 xl:col-span-1">
               <h3 className="text-xl font-bold mb-4">Match Statistics</h3>
               
               <div className="space-y-4">
@@ -402,6 +429,26 @@ const MatchSimulation = () => {
                 </div>
               </div>
             </Card>
+
+            {/* Substitution Panels */}
+            <div className="xl:col-span-1 space-y-4">
+              <SubstitutionPanel
+                team="home"
+                teamName="Manchester City"
+                players={(homeLineupState || homeLineup).players}
+                onSubstitute={(out, in_) => handleSubstitution('home', out, in_)}
+                substitutionsRemaining={matchEngineRef.current?.getSubstitutionsRemaining('home') || 5}
+                isMatchRunning={isSimulating && currentMinute < 90}
+              />
+              <SubstitutionPanel
+                team="away"
+                teamName="Arsenal"
+                players={(awayLineupState || awayLineup).players}
+                onSubstitute={(out, in_) => handleSubstitution('away', out, in_)}
+                substitutionsRemaining={matchEngineRef.current?.getSubstitutionsRemaining('away') || 5}
+                isMatchRunning={isSimulating && currentMinute < 90}
+              />
+            </div>
           </div>
         )}
 

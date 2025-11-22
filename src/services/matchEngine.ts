@@ -6,6 +6,9 @@ export class MatchEngine {
   private events: MatchEvent[] = [];
   private homeScore: number = 0;
   private awayScore: number = 0;
+  private homeSubstitutionsUsed: number = 0;
+  private awaySubstitutionsUsed: number = 0;
+  private maxSubstitutions: number = 5;
   private stats: MatchStats = {
     possession: { home: 50, away: 50 },
     shots: { home: 0, away: 0 },
@@ -307,6 +310,66 @@ export class MatchEngine {
     });
 
     return ratings;
+  }
+
+  public makeSubstitution(
+    team: 'home' | 'away',
+    playerOutId: string,
+    playerInId: string,
+    minute: number
+  ): boolean {
+    const lineup = team === 'home' ? this.homeLineup : this.awayLineup;
+    const subsUsed = team === 'home' ? this.homeSubstitutionsUsed : this.awaySubstitutionsUsed;
+
+    // Check substitution limit
+    if (subsUsed >= this.maxSubstitutions) {
+      return false;
+    }
+
+    // Find players
+    const playerOutIndex = lineup.players.findIndex(p => p.id === playerOutId);
+    const playerInIndex = lineup.players.findIndex(p => p.id === playerInId);
+
+    if (playerOutIndex === -1 || playerInIndex === -1) {
+      return false;
+    }
+
+    // Don't allow substituting bench players
+    if (playerOutIndex > 10) {
+      return false;
+    }
+
+    // Swap players in lineup
+    const playerOut = lineup.players[playerOutIndex];
+    const playerIn = lineup.players[playerInIndex];
+    
+    [lineup.players[playerOutIndex], lineup.players[playerInIndex]] = 
+    [lineup.players[playerInIndex], lineup.players[playerOutIndex]];
+
+    // Add substitution event
+    this.events.push({
+      id: `event_${Date.now()}_${Math.random()}`,
+      minute,
+      type: 'substitution',
+      team,
+      playerOut: playerOut.name,
+      playerIn: playerIn.name,
+      description: `🔄 Substitution: ${playerIn.name} replaces ${playerOut.name}`,
+    });
+
+    // Increment substitution count
+    if (team === 'home') {
+      this.homeSubstitutionsUsed++;
+    } else {
+      this.awaySubstitutionsUsed++;
+    }
+
+    return true;
+  }
+
+  public getSubstitutionsRemaining(team: 'home' | 'away'): number {
+    const used = team === 'home' ? this.homeSubstitutionsUsed : this.awaySubstitutionsUsed;
+    return this.maxSubstitutions - used;
   }
 
   public simulate(): SimulationResult {
