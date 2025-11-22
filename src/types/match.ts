@@ -4,8 +4,17 @@ export interface MatchEvent {
   type: 'goal' | 'shot' | 'shot_on_target' | 'save' | 'foul' | 'yellow_card' | 'red_card' | 'substitution' | 'corner' | 'offside';
   team: 'home' | 'away';
   player?: string;
+  playerOut?: string;
+  playerIn?: string;
   description: string;
   additionalInfo?: string;
+}
+
+export interface PlayerMovement {
+  playerId: string;
+  targetX: number;
+  targetY: number;
+  speed: number;
 }
 
 export interface MatchStats {
