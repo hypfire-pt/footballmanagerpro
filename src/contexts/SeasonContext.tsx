@@ -1,5 +1,9 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
-import { addDays, startOfMonth, format } from "date-fns";
+import { addDays } from "date-fns";
+import { LeagueStanding, Match } from "@/types/game";
+import { SimulationResult } from "@/types/match";
+import { MatchResultProcessor } from "@/services/matchResultProcessor";
+import { mockStandings, mockMatches } from "@/data/mockData";
 
 interface SeasonContextType {
   currentDate: Date;
@@ -8,6 +12,14 @@ interface SeasonContextType {
   advanceDate: (days: number) => void;
   resetSeason: () => void;
   currentMatchweek: number;
+  leagueStandings: LeagueStanding[];
+  fixtures: Match[];
+  processMatchResult: (
+    matchId: string,
+    homeTeam: string,
+    awayTeam: string,
+    result: SimulationResult
+  ) => void;
 }
 
 const SeasonContext = createContext<SeasonContextType | undefined>(undefined);
@@ -37,11 +49,26 @@ export function SeasonProvider({ children }: { children: React.ReactNode }) {
     (currentDate.getTime() - seasonStartDate.getTime()) / (7 * 24 * 60 * 60 * 1000)
   ) + 1;
 
-  // Save to localStorage whenever date changes
+  // Load or initialize league standings and fixtures
+  const [leagueStandings, setLeagueStandings] = useState<LeagueStanding[]>(() => {
+    const saved = MatchResultProcessor.loadFromLocalStorage();
+    return saved.standings || mockStandings;
+  });
+
+  const [fixtures, setFixtures] = useState<Match[]>(() => {
+    const saved = MatchResultProcessor.loadFromLocalStorage();
+    return saved.fixtures || mockMatches;
+  });
+
+  // Save to localStorage whenever data changes
   useEffect(() => {
     localStorage.setItem("seasonCurrentDate", currentDate.toISOString());
     localStorage.setItem("seasonStartDate", seasonStartDate.toISOString());
   }, [currentDate, seasonStartDate]);
+
+  useEffect(() => {
+    MatchResultProcessor.saveToLocalStorage(leagueStandings, fixtures, []);
+  }, [leagueStandings, fixtures]);
 
   const advanceDate = (days: number) => {
     setCurrentDate(prev => addDays(prev, days));
@@ -50,8 +77,32 @@ export function SeasonProvider({ children }: { children: React.ReactNode }) {
   const resetSeason = () => {
     const newStart = getCurrentSeasonStart();
     setCurrentDate(newStart);
+    setLeagueStandings(mockStandings);
+    setFixtures(mockMatches);
     localStorage.setItem("seasonStartDate", newStart.toISOString());
     localStorage.setItem("seasonCurrentDate", newStart.toISOString());
+    localStorage.removeItem('leagueStandings');
+    localStorage.removeItem('fixtures');
+    localStorage.removeItem('playerStats');
+  };
+
+  const processMatchResult = (
+    matchId: string,
+    homeTeam: string,
+    awayTeam: string,
+    result: SimulationResult
+  ) => {
+    const processed = MatchResultProcessor.processMatchResult(
+      matchId,
+      homeTeam,
+      awayTeam,
+      result,
+      leagueStandings,
+      fixtures
+    );
+
+    setLeagueStandings(processed.updatedStandings);
+    setFixtures(processed.updatedFixtures);
   };
 
   return (
@@ -62,7 +113,10 @@ export function SeasonProvider({ children }: { children: React.ReactNode }) {
         seasonEndDate,
         advanceDate,
         resetSeason,
-        currentMatchweek
+        currentMatchweek,
+        leagueStandings,
+        fixtures,
+        processMatchResult
       }}
     >
       {children}

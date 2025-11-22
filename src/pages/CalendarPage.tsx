@@ -15,25 +15,20 @@ import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 
 const CalendarPage = () => {
-  const { currentDate, seasonStartDate, advanceDate, currentMatchweek } = useSeason();
+  const { currentDate, seasonStartDate, advanceDate, currentMatchweek, fixtures } = useSeason();
   const [selectedDate, setSelectedDate] = useState<Date>(currentDate);
   const [viewMonth, setViewMonth] = useState<Date>(currentDate);
   const navigate = useNavigate();
   const { toast } = useToast();
   
-  const allFixtures = useMemo(() => {
-    const premierLeague = europeanLeagues.find(l => l.id === "premier-league");
-    const premierLeagueTeams = europeanTeams.filter(t => t.leagueId === "premier-league");
-    
-    if (!premierLeague || premierLeagueTeams.length === 0) return [];
-    
-    return generateLeagueFixtures(
-      premierLeagueTeams,
-      seasonStartDate,
-      premierLeague.id,
-      premierLeague.name
-    );
-  }, [seasonStartDate]);
+  const allFixtures: Fixture[] = useMemo(() => 
+    fixtures.map(f => ({
+      ...f,
+      matchweek: Math.floor((new Date(f.date).getTime() - seasonStartDate.getTime()) / (7 * 24 * 60 * 60 * 1000)) + 1,
+      importance: 'medium' as const
+    })),
+    [fixtures, seasonStartDate]
+  );
   
   const selectedDateFixtures = useMemo(() => 
     getFixturesForDate(allFixtures, selectedDate),
@@ -187,16 +182,31 @@ const CalendarPage = () => {
                             </Badge>
                           </div>
                           
-                          <div className="text-sm space-y-1">
+                           <div className="text-sm space-y-1">
                             <div className="font-bold">{fixture.homeTeam}</div>
-                            <div className="text-xs text-muted-foreground">vs</div>
+                            {fixture.status === 'finished' ? (
+                              <div className="text-center py-1">
+                                <span className="font-bold text-lg">{fixture.homeScore} - {fixture.awayScore}</span>
+                                <div className="text-xs text-muted-foreground">FT</div>
+                              </div>
+                            ) : (
+                              <div className="text-xs text-muted-foreground">vs</div>
+                            )}
                             <div className="font-bold">{fixture.awayTeam}</div>
                           </div>
                           
-                          <Button onClick={() => handleSimulateMatch(fixture)} className="w-full gap-2" size="sm">
-                            <Play className="h-3 w-3" />
-                            Simulate
-                          </Button>
+                          {fixture.status === 'scheduled' && (
+                            <Button onClick={() => handleSimulateMatch(fixture)} className="w-full gap-2" size="sm">
+                              <Play className="h-3 w-3" />
+                              Simulate
+                            </Button>
+                          )}
+                          
+                          {fixture.status === 'finished' && (
+                            <Badge variant="secondary" className="w-full justify-center">
+                              Completed
+                            </Badge>
+                          )}
                         </div>
                       </Card>
                     ))}
@@ -221,7 +231,7 @@ const CalendarPage = () => {
                       </div>
                       
                       <div className="font-bold text-lg">
-                        {fixture.homeTeam} vs {fixture.awayTeam}
+                        {fixture.homeTeam} {fixture.status === 'finished' ? `${fixture.homeScore} - ${fixture.awayScore}` : 'vs'} {fixture.awayTeam}
                       </div>
                       
                       <div className="text-sm text-muted-foreground">
@@ -229,10 +239,16 @@ const CalendarPage = () => {
                       </div>
                     </div>
                     
-                    <Button onClick={() => handleSimulateMatch(fixture)} className="gap-2">
-                      <Play className="h-4 w-4" />
-                      Simulate
-                    </Button>
+                    {fixture.status === 'scheduled' && (
+                      <Button onClick={() => handleSimulateMatch(fixture)} className="gap-2">
+                        <Play className="h-4 w-4" />
+                        Simulate
+                      </Button>
+                    )}
+                    
+                    {fixture.status === 'finished' && (
+                      <Badge variant="secondary">Completed</Badge>
+                    )}
                   </div>
                 </Card>
               ))}
@@ -261,7 +277,11 @@ const CalendarPage = () => {
                           </div>
                           <div className="flex items-center justify-between gap-2 text-sm">
                             <span className="font-medium truncate">{f.homeTeam}</span>
-                            <span className="text-xs">vs</span>
+                            {f.status === 'finished' ? (
+                              <span className="text-xs font-bold">{f.homeScore}-{f.awayScore}</span>
+                            ) : (
+                              <span className="text-xs">vs</span>
+                            )}
                             <span className="font-medium truncate">{f.awayTeam}</span>
                           </div>
                         </Card>
