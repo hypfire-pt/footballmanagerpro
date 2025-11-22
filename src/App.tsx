@@ -6,9 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { SeasonProvider } from "@/contexts/SeasonContext";
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
-import Squad from "./pages/Squad";
 import SquadPage from "./pages/SquadPage";
-import Tactics from "./pages/Tactics";
 import TacticsPage from "./pages/TacticsPage";
 import TransfersPage from "./pages/TransfersPage";
 import ClubPage from "./pages/ClubPage";
@@ -36,9 +34,7 @@ const App = () => (
           <Route path="/" element={<Index />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/squad" element={<SquadPage />} />
-          <Route path="/squad-old" element={<Squad />} />
           <Route path="/tactics" element={<TacticsPage />} />
-          <Route path="/tactics-old" element={<Tactics />} />
           <Route path="/transfers" element={<TransfersPage />} />
           <Route path="/club" element={<ClubPage />} />
           <Route path="/finances" element={<FinancesPage />} />
