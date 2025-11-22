@@ -230,13 +230,29 @@ export type Database = {
       }
       profiles: {
         Row: {
+          allow_data_collection: boolean | null
           animations_enabled: boolean | null
+          auto_save_frequency: string | null
           avatar_url: string | null
+          color_blind_mode: string | null
+          commentary_volume: number | null
           created_at: string
+          default_dashboard_view: string | null
+          email_notifications: boolean | null
+          font_size: string | null
+          high_contrast_mode: boolean | null
           id: string
+          in_game_alerts: boolean | null
           manager_name: string
+          master_volume: number | null
           match_speed_default: string | null
+          music_volume: number | null
+          mute_all: boolean | null
+          notification_sound: boolean | null
           preferred_language: string | null
+          profile_visibility: string | null
+          reduce_motion: boolean | null
+          sfx_volume: number | null
           sidebar_default_collapsed: boolean | null
           theme_mode: string | null
           tutorial_hints_enabled: boolean | null
@@ -245,13 +261,29 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          allow_data_collection?: boolean | null
           animations_enabled?: boolean | null
+          auto_save_frequency?: string | null
           avatar_url?: string | null
+          color_blind_mode?: string | null
+          commentary_volume?: number | null
           created_at?: string
+          default_dashboard_view?: string | null
+          email_notifications?: boolean | null
+          font_size?: string | null
+          high_contrast_mode?: boolean | null
           id?: string
+          in_game_alerts?: boolean | null
           manager_name: string
+          master_volume?: number | null
           match_speed_default?: string | null
+          music_volume?: number | null
+          mute_all?: boolean | null
+          notification_sound?: boolean | null
           preferred_language?: string | null
+          profile_visibility?: string | null
+          reduce_motion?: boolean | null
+          sfx_volume?: number | null
           sidebar_default_collapsed?: boolean | null
           theme_mode?: string | null
           tutorial_hints_enabled?: boolean | null
@@ -260,13 +292,29 @@ export type Database = {
           user_id: string
         }
         Update: {
+          allow_data_collection?: boolean | null
           animations_enabled?: boolean | null
+          auto_save_frequency?: string | null
           avatar_url?: string | null
+          color_blind_mode?: string | null
+          commentary_volume?: number | null
           created_at?: string
+          default_dashboard_view?: string | null
+          email_notifications?: boolean | null
+          font_size?: string | null
+          high_contrast_mode?: boolean | null
           id?: string
+          in_game_alerts?: boolean | null
           manager_name?: string
+          master_volume?: number | null
           match_speed_default?: string | null
+          music_volume?: number | null
+          mute_all?: boolean | null
+          notification_sound?: boolean | null
           preferred_language?: string | null
+          profile_visibility?: string | null
+          reduce_motion?: boolean | null
+          sfx_volume?: number | null
           sidebar_default_collapsed?: boolean | null
           theme_mode?: string | null
           tutorial_hints_enabled?: boolean | null
