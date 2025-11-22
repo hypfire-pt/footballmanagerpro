@@ -14,7 +14,405 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      game_saves: {
+        Row: {
+          created_at: string
+          game_date: string
+          id: string
+          is_active: boolean
+          save_name: string
+          season_year: number
+          team_id: string
+          team_name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          game_date?: string
+          id?: string
+          is_active?: boolean
+          save_name: string
+          season_year?: number
+          team_id: string
+          team_name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          game_date?: string
+          id?: string
+          is_active?: boolean
+          save_name?: string
+          season_year?: number
+          team_id?: string
+          team_name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      manager_performance: {
+        Row: {
+          achievements: Json | null
+          created_at: string
+          draws: number
+          id: string
+          losses: number
+          matches_managed: number
+          overall_rating: number
+          save_id: string
+          tenure_days: number
+          trophies_won: number
+          updated_at: string
+          wins: number
+        }
+        Insert: {
+          achievements?: Json | null
+          created_at?: string
+          draws?: number
+          id?: string
+          losses?: number
+          matches_managed?: number
+          overall_rating?: number
+          save_id: string
+          tenure_days?: number
+          trophies_won?: number
+          updated_at?: string
+          wins?: number
+        }
+        Update: {
+          achievements?: Json | null
+          created_at?: string
+          draws?: number
+          id?: string
+          losses?: number
+          matches_managed?: number
+          overall_rating?: number
+          save_id?: string
+          tenure_days?: number
+          trophies_won?: number
+          updated_at?: string
+          wins?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "manager_performance_save_id_fkey"
+            columns: ["save_id"]
+            isOneToOne: true
+            referencedRelation: "game_saves"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          id: string
+          manager_name: string
+          preferred_language: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          id?: string
+          manager_name: string
+          preferred_language?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          id?: string
+          manager_name?: string
+          preferred_language?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      save_finances: {
+        Row: {
+          balance: number
+          created_at: string
+          id: string
+          save_id: string
+          total_expenses: number
+          total_revenue: number
+          transfer_budget: number
+          updated_at: string
+          wage_budget: number
+        }
+        Insert: {
+          balance?: number
+          created_at?: string
+          id?: string
+          save_id: string
+          total_expenses?: number
+          total_revenue?: number
+          transfer_budget?: number
+          updated_at?: string
+          wage_budget?: number
+        }
+        Update: {
+          balance?: number
+          created_at?: string
+          id?: string
+          save_id?: string
+          total_expenses?: number
+          total_revenue?: number
+          transfer_budget?: number
+          updated_at?: string
+          wage_budget?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "save_finances_save_id_fkey"
+            columns: ["save_id"]
+            isOneToOne: true
+            referencedRelation: "game_saves"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      save_matches: {
+        Row: {
+          away_score: number | null
+          away_team_id: string
+          away_team_name: string
+          competition: string
+          created_at: string
+          home_score: number | null
+          home_team_id: string
+          home_team_name: string
+          id: string
+          match_data: Json | null
+          match_date: string
+          season_id: string
+          status: string
+          tactical_setup: Json | null
+          updated_at: string
+        }
+        Insert: {
+          away_score?: number | null
+          away_team_id: string
+          away_team_name: string
+          competition: string
+          created_at?: string
+          home_score?: number | null
+          home_team_id: string
+          home_team_name: string
+          id?: string
+          match_data?: Json | null
+          match_date: string
+          season_id: string
+          status?: string
+          tactical_setup?: Json | null
+          updated_at?: string
+        }
+        Update: {
+          away_score?: number | null
+          away_team_id?: string
+          away_team_name?: string
+          competition?: string
+          created_at?: string
+          home_score?: number | null
+          home_team_id?: string
+          home_team_name?: string
+          id?: string
+          match_data?: Json | null
+          match_date?: string
+          season_id?: string
+          status?: string
+          tactical_setup?: Json | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "save_matches_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "save_seasons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      save_players: {
+        Row: {
+          appearances: number
+          assists: number
+          average_rating: number | null
+          created_at: string
+          fitness: number
+          form: number
+          goals: number
+          id: string
+          morale: number
+          player_id: string
+          red_cards: number
+          save_id: string
+          team_id: string
+          updated_at: string
+          yellow_cards: number
+        }
+        Insert: {
+          appearances?: number
+          assists?: number
+          average_rating?: number | null
+          created_at?: string
+          fitness?: number
+          form?: number
+          goals?: number
+          id?: string
+          morale?: number
+          player_id: string
+          red_cards?: number
+          save_id: string
+          team_id: string
+          updated_at?: string
+          yellow_cards?: number
+        }
+        Update: {
+          appearances?: number
+          assists?: number
+          average_rating?: number | null
+          created_at?: string
+          fitness?: number
+          form?: number
+          goals?: number
+          id?: string
+          morale?: number
+          player_id?: string
+          red_cards?: number
+          save_id?: string
+          team_id?: string
+          updated_at?: string
+          yellow_cards?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "save_players_save_id_fkey"
+            columns: ["save_id"]
+            isOneToOne: false
+            referencedRelation: "game_saves"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      save_seasons: {
+        Row: {
+          created_at: string
+          current_game_week: number
+          current_matchday: number
+          id: string
+          is_current: boolean
+          save_id: string
+          season_year: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          current_game_week?: number
+          current_matchday?: number
+          id?: string
+          is_current?: boolean
+          save_id: string
+          season_year: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          current_game_week?: number
+          current_matchday?: number
+          id?: string
+          is_current?: boolean
+          save_id?: string
+          season_year?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "save_seasons_save_id_fkey"
+            columns: ["save_id"]
+            isOneToOne: false
+            referencedRelation: "game_saves"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      save_standings: {
+        Row: {
+          created_at: string
+          drawn: number
+          form: Json | null
+          goal_difference: number
+          goals_against: number
+          goals_for: number
+          id: string
+          league_id: string
+          lost: number
+          played: number
+          points: number
+          position: number
+          season_id: string
+          team_id: string
+          team_name: string
+          updated_at: string
+          won: number
+        }
+        Insert: {
+          created_at?: string
+          drawn?: number
+          form?: Json | null
+          goal_difference?: number
+          goals_against?: number
+          goals_for?: number
+          id?: string
+          league_id: string
+          lost?: number
+          played?: number
+          points?: number
+          position: number
+          season_id: string
+          team_id: string
+          team_name: string
+          updated_at?: string
+          won?: number
+        }
+        Update: {
+          created_at?: string
+          drawn?: number
+          form?: Json | null
+          goal_difference?: number
+          goals_against?: number
+          goals_for?: number
+          id?: string
+          league_id?: string
+          lost?: number
+          played?: number
+          points?: number
+          position?: number
+          season_id?: string
+          team_id?: string
+          team_name?: string
+          updated_at?: string
+          won?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "save_standings_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "save_seasons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
