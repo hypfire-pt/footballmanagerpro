@@ -4,12 +4,15 @@ import { SquadStatusWidget } from "@/components/widgets/SquadStatusWidget";
 import { LeaguePositionWidget } from "@/components/widgets/LeaguePositionWidget";
 import { RecentResultsWidget } from "@/components/widgets/RecentResultsWidget";
 import { NewsFeedWidget } from "@/components/widgets/NewsFeedWidget";
+import { useSeason } from "@/contexts/SeasonContext";
+import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { FastForward, Save } from "lucide-react";
+import { FastForward, Save, Calendar } from "lucide-react";
 
 const Dashboard = () => {
+  const { currentDate, seasonStartDate, currentMatchweek } = useSeason();
   return (
     <DashboardLayout>
       <div className="container mx-auto p-6 space-y-6">
@@ -17,7 +20,9 @@ const Dashboard = () => {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold">Manager Dashboard</h1>
-            <p className="text-muted-foreground">Welcome back, Manager</p>
+            <p className="text-muted-foreground">
+              {format(currentDate, "EEEE, MMMM d, yyyy")} • Season {format(seasonStartDate, "yyyy/yy")} • Matchweek {currentMatchweek}
+            </p>
           </div>
           <div className="flex gap-2">
             <Button variant="outline" size="sm">
