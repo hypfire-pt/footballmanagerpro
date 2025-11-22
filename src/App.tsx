@@ -4,8 +4,11 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { SeasonProvider } from "@/contexts/SeasonContext";
+import { AuthProvider } from "@/contexts/AuthContext";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { useEffect } from "react";
 import Index from "./pages/Index";
+import AuthPage from "./pages/AuthPage";
 import Dashboard from "./pages/Dashboard";
 import SquadPage from "./pages/SquadPage";
 import TacticsPage from "./pages/TacticsPage";
@@ -37,27 +40,30 @@ const App = () => {
           <Toaster />
           <Sonner />
           <BrowserRouter>
-            <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/squad" element={<SquadPage />} />
-            <Route path="/tactics" element={<TacticsPage />} />
-            <Route path="/transfers" element={<TransfersPage />} />
-            <Route path="/club" element={<ClubPage />} />
-            <Route path="/finances" element={<FinancesPage />} />
-            <Route path="/competitions" element={<CompetitionsPage />} />
-            <Route path="/calendar" element={<CalendarPage />} />
-            <Route path="/world" element={<WorldPage />} />
-            <Route path="/inbox" element={<InboxPage />} />
-            <Route path="/search" element={<SearchPage />} />
-            <Route path="/options" element={<OptionsPage />} />
-            <Route path="/league" element={<League />} />
-            <Route path="/match" element={<PlayMatch />} />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-      </TooltipProvider>
+            <AuthProvider>
+              <Routes>
+                <Route path="/" element={<Index />} />
+                <Route path="/auth" element={<AuthPage />} />
+                <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+                <Route path="/squad" element={<ProtectedRoute><SquadPage /></ProtectedRoute>} />
+                <Route path="/tactics" element={<ProtectedRoute><TacticsPage /></ProtectedRoute>} />
+                <Route path="/transfers" element={<ProtectedRoute><TransfersPage /></ProtectedRoute>} />
+                <Route path="/club" element={<ProtectedRoute><ClubPage /></ProtectedRoute>} />
+                <Route path="/finances" element={<ProtectedRoute><FinancesPage /></ProtectedRoute>} />
+                <Route path="/competitions" element={<ProtectedRoute><CompetitionsPage /></ProtectedRoute>} />
+                <Route path="/calendar" element={<ProtectedRoute><CalendarPage /></ProtectedRoute>} />
+                <Route path="/world" element={<ProtectedRoute><WorldPage /></ProtectedRoute>} />
+                <Route path="/inbox" element={<ProtectedRoute><InboxPage /></ProtectedRoute>} />
+                <Route path="/search" element={<ProtectedRoute><SearchPage /></ProtectedRoute>} />
+                <Route path="/options" element={<ProtectedRoute><OptionsPage /></ProtectedRoute>} />
+                <Route path="/league" element={<ProtectedRoute><League /></ProtectedRoute>} />
+                <Route path="/match" element={<ProtectedRoute><PlayMatch /></ProtectedRoute>} />
+                {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </AuthProvider>
+          </BrowserRouter>
+        </TooltipProvider>
       </SeasonProvider>
     </QueryClientProvider>
   );
