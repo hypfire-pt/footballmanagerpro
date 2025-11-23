@@ -39,13 +39,13 @@ const App = () => {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <SeasonProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <AuthProvider>
-              <SaveProvider>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <AuthProvider>
+            <SaveProvider>
+              <SeasonProvider>
                 <GameFlowProvider>
                   <Routes>
                   <Route path="/" element={<Index />} />
@@ -70,11 +70,11 @@ const App = () => {
                   <Route path="*" element={<NotFound />} />
                 </Routes>
                 </GameFlowProvider>
-              </SaveProvider>
-            </AuthProvider>
-          </BrowserRouter>
-        </TooltipProvider>
-      </SeasonProvider>
+              </SeasonProvider>
+            </SaveProvider>
+          </AuthProvider>
+        </BrowserRouter>
+      </TooltipProvider>
     </QueryClientProvider>
   );
 };
