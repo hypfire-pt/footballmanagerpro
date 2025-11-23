@@ -366,8 +366,9 @@ const PlayMatch = () => {
         minute += speed === 'fast' ? 2 : 1;
         setCurrentMinute(minute);
 
-        // Show half-time modal at minute 45 but keep match running
+        // Pause match at half-time (minute 45)
         if (minute === 45 && !showHalfTime) {
+          setIsPaused(true);
           setShowHalfTime(true);
         }
 
@@ -501,6 +502,7 @@ const PlayMatch = () => {
       setCurrentMinute(minute);
 
       if (minute === 45 && !showHalfTime) {
+        setIsPaused(true);
         setShowHalfTime(true);
       }
 
@@ -637,9 +639,10 @@ const PlayMatch = () => {
     }
     
     setShowHalfTime(false);
+    setIsPaused(false); // Resume the match
     
     toast({
-      title: "Second Half Started",
+      title: "⚽ Second Half Started",
       description: `${substitutions.length > 0 ? `${substitutions.length} substitution(s) planned. ` : ''}${Object.keys(tacticsChanges).length > 0 ? 'Tactical changes applied.' : 'No changes made.'}`,
     });
   };

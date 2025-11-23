@@ -2,12 +2,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Slider } from "@/components/ui/slider";
 import { SimulationResult } from "@/types/match";
-import { Trophy, Target, ArrowRight, Plus, X, Zap, Activity } from "lucide-react";
+import { Trophy, ArrowRight, Plus, X, Zap, Activity, ArrowRightLeft, CheckCircle } from "lucide-react";
 import { useState } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -60,15 +58,9 @@ export const HalfTimeModal = ({
 }: HalfTimeModalProps) => {
   const [plannedSubs, setPlannedSubs] = useState<PlannedSubstitution[]>([]);
   const [tactics, setTactics] = useState<TacticalAdjustment>(currentTactics);
-  const [newSub, setNewSub] = useState<{
-    playerOut: string;
-    playerIn: string;
-    minute: string;
-  }>({
-    playerOut: '',
-    playerIn: '',
-    minute: 'auto',
-  });
+  const [selectedPlayerOut, setSelectedPlayerOut] = useState<string>('');
+  const [selectedPlayerIn, setSelectedPlayerIn] = useState<string>('');
+  const [selectedMinute, setSelectedMinute] = useState<string>('auto');
 
   const formations = [
     "4-2-3-1", "4-4-2", "4-3-3", "3-5-2", "5-3-2", "4-1-4-1", "3-4-3"
@@ -83,17 +75,19 @@ export const HalfTimeModal = ({
   ).length;
 
   const handleAddSubstitution = () => {
-    if (!newSub.playerOut || !newSub.playerIn) return;
+    if (!selectedPlayerOut || !selectedPlayerIn) return;
 
-    const minute = newSub.minute === 'auto' ? 'auto' : parseInt(newSub.minute);
+    const minute = selectedMinute === 'auto' ? 'auto' : parseInt(selectedMinute);
     
     setPlannedSubs([...plannedSubs, {
-      playerOut: newSub.playerOut,
-      playerIn: newSub.playerIn,
+      playerOut: selectedPlayerOut,
+      playerIn: selectedPlayerIn,
       minute,
     }]);
 
-    setNewSub({ playerOut: '', playerIn: '', minute: 'auto' });
+    setSelectedPlayerOut('');
+    setSelectedPlayerIn('');
+    setSelectedMinute('auto');
   };
 
   const handleRemoveSubstitution = (index: number) => {
@@ -108,11 +102,21 @@ export const HalfTimeModal = ({
     setTactics({ ...tactics, [key]: value });
   };
 
+  // Filter out already selected players
+  const availablePlayersOut = currentPlayers.filter(p => 
+    !plannedSubs.some(sub => sub.playerOut === p.name)
+  );
+
+  const availablePlayersIn = availablePlayers.filter(p => 
+    !plannedSubs.some(sub => sub.playerIn === p.name)
+  );
+
   return (
-    <Dialog open={open}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+    <Dialog open={open} onOpenChange={() => {}}>
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-2xl font-heading gradient-text text-center">Half Time</DialogTitle>
+          <p className="text-center text-sm text-muted-foreground mt-1">Match paused - Plan your second half strategy</p>
         </DialogHeader>
 
         <Tabs defaultValue="stats" className="w-full">
@@ -121,13 +125,13 @@ export const HalfTimeModal = ({
               <Trophy className="h-3 w-3 mr-1" />
               Stats
             </TabsTrigger>
-            <TabsTrigger value="tactics" className="text-xs">
-              <Zap className="h-3 w-3 mr-1" />
-              Tactics
-            </TabsTrigger>
             <TabsTrigger value="subs" className="text-xs">
               <Activity className="h-3 w-3 mr-1" />
               Substitutions
+            </TabsTrigger>
+            <TabsTrigger value="tactics" className="text-xs">
+              <Zap className="h-3 w-3 mr-1" />
+              Tactics
             </TabsTrigger>
           </TabsList>
 
@@ -183,6 +187,155 @@ export const HalfTimeModal = ({
             </div>
           </TabsContent>
 
+          <TabsContent value="subs" className="space-y-4">
+            <Card className="p-4">
+              <h3 className="text-sm font-semibold mb-4 flex items-center gap-2">
+                <Activity className="h-4 w-4" />
+                Plan Substitutions
+              </h3>
+              
+              <div className="grid grid-cols-2 gap-4 mb-4">
+                {/* Current Players (Player Out) */}
+                <div>
+                  <Label className="text-xs font-semibold mb-2 block">1. Select Player to Substitute Out</Label>
+                  <ScrollArea className="h-[300px] rounded-md border p-2">
+                    <div className="space-y-2">
+                      {availablePlayersOut.map((player) => (
+                        <button
+                          key={player.id}
+                          onClick={() => setSelectedPlayerOut(player.name)}
+                          className={`w-full text-left p-2 rounded-lg border transition-all ${
+                            selectedPlayerOut === player.name
+                              ? 'border-primary bg-primary/10 ring-2 ring-primary/50'
+                              : 'border-border hover:border-primary/50 hover:bg-muted/30'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <Badge variant="outline" className="text-xs">
+                                {player.position}
+                              </Badge>
+                              <span className="text-sm font-medium">{player.name}</span>
+                            </div>
+                            {selectedPlayerOut === player.name && (
+                              <CheckCircle className="h-4 w-4 text-primary" />
+                            )}
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  </ScrollArea>
+                </div>
+
+                {/* Bench Players (Player In) */}
+                <div>
+                  <Label className="text-xs font-semibold mb-2 block">2. Select Replacement Player</Label>
+                  <ScrollArea className="h-[300px] rounded-md border p-2">
+                    <div className="space-y-2">
+                      {availablePlayersIn.map((player) => (
+                        <button
+                          key={player.id}
+                          onClick={() => setSelectedPlayerIn(player.name)}
+                          disabled={!selectedPlayerOut}
+                          className={`w-full text-left p-2 rounded-lg border transition-all ${
+                            selectedPlayerIn === player.name
+                              ? 'border-primary bg-primary/10 ring-2 ring-primary/50'
+                              : 'border-border hover:border-primary/50 hover:bg-muted/30'
+                          } disabled:opacity-50 disabled:cursor-not-allowed`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <Badge variant="outline" className="text-xs">
+                                {player.position}
+                              </Badge>
+                              <span className="text-sm font-medium">{player.name}</span>
+                            </div>
+                            {selectedPlayerIn === player.name && (
+                              <CheckCircle className="h-4 w-4 text-primary" />
+                            )}
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  </ScrollArea>
+                </div>
+              </div>
+
+              {/* Substitution Preview & Add */}
+              {selectedPlayerOut && selectedPlayerIn && (
+                <div className="p-3 bg-primary/10 rounded-lg border border-primary mb-4">
+                  <div className="flex items-center justify-between gap-3 mb-3">
+                    <div className="flex-1 text-center">
+                      <p className="text-xs text-muted-foreground mb-1">Out</p>
+                      <p className="font-semibold text-sm">{selectedPlayerOut}</p>
+                    </div>
+                    <ArrowRightLeft className="h-5 w-5 text-primary" />
+                    <div className="flex-1 text-center">
+                      <p className="text-xs text-muted-foreground mb-1">In</p>
+                      <p className="font-semibold text-sm">{selectedPlayerIn}</p>
+                    </div>
+                  </div>
+                  <div className="flex gap-2 items-center">
+                    <Select value={selectedMinute} onValueChange={setSelectedMinute}>
+                      <SelectTrigger className="h-8 text-xs flex-1">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="bg-popover z-[100]">
+                        <SelectItem value="auto" className="text-xs">AI Decides (60-75')</SelectItem>
+                        {[55, 60, 65, 70, 75, 80, 85].map((min) => (
+                          <SelectItem key={min} value={min.toString()} className="text-xs">
+                            {min}' minute
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Button onClick={handleAddSubstitution} size="sm" className="gap-1 h-8 text-xs">
+                      <Plus className="h-3 w-3" />
+                      Add Sub
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {/* Planned Subs List */}
+              {plannedSubs.length > 0 && (
+                <div className="space-y-2">
+                  <Label className="text-xs font-semibold">Planned Substitutions ({plannedSubs.length})</Label>
+                  <ScrollArea className="max-h-40">
+                    <div className="space-y-2">
+                      {plannedSubs.map((sub, i) => (
+                        <div key={i} className="flex items-center justify-between bg-muted/50 p-2 rounded text-xs border">
+                          <div className="flex-1 flex items-center gap-2">
+                            <span className="font-medium">{sub.playerOut}</span>
+                            <ArrowRightLeft className="h-3 w-3 text-muted-foreground" />
+                            <span className="font-medium">{sub.playerIn}</span>
+                          </div>
+                          <Badge variant="secondary" className="text-xs mr-2">
+                            {sub.minute === 'auto' ? 'Auto' : `${sub.minute}'`}
+                          </Badge>
+                          <Button
+                            onClick={() => handleRemoveSubstitution(i)}
+                            size="sm"
+                            variant="ghost"
+                            className="h-6 w-6 p-0 hover:bg-destructive/10 hover:text-destructive"
+                          >
+                            <X className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  </ScrollArea>
+                </div>
+              )}
+            </Card>
+
+            <div className="flex justify-end">
+              <Button onClick={handleContinue} className="gap-2">
+                Start Second Half <ArrowRight className="h-4 w-4" />
+              </Button>
+            </div>
+          </TabsContent>
+
           <TabsContent value="tactics" className="space-y-4">
             <Card className="p-4">
               <h3 className="text-sm font-semibold mb-3">Tactical Adjustments for Second Half</h3>
@@ -198,7 +351,7 @@ export const HalfTimeModal = ({
                     <SelectTrigger className="h-9 text-xs">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="bg-popover z-[100]">
                       {formations.map(formation => (
                         <SelectItem key={formation} value={formation} className="text-xs">
                           {formation}
@@ -280,105 +433,6 @@ export const HalfTimeModal = ({
                   </div>
                 </div>
               </div>
-            </Card>
-
-            <div className="flex justify-end">
-              <Button onClick={handleContinue} className="gap-2">
-                Start Second Half <ArrowRight className="h-4 w-4" />
-              </Button>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="subs" className="space-y-4">{/* Substitution Planning */}
-            <Card className="p-4">
-              <h3 className="text-sm font-semibold mb-3">Plan Substitutions</h3>
-              
-              <div className="space-y-3 mb-4">
-                <div className="grid grid-cols-3 gap-2">
-                  <div>
-                    <Label className="text-xs">Player Out</Label>
-                    <Select value={newSub.playerOut} onValueChange={(v) => setNewSub({...newSub, playerOut: v})}>
-                      <SelectTrigger className="h-8 text-xs">
-                        <SelectValue placeholder="Select player" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {currentPlayers.map((p) => (
-                          <SelectItem key={p.id} value={p.name} className="text-xs">
-                            {p.name} ({p.position})
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div>
-                    <Label className="text-xs">Player In</Label>
-                    <Select value={newSub.playerIn} onValueChange={(v) => setNewSub({...newSub, playerIn: v})}>
-                      <SelectTrigger className="h-8 text-xs">
-                        <SelectValue placeholder="Select player" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {availablePlayers.map((p) => (
-                          <SelectItem key={p.id} value={p.name} className="text-xs">
-                            {p.name} ({p.position})
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div>
-                    <Label className="text-xs">Minute</Label>
-                    <Select value={newSub.minute} onValueChange={(v) => setNewSub({...newSub, minute: v})}>
-                      <SelectTrigger className="h-8 text-xs">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="auto" className="text-xs">AI Decides</SelectItem>
-                        {[55, 60, 65, 70, 75, 80, 85].map((min) => (
-                          <SelectItem key={min} value={min.toString()} className="text-xs">
-                            {min}'
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                <Button onClick={handleAddSubstitution} size="sm" variant="outline" className="w-full gap-1 h-8 text-xs">
-                  <Plus className="h-3 w-3" />
-                  Add Substitution
-                </Button>
-              </div>
-
-              {/* Planned Subs List */}
-              {plannedSubs.length > 0 && (
-                <div className="space-y-2">
-                  <Label className="text-xs font-semibold">Planned Substitutions</Label>
-                  <ScrollArea className="max-h-32">
-                    {plannedSubs.map((sub, i) => (
-                      <div key={i} className="flex items-center justify-between bg-muted/50 p-2 rounded text-xs mb-1">
-                        <div className="flex-1">
-                          <span className="font-medium">{sub.playerOut}</span>
-                          <span className="text-muted-foreground mx-2">→</span>
-                          <span className="font-medium">{sub.playerIn}</span>
-                        </div>
-                        <Badge variant="secondary" className="text-xs mr-2">
-                          {sub.minute === 'auto' ? 'Auto' : `${sub.minute}'`}
-                        </Badge>
-                        <Button
-                          onClick={() => handleRemoveSubstitution(i)}
-                          size="sm"
-                          variant="ghost"
-                          className="h-6 w-6 p-0"
-                        >
-                          <X className="h-3 w-3" />
-                        </Button>
-                      </div>
-                    ))}
-                  </ScrollArea>
-                </div>
-              )}
             </Card>
 
             <div className="flex justify-end">
