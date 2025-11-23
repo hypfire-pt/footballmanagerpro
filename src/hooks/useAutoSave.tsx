@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useSave } from "@/contexts/SaveContext";
 import { useGameFlow } from "@/contexts/GameFlowContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -15,17 +15,17 @@ export const useAutoSave = (options: AutoSaveOptions = {}) => {
   const { nextAction, pendingTasks } = useGameFlow();
   const { toast } = useToast();
   const lastSaveRef = useRef<Date>(new Date());
-  const isSavingRef = useRef(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     if (!enabled || !currentSave) return;
 
     const autoSave = async () => {
       // Prevent concurrent saves
-      if (isSavingRef.current) return;
+      if (isSaving) return;
       
       try {
-        isSavingRef.current = true;
+        setIsSaving(true);
         
         // Update the save with current game state
         const { error } = await supabase
@@ -53,7 +53,7 @@ export const useAutoSave = (options: AutoSaveOptions = {}) => {
       } catch (error) {
         console.error("Auto-save failed:", error);
       } finally {
-        isSavingRef.current = false;
+        setIsSaving(false);
       }
     };
 
@@ -71,10 +71,10 @@ export const useAutoSave = (options: AutoSaveOptions = {}) => {
 
   // Manual save function
   const manualSave = async () => {
-    if (!currentSave || isSavingRef.current) return;
+    if (!currentSave || isSaving) return;
 
     try {
-      isSavingRef.current = true;
+      setIsSaving(true);
       
       const { error } = await supabase
         .from("game_saves")
@@ -101,13 +101,13 @@ export const useAutoSave = (options: AutoSaveOptions = {}) => {
         variant: "destructive",
       });
     } finally {
-      isSavingRef.current = false;
+      setIsSaving(false);
     }
   };
 
   return {
     manualSave,
     lastSaveTime: lastSaveRef.current,
-    isSaving: isSavingRef.current,
+    isSaving,
   };
 };

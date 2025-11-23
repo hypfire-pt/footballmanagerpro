@@ -22,7 +22,7 @@ const Dashboard = () => {
   const { getNextMatchPrompt } = useGameFlow();
   const { currentSave } = useSave();
   const navigate = useNavigate();
-  const { manualSave, isSaving } = useAutoSave({ interval: 120000, enabled: true });
+  const { manualSave, isSaving: isManualSaving } = useAutoSave({ interval: 120000, enabled: false });
   
   const nextMatch = getNextMatchPrompt();
 
@@ -48,11 +48,11 @@ const Dashboard = () => {
               onClick={manualSave}
               size="sm" 
               variant="outline"
-              disabled={isSaving}
+              disabled={isManualSaving}
               className="font-heading font-semibold"
             >
               <Save className="h-4 w-4 mr-2" />
-              {isSaving ? 'Saving...' : 'Quick Save'}
+              {isManualSaving ? 'Saving...' : 'Quick Save'}
             </Button>
             <Button 
               onClick={handleContinue}

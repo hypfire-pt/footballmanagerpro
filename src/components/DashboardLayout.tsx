@@ -1,9 +1,10 @@
 import { ReactNode } from "react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
-import { Bell, User, LogOut } from "lucide-react";
+import { Bell, User, LogOut, CloudUpload, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -15,6 +16,7 @@ import {
 import { useAuth } from "@/contexts/AuthContext";
 import { useSave } from "@/contexts/SaveContext";
 import { useNavigate } from "react-router-dom";
+import { useAutoSave } from "@/hooks/useAutoSave";
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -24,6 +26,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const { signOut, user } = useAuth();
   const { currentSave, allSaves, loadSave } = useSave();
   const navigate = useNavigate();
+  const { isSaving, lastSaveTime } = useAutoSave({ interval: 120000, enabled: true });
   
   return (
     <SidebarProvider defaultOpen={true}>
@@ -93,13 +96,39 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
             <div className="flex items-center gap-3">
               {currentSave && (
-                <Button variant="ghost" size="sm" className="text-xs font-medium hover:bg-primary/10">
-                  {new Date(currentSave.game_date).toLocaleDateString('en-GB', { 
-                    day: 'numeric', 
-                    month: 'long', 
-                    year: 'numeric' 
-                  })}
-                </Button>
+                <>
+                  <div className={cn(
+                    "flex items-center gap-2 px-3 py-1.5 rounded-lg transition-all duration-300",
+                    isSaving
+                      ? "bg-primary/10 text-primary"
+                      : "bg-muted/50 text-muted-foreground"
+                  )}>
+                    {isSaving ? (
+                      <>
+                        <CloudUpload className="h-4 w-4 animate-pulse" />
+                        <span className="text-xs font-medium">Saving...</span>
+                      </>
+                    ) : (
+                      <>
+                        <div className="relative">
+                          <CloudUpload className="h-4 w-4" />
+                          <Check className={cn(
+                            "h-3 w-3 absolute -bottom-0.5 -right-0.5 bg-primary text-primary-foreground rounded-full p-0.5",
+                            "animate-in fade-in zoom-in duration-500"
+                          )} />
+                        </div>
+                        <span className="text-xs font-medium">Saved</span>
+                      </>
+                    )}
+                  </div>
+                  <Button variant="ghost" size="sm" className="text-xs font-medium hover:bg-primary/10">
+                    {new Date(currentSave.game_date).toLocaleDateString('en-GB', { 
+                      day: 'numeric', 
+                      month: 'long', 
+                      year: 'numeric' 
+                    })}
+                  </Button>
+                </>
               )}
               <Button variant="outline" size="icon" className="relative hover:bg-primary/10 transition-all hover:scale-105">
                 <Bell className="h-4 w-4" />
