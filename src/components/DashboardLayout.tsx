@@ -1,7 +1,7 @@
 import { ReactNode } from "react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
-import { Bell, User, LogOut, CloudUpload, Check } from "lucide-react";
+import { Bell, User, LogOut, CloudUpload, Check, Inbox, Search, FolderOpen, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -152,6 +152,23 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                       <p className="text-xs text-muted-foreground">{user?.email}</p>
                     </div>
                   </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => navigate("/inbox")} className="cursor-pointer">
+                    <Inbox className="mr-2 h-4 w-4" />
+                    Inbox
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => navigate("/search")} className="cursor-pointer">
+                    <Search className="mr-2 h-4 w-4" />
+                    Search
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => navigate("/careers")} className="cursor-pointer">
+                    <FolderOpen className="mr-2 h-4 w-4" />
+                    Manage Careers
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => navigate("/options")} className="cursor-pointer">
+                    <Settings className="mr-2 h-4 w-4" />
+                    Settings
+                  </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={signOut} className="text-destructive cursor-pointer">
                     <LogOut className="mr-2 h-4 w-4" />
