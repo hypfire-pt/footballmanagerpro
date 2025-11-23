@@ -8,6 +8,7 @@ import { TopScorersWidget } from "@/components/widgets/TopScorersWidget";
 import LeagueTable from "@/components/LeagueTable";
 import { DashboardCalendar } from "@/components/DashboardCalendar";
 import { MatchweekSummaryModal } from "@/components/MatchweekSummaryModal";
+import { FastForwardResultsModal } from "@/components/FastForwardResultsModal";
 import { useSeason } from "@/contexts/SeasonContext";
 import { useSave } from "@/contexts/SaveContext";
 import { useCurrentSave } from "@/hooks/useCurrentSave";
@@ -32,6 +33,9 @@ const Dashboard = () => {
   const [showSummary, setShowSummary] = useState(false);
   const [summaryData, setSummaryData] = useState<any>(null);
   const [fastForwarding, setFastForwarding] = useState(false);
+  const [showFastForwardResults, setShowFastForwardResults] = useState(false);
+  const [fastForwardData, setFastForwardData] = useState<any>(null);
+  const [teamColorsCache, setTeamColorsCache] = useState<Record<string, { primary: string; secondary: string; logoUrl?: string }>>({});
 
   const standings = (seasonData?.standings_state as any[]) || [];
   const fixtures = (seasonData?.fixtures_state as any[]) || [];
@@ -281,6 +285,38 @@ const Dashboard = () => {
 
       console.log(`[FAST FORWARD] Advancing ${daysToAdvance} days to next user match`);
 
+      // Track matches that will be simulated
+      const matchesToSimulate = fixtures.filter(f => {
+        const fDate = new Date(f.date);
+        return f.status === 'scheduled' && 
+               fDate <= matchDate && 
+               fDate >= currentDateObj &&
+               f.homeTeamId !== currentSave.team_id && 
+               f.awayTeamId !== currentSave.team_id;
+      });
+
+      // Fetch team colors for display
+      const teamIds = new Set<string>();
+      matchesToSimulate.forEach(m => {
+        teamIds.add(m.homeTeamId);
+        teamIds.add(m.awayTeamId);
+      });
+
+      const { data: teamsData } = await supabase
+        .from('teams')
+        .select('id, primary_color, secondary_color, logo_url')
+        .in('id', Array.from(teamIds));
+
+      const colorsMap: Record<string, { primary: string; secondary: string; logoUrl?: string }> = {};
+      teamsData?.forEach(t => {
+        colorsMap[t.id] = {
+          primary: t.primary_color,
+          secondary: t.secondary_color,
+          logoUrl: t.logo_url || undefined
+        };
+      });
+      setTeamColorsCache(colorsMap);
+
       // Update season date
       const newDate = new Date(currentDateObj);
       newDate.setDate(newDate.getDate() + daysToAdvance);
@@ -310,8 +346,45 @@ const Dashboard = () => {
 
       console.log(`[FAST FORWARD] ${simulated} AI matches simulated`);
 
-      // Refresh data
+      // Refresh data to get updated results
       await refetch();
+
+      // Get the refreshed season data with completed matches
+      const { data: refreshedSeason } = await supabase
+        .from('save_seasons')
+        .select('*')
+        .eq('id', seasonData.id)
+        .single();
+
+      if (refreshedSeason) {
+        const updatedFixtures = (refreshedSeason.fixtures_state as any[]) || [];
+        
+        // Find the matches that were just completed
+        const simulatedMatches = matchesToSimulate.map(originalMatch => {
+          const updated = updatedFixtures.find(f => f.id === originalMatch.id);
+          return updated || originalMatch;
+        }).filter(m => m.status === 'finished');
+
+        // Prepare fast forward results data
+        setFastForwardData({
+          matches: simulatedMatches.map((m: any) => ({
+            id: m.id,
+            homeTeam: m.homeTeam,
+            awayTeam: m.awayTeam,
+            homeTeamId: m.homeTeamId,
+            awayTeamId: m.awayTeamId,
+            homeScore: m.homeScore || 0,
+            awayScore: m.awayScore || 0,
+            date: m.date,
+            matchweek: m.matchweek || m.matchday,
+            competition: m.competition,
+            keyEvents: m.match_data?.events || []
+          })),
+          daysAdvanced: daysToAdvance
+        });
+
+        setShowFastForwardResults(true);
+      }
 
       toast({
         title: "⏩ Fast Forward Complete",
@@ -341,6 +414,14 @@ const Dashboard = () => {
         results={summaryData?.results || []}
         topScorers={summaryData?.topScorers || []}
         standingChanges={summaryData?.standingChanges || []}
+      />
+
+      <FastForwardResultsModal
+        open={showFastForwardResults}
+        onClose={() => setShowFastForwardResults(false)}
+        matches={fastForwardData?.matches || []}
+        daysAdvanced={fastForwardData?.daysAdvanced || 0}
+        teamColors={teamColorsCache}
       />
 
       <div className="container mx-auto p-6 space-y-6">
