@@ -10,6 +10,7 @@ import CrowdAtmosphere from "@/components/CrowdAtmosphere";
 import { MatchEventNotification } from "@/components/MatchEventNotification";
 import { MomentumVisualizer } from "@/components/MomentumVisualizer";
 import { MatchResultSummary } from "@/components/MatchResultSummary";
+import { HalfTimeModal } from "@/components/HalfTimeModal";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -51,6 +52,9 @@ const PlayMatch = () => {
   const [activeEventNotifications, setActiveEventNotifications] = useState<MatchEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [showResultSummary, setShowResultSummary] = useState(false);
+  const [showHalfTime, setShowHalfTime] = useState(false);
+  const [plannedSubstitutions, setPlannedSubstitutions] = useState<any[]>([]);
+  const [benchPlayers, setBenchPlayers] = useState<any[]>([]);
   const matchEngineRef = useRef<ProbabilisticMatchEngine | null>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -146,6 +150,15 @@ const PlayMatch = () => {
 
         setHomeLineupState(homeLineup);
         setAwayLineupState(awayLineup);
+
+        // Store bench players (next 7 players after starting 11)
+        const bench = (homePlayers || []).slice(11, 18).map((sp: any) => ({
+          id: sp.player_id,
+          name: sp.players.name,
+          position: sp.players.position,
+        }));
+        setBenchPlayers(bench);
+
       } catch (error) {
         console.error("Error fetching match data:", error);
         toast({
@@ -224,6 +237,25 @@ const PlayMatch = () => {
         
         minute += speed === 'fast' ? 2 : 1;
         setCurrentMinute(minute);
+
+        // Pause at half-time (minute 45)
+        if (minute === 45) {
+          clearInterval(intervalRef.current!);
+          setIsPaused(true);
+          setShowHalfTime(true);
+          return;
+        }
+
+        // Execute planned substitutions
+        plannedSubstitutions.forEach((sub) => {
+          if (sub.minute === minute || (sub.minute === 'auto' && minute >= 60 && minute <= 75 && Math.random() < 0.1)) {
+            // Execute substitution
+            toast({
+              title: "Substitution",
+              description: `${sub.playerIn} replaces ${sub.playerOut}`,
+            });
+          }
+        });
 
         const recentEvents = simResult.events.filter(e => e.minute >= minute - 5 && e.minute <= minute);
         const homeEvents = recentEvents.filter(e => e.team === 'home' && ['shot', 'shot_on_target', 'corner'].includes(e.type)).length;
@@ -320,12 +352,80 @@ const PlayMatch = () => {
     advanceDate(1);
     setShowResultSummary(false);
     
-    // Navigate to calendar to show next match
-    navigate("/calendar");
+    // Navigate to dashboard after match completion
+    navigate("/dashboard");
     
     toast({
       title: "✅ Match Complete",
-      description: "Next match is now available to play",
+      description: "Returning to dashboard",
+    });
+  };
+
+  const handleHalfTimeContinue = (substitutions: any[]) => {
+    setPlannedSubstitutions(substitutions);
+    setShowHalfTime(false);
+    setIsPaused(false);
+    
+    // Resume second half
+    if (result) {
+      let minute = 45;
+      let eventIndex = result.events.findIndex(e => e.minute > 45);
+      const intervalTime = speed === 'fast' ? 200 : 1000;
+
+      intervalRef.current = setInterval(() => {
+        if (isPaused) return;
+        
+        minute += speed === 'fast' ? 2 : 1;
+        setCurrentMinute(minute);
+
+        // Execute planned substitutions
+        substitutions.forEach((sub) => {
+          if (sub.minute === minute || (sub.minute === 'auto' && minute >= 60 && minute <= 75 && Math.random() < 0.1)) {
+            toast({
+              title: "Substitution",
+              description: `${sub.playerIn} replaces ${sub.playerOut}`,
+            });
+          }
+        });
+
+        const recentEvents = result.events.filter(e => e.minute >= minute - 5 && e.minute <= minute);
+        const homeEvents = recentEvents.filter(e => e.team === 'home' && ['shot', 'shot_on_target', 'corner'].includes(e.type)).length;
+        const awayEvents = recentEvents.filter(e => e.team === 'away' && ['shot', 'shot_on_target', 'corner'].includes(e.type)).length;
+        const totalEvents = homeEvents + awayEvents;
+        
+        if (totalEvents > 0) {
+          setMomentum({
+            home: Math.min(80, Math.max(20, 50 + ((homeEvents - awayEvents) / totalEvents) * 30)),
+            away: Math.min(80, Math.max(20, 50 + ((awayEvents - homeEvents) / totalEvents) * 30))
+          });
+        }
+
+        while (eventIndex < result.events.length && result.events[eventIndex].minute <= minute) {
+          const event = result.events[eventIndex];
+          setCurrentEventIndex(eventIndex);
+          
+          if (['goal', 'yellow_card', 'red_card', 'shot_on_target', 'substitution'].includes(event.type)) {
+            setActiveEventNotifications(prev => [...prev, event]);
+          }
+          
+          eventIndex++;
+        }
+
+        if (minute >= 90) {
+          clearInterval(intervalRef.current!);
+          setIsSimulating(false);
+          setMatchEnded(true);
+          
+          processMatchResult(matchId, homeTeamName, awayTeamName, result);
+          
+          setShowResultSummary(true);
+        }
+      }, intervalTime);
+    }
+
+    toast({
+      title: "Second Half Started",
+      description: substitutions.length > 0 ? `${substitutions.length} substitution(s) planned` : "No substitutions planned",
     });
   };
 
@@ -342,6 +442,32 @@ const PlayMatch = () => {
   return (
     <DashboardLayout>
       <div className="h-screen overflow-hidden p-2 flex flex-col">
+        {/* Half Time Modal */}
+        {result && showHalfTime && homeLineupState && (
+          <HalfTimeModal
+            homeTeam={homeTeamName}
+            awayTeam={awayTeamName}
+            partialResult={{
+              homeScore: result.events.filter(e => e.type === 'goal' && e.team === 'home' && e.minute <= 45).length,
+              awayScore: result.events.filter(e => e.type === 'goal' && e.team === 'away' && e.minute <= 45).length,
+              events: result.events.filter(e => e.minute <= 45),
+              stats: {
+                possession: result.stats.possession,
+                shotsOnTarget: result.stats.shotsOnTarget,
+                corners: result.stats.corners,
+              },
+            }}
+            availablePlayers={benchPlayers}
+            currentPlayers={homeLineupState.players.map(p => ({
+              id: p.id,
+              name: p.name,
+              position: p.position,
+            }))}
+            open={showHalfTime}
+            onContinue={handleHalfTimeContinue}
+          />
+        )}
+
         {/* Match Result Summary Modal */}
         {result && (
           <MatchResultSummary
