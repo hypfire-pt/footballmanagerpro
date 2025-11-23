@@ -14,7 +14,7 @@ export function NextMatchWidget() {
   const navigate = useNavigate();
   const { currentSave, loading: saveLoading } = useCurrentSave();
   const { seasonData, loading: seasonLoading } = useSeasonData(currentSave?.id);
-  const [teamColors, setTeamColors] = useState<Record<string, { primary: string; secondary: string }>>({});
+  const [teamColors, setTeamColors] = useState<Record<string, { primary: string; secondary: string; logoUrl?: string }>>({});
 
   useEffect(() => {
     const fetchTeamColors = async () => {
@@ -30,15 +30,16 @@ export function NextMatchWidget() {
 
       const { data: teams } = await supabase
         .from('teams')
-        .select('name, primary_color, secondary_color')
+        .select('name, primary_color, secondary_color, logo_url')
         .in('id', [nextMatch.homeTeamId, nextMatch.awayTeamId]);
 
       if (teams) {
-        const colorsMap: Record<string, { primary: string; secondary: string }> = {};
+        const colorsMap: Record<string, { primary: string; secondary: string; logoUrl?: string }> = {};
         teams.forEach(team => {
           colorsMap[team.name] = {
             primary: team.primary_color,
-            secondary: team.secondary_color
+            secondary: team.secondary_color,
+            logoUrl: team.logo_url || undefined
           };
         });
         setTeamColors(colorsMap);
@@ -97,6 +98,7 @@ export function NextMatchWidget() {
               teamName={nextMatch.homeTeam}
               primaryColor={teamColors[nextMatch.homeTeam]?.primary}
               secondaryColor={teamColors[nextMatch.homeTeam]?.secondary}
+              logoUrl={teamColors[nextMatch.homeTeam]?.logoUrl}
               size="lg"
               className="mb-3 drop-shadow-lg"
             />
@@ -119,6 +121,7 @@ export function NextMatchWidget() {
               teamName={nextMatch.awayTeam}
               primaryColor={teamColors[nextMatch.awayTeam]?.primary}
               secondaryColor={teamColors[nextMatch.awayTeam]?.secondary}
+              logoUrl={teamColors[nextMatch.awayTeam]?.logoUrl}
               size="lg"
               className="mb-3 drop-shadow-lg"
             />

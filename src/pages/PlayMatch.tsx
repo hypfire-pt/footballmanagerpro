@@ -66,7 +66,7 @@ const PlayMatch = () => {
   const [benchPlayers, setBenchPlayers] = useState<any[]>([]);
   const [goalCelebration, setGoalCelebration] = useState<{ team: 'home' | 'away'; playerName: string } | null>(null);
   const [tenseMoment, setTenseMoment] = useState<'close_call' | 'final_minutes' | 'dangerous_attack' | null>(null);
-  const [teamColors, setTeamColors] = useState<{ home: { primary: string; secondary: string }; away: { primary: string; secondary: string } }>({
+  const [teamColors, setTeamColors] = useState<{ home: { primary: string; secondary: string; logoUrl?: string }; away: { primary: string; secondary: string; logoUrl?: string } }>({
     home: { primary: '#22c55e', secondary: '#ffffff' },
     away: { primary: '#3b82f6', secondary: '#ffffff' }
   });
@@ -105,13 +105,13 @@ const PlayMatch = () => {
         // Fetch team info
         const { data: homeTeamData } = await supabase
           .from("teams")
-          .select("capacity, reputation, primary_color, secondary_color")
+          .select("capacity, reputation, primary_color, secondary_color, logo_url")
           .eq("id", homeTeamId)
           .single();
 
         const { data: awayTeamData } = await supabase
           .from("teams")
-          .select("primary_color, secondary_color")
+          .select("primary_color, secondary_color, logo_url")
           .eq("id", awayTeamId)
           .single();
 
@@ -124,7 +124,8 @@ const PlayMatch = () => {
             ...prev,
             home: {
               primary: homeTeamData.primary_color,
-              secondary: homeTeamData.secondary_color
+              secondary: homeTeamData.secondary_color,
+              logoUrl: homeTeamData.logo_url || undefined
             }
           }));
         }
@@ -134,7 +135,8 @@ const PlayMatch = () => {
             ...prev,
             away: {
               primary: awayTeamData.primary_color,
-              secondary: awayTeamData.secondary_color
+              secondary: awayTeamData.secondary_color,
+              logoUrl: awayTeamData.logo_url || undefined
             }
           }));
         }
@@ -568,6 +570,7 @@ const PlayMatch = () => {
                 teamName={homeTeamName}
                 primaryColor={teamColors.home.primary}
                 secondaryColor={teamColors.home.secondary}
+                logoUrl={teamColors.home.logoUrl}
                 size="sm"
                 className="mb-1"
               />
@@ -591,6 +594,7 @@ const PlayMatch = () => {
                 teamName={awayTeamName}
                 primaryColor={teamColors.away.primary}
                 secondaryColor={teamColors.away.secondary}
+                logoUrl={teamColors.away.logoUrl}
                 size="sm"
                 className="mb-1"
               />
