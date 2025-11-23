@@ -98,12 +98,20 @@ export const DashboardCalendar = () => {
   const currentMatchweek = season?.current_matchday || 1;
 
   const upcomingFixtures = useMemo(() => {
-    const currentDateStr = currentDate.toISOString().split('T')[0];
+    // Show fixtures starting from current matchweek
     return fixtures
-      .filter(f => f.date >= currentDateStr)
-      .sort((a, b) => a.date.localeCompare(b.date))
+      .filter(f => {
+        const fixtureMatchweek = f.matchweek || f.matchday || 1;
+        return fixtureMatchweek >= currentMatchweek;
+      })
+      .sort((a, b) => {
+        const aMW = a.matchweek || a.matchday || 1;
+        const bMW = b.matchweek || b.matchday || 1;
+        if (aMW !== bMW) return aMW - bMW;
+        return a.date.localeCompare(b.date);
+      })
       .slice(0, 10);
-  }, [fixtures, currentDate]);
+  }, [fixtures, currentMatchweek]);
 
   // Check if current matchweek is complete
   const matchweekStatus = useMemo(() => {
@@ -254,6 +262,9 @@ export const DashboardCalendar = () => {
           upcomingFixtures.map((fixture) => {
             const isUserMatch = fixture.homeTeamId === currentSave?.team_id || 
                                fixture.awayTeamId === currentSave?.team_id;
+            const fixtureMatchweek = fixture.matchweek || fixture.matchday || 1;
+            const isCurrentMatchweek = fixtureMatchweek === currentMatchweek;
+            const isNextUserMatch = nextUserMatch?.id === fixture.id;
             const buttonState = getPlayButtonState(fixture);
             const Icon = buttonState.icon;
 
@@ -261,20 +272,33 @@ export const DashboardCalendar = () => {
               <div
                 key={fixture.id}
                 className={`p-2 rounded border transition-colors ${
-                  isUserMatch 
-                    ? 'bg-primary/5 border-primary/20 hover:bg-primary/10' 
-                    : 'bg-card border-border hover:bg-muted/50'
+                  isNextUserMatch
+                    ? 'bg-accent/20 border-accent ring-1 ring-accent/50'
+                    : isUserMatch 
+                      ? isCurrentMatchweek 
+                        ? 'bg-primary/10 border-primary/30 hover:bg-primary/15' 
+                        : 'bg-primary/5 border-primary/20 hover:bg-primary/10'
+                      : 'bg-card border-border hover:bg-muted/50'
                 }`}
               >
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5 mb-0.5">
-                      <Badge variant="outline" className="text-xs px-1.5 py-0">
-                        MW{fixture.matchweek || fixture.matchday}
+                      <Badge 
+                        variant={isCurrentMatchweek ? "default" : "outline"} 
+                        className="text-xs px-1.5 py-0"
+                      >
+                        MW{fixtureMatchweek}
                       </Badge>
                       <span className="text-xs text-muted-foreground">
                         {format(new Date(fixture.date), "MMM d")}
                       </span>
+                      {isCurrentMatchweek && (
+                        <Badge variant="secondary" className="text-xs px-1.5 py-0">Current</Badge>
+                      )}
+                      {isNextUserMatch && (
+                        <Badge className="text-xs px-1.5 py-0 bg-accent text-accent-foreground">Next</Badge>
+                      )}
                     </div>
                     <div className="grid grid-cols-[1fr_auto_1fr] gap-1.5 items-center text-xs">
                       <span className={`truncate text-right ${isUserMatch ? 'font-semibold' : ''}`}>
