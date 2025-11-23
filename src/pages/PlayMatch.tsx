@@ -548,9 +548,15 @@ const PlayMatch = () => {
                   </div>
 
                   <Button
-                    onClick={startSimulation}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      console.log('Button clicked!');
+                      startSimulation();
+                    }}
                     disabled={isSimulating || loading || !homeLineupState || !awayLineupState}
                     className="gap-2 btn-glow font-heading"
+                    type="button"
                   >
                     <Play className="h-4 w-4" />
                     {loading ? 'Loading...' : 'Play Match'}
