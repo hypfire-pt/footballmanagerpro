@@ -35,7 +35,7 @@ export class SeasonInitializer {
       
       // 2. Generate fixtures for the season
       const currentYear = new Date().getFullYear();
-      const seasonStartDate = new Date(currentYear, 7, 15);
+      const seasonStartDate = new Date(currentYear, 7, 15); // August 15
       const fixtures = generateLeagueFixtures(
         leagueTeams.map(t => ({...t, id: t.id, name: t.name, leagueId: t.league_id} as any)), 
         seasonStartDate, 
@@ -43,6 +43,9 @@ export class SeasonInitializer {
         leagueId
       );
       console.log(`Generated ${fixtures.length} fixtures`);
+      
+      // Create team name to ID mapping
+      const teamNameToId = new Map(leagueTeams.map(t => [t.name, t.id]));
       
       // 3. Initialize standings
       const standings = leagueTeams.map((team, index) => ({
@@ -61,21 +64,19 @@ export class SeasonInitializer {
       }));
       
       // 4. Create season record
-      const currentYear = new Date().getFullYear();
-      const seasonStartDate = new Date(currentYear, 7, 15); // August 15
       
       const { data: season, error: seasonError } = await supabase
         .from('save_seasons')
-        .insert({
+        .insert([{
           save_id: saveId,
           season_year: currentYear,
           current_matchday: 1,
           current_game_week: 1,
           season_current_date: seasonStartDate.toISOString().split('T')[0],
           is_current: true,
-          standings_state: standings,
-          fixtures_state: fixtures
-        })
+          standings_state: standings as any,
+          fixtures_state: fixtures as any
+        }])
         .select()
         .single();
       
@@ -123,10 +124,10 @@ export class SeasonInitializer {
       // 6. Create initial match records for fixtures
       const matchRecords = fixtures.slice(0, 10).map(fixture => ({ // First 10 matches
         season_id: season.id,
-        home_team_id: fixture.homeTeam,
-        home_team_name: fixture.homeTeamName,
-        away_team_id: fixture.awayTeam,
-        away_team_name: fixture.awayTeamName,
+        home_team_id: teamNameToId.get(fixture.homeTeam) || '',
+        home_team_name: fixture.homeTeam,
+        away_team_id: teamNameToId.get(fixture.awayTeam) || '',
+        away_team_name: fixture.awayTeam,
         match_date: fixture.date,
         competition: leagueId,
         status: 'scheduled'
