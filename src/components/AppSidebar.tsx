@@ -1,4 +1,4 @@
-import { Home, Users, Zap, ArrowLeftRight, Building, DollarSign, Trophy, Calendar, Briefcase, ChevronDown, History } from "lucide-react";
+import { Home, Users, Zap, ArrowLeftRight, Building, DollarSign, Trophy, Calendar, Briefcase, ChevronDown, History, BarChart3, Table } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
 import {
@@ -30,6 +30,8 @@ const managerBoardItems = [
 
 const competitionsItems = [
   { title: "Competitions", url: "/competitions", icon: Trophy },
+  { title: "Standings", url: "/standings", icon: Table },
+  { title: "Player Stats", url: "/player-stats", icon: BarChart3 },
   { title: "World", url: "/world", icon: Trophy },
 ];
 
