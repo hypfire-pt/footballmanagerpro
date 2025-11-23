@@ -9,8 +9,6 @@ import LeagueTable from "@/components/LeagueTable";
 import { DashboardCalendar } from "@/components/DashboardCalendar";
 import { MatchweekSummaryModal } from "@/components/MatchweekSummaryModal";
 import { FastForwardResultsModal } from "@/components/FastForwardResultsModal";
-import { useSeason } from "@/contexts/SeasonContext";
-import { useSave } from "@/contexts/SaveContext";
 import { useCurrentSave } from "@/hooks/useCurrentSave";
 import { useSeasonData } from "@/hooks/useSeasonData";
 import { format } from "date-fns";
@@ -24,8 +22,6 @@ import { toast } from "@/hooks/use-toast";
 import { useState } from "react";
 
 const Dashboard = () => {
-  const { currentDate, seasonStartDate, currentMatchweek } = useSeason();
-  const { currentSave: contextSave } = useSave();
   const { currentSave } = useCurrentSave();
   const { seasonData, loading: seasonLoading, refetch } = useSeasonData(currentSave?.id);
   const navigate = useNavigate();
@@ -39,6 +35,9 @@ const Dashboard = () => {
 
   const standings = (seasonData?.standings_state as any[]) || [];
   const fixtures = (seasonData?.fixtures_state as any[]) || [];
+  const currentMatchweek = seasonData?.current_matchday || 1;
+  const currentDate = seasonData?.season_current_date ? new Date(seasonData.season_current_date) : new Date();
+  const seasonYear = seasonData?.season_year || new Date().getFullYear();
 
   // Check if user has played their match this matchweek
   const userMatchStatus = (() => {
@@ -424,26 +423,23 @@ const Dashboard = () => {
         teamColors={teamColorsCache}
       />
 
-      <div className="container mx-auto p-6 space-y-6">
+      <div className="container mx-auto p-4 space-y-4">
         {/* Header Section */}
-        <div className="flex items-start justify-between">
+        <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-heading font-bold gradient-text">Manager Dashboard</h1>
-            <p className="text-sm text-muted-foreground mt-1">
-              {format(currentDate, "EEEE, MMMM d, yyyy")} • Season {format(seasonStartDate, "yyyy")}/{format(seasonStartDate, "yy")} • Matchweek {currentMatchweek}
+            <h1 className="text-2xl font-heading font-bold gradient-text">Manager Dashboard</h1>
+            <p className="text-xs text-muted-foreground mt-1">
+              {format(currentDate, "EEEE, MMMM d, yyyy")} • Season {seasonYear}/{String(seasonYear + 1).slice(-2)} • Matchweek {currentMatchweek}
             </p>
           </div>
         </div>
 
-        {/* Next Match - Featured */}
-        <NextMatchWidget />
-
         {/* Continue Button */}
         {canContinue && (
-          <Card className="p-4 bg-primary/5 border-primary/20">
+          <Card className="p-3 bg-primary/5 border-primary/20">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <h3 className="font-semibold text-sm mb-1">Ready to Continue</h3>
+                <h3 className="font-semibold text-xs mb-1">Ready to Continue</h3>
                 <p className="text-xs text-muted-foreground">
                   {aiMatchesComplete.complete 
                     ? `Matchweek ${currentMatchweek} complete. Advance to Matchweek ${currentMatchweek + 1}.`
@@ -456,15 +452,16 @@ const Dashboard = () => {
                   onClick={handleFastForward}
                   disabled={fastForwarding || continuing}
                   variant="outline"
+                  size="sm"
                 >
                   {fastForwarding ? (
                     <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      <Loader2 className="h-3 w-3 mr-2 animate-spin" />
                       Fast Forward...
                     </>
                   ) : (
                     <>
-                      <FastForward className="h-4 w-4 mr-2" />
+                      <FastForward className="h-3 w-3 mr-2" />
                       Fast Forward
                     </>
                   )}
@@ -472,16 +469,17 @@ const Dashboard = () => {
                 <Button 
                   onClick={handleContinue}
                   disabled={continuing || fastForwarding}
+                  size="sm"
                 >
                   {continuing ? (
                     <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      <Loader2 className="h-3 w-3 mr-2 animate-spin" />
                       Processing...
                     </>
                   ) : (
                     <>
                       Continue
-                      <ArrowRight className="h-4 w-4 ml-2" />
+                      <ArrowRight className="h-3 w-3 ml-2" />
                     </>
                   )}
                 </Button>
@@ -490,56 +488,64 @@ const Dashboard = () => {
           </Card>
         )}
 
-        {/* Quick Actions */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <Button 
-            variant="outline" 
-            className="h-16 flex flex-col items-center justify-center gap-1"
-            onClick={() => navigate('/squad')}
-          >
-            <Users className="h-5 w-5" />
-            <span className="text-xs font-medium">Manage Squad</span>
-          </Button>
-          <Button 
-            variant="outline" 
-            className="h-16 flex flex-col items-center justify-center gap-1"
-            onClick={() => navigate('/competitions')}
-          >
-            <TrendingUp className="h-5 w-5" />
-            <span className="text-xs font-medium">League Table</span>
-          </Button>
+        {/* Main Content Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          {/* Left Column - Next Match & Actions */}
+          <div className="lg:col-span-2 space-y-4">
+            <NextMatchWidget />
+            
+            {/* Quick Actions */}
+            <div className="grid grid-cols-2 gap-3">
+              <Button 
+                variant="outline" 
+                className="flex items-center gap-2 justify-center text-xs h-9"
+                onClick={() => navigate('/squad')}
+              >
+                <Users className="h-3 w-3" />
+                Manage Squad
+              </Button>
+              <Button 
+                variant="outline" 
+                className="flex items-center gap-2 justify-center text-xs h-9"
+                onClick={() => navigate('/competitions')}
+              >
+                <TrendingUp className="h-3 w-3" />
+                League Table
+              </Button>
+            </div>
+
+            {/* Calendar Section */}
+            <DashboardCalendar />
+          </div>
+
+          {/* Right Column - Key Widgets */}
+          <div className="space-y-4">
+            <LeaguePositionWidget />
+            <SquadStatusWidget />
+            <FinancialSummaryWidget />
+          </div>
         </div>
 
-        {/* Calendar & Fixtures */}
-        <DashboardCalendar />
-
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <LeaguePositionWidget />
-          <SquadStatusWidget />
-          <FinancialSummaryWidget />
+        {/* Bottom Section - Stats & Table */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <RecentResultsWidget />
+          <TopScorersWidget />
         </div>
 
-        {/* League Table */}
-        <Card className="p-4">
-          <h2 className="text-lg font-bold mb-3">League Table</h2>
+        {/* Full League Table */}
+        <div>
+          <h2 className="text-lg font-bold mb-3">League Standings</h2>
           {seasonLoading ? (
             <div className="space-y-2">
-              {[...Array(5)].map((_, i) => (
-                <Skeleton key={i} className="h-12 w-full" />
-              ))}
+              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-10 w-full" />
             </div>
           ) : standings.length > 0 ? (
             <LeagueTable standings={standings} />
           ) : (
             <p className="text-sm text-muted-foreground text-center py-4">No standings data available</p>
           )}
-        </Card>
-
-        {/* Performance Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <TopScorersWidget />
-          <RecentResultsWidget />
         </div>
       </div>
     </DashboardLayout>
