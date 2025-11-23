@@ -7,7 +7,7 @@ import MatchCommentary from "@/components/MatchCommentary";
 import PlayerPerformanceTracker from "@/components/PlayerPerformanceTracker";
 import TacticalAdjustmentPanel from "@/components/TacticalAdjustmentPanel";
 import CrowdAtmosphere from "@/components/CrowdAtmosphere";
-import { MatchEventNotification } from "@/components/MatchEventNotification";
+import { MatchEventNotifications } from "@/components/MatchEventNotification";
 import { AttackDefenseBar } from "@/components/AttackDefenseBar";
 import { MatchResultSummary } from "@/components/MatchResultSummary";
 import { HalfTimeModal } from "@/components/HalfTimeModal";
@@ -429,10 +429,6 @@ const PlayMatch = () => {
     e => e.type === 'goal' && e.team === 'away'
   ).length;
 
-  const handleEventNotificationComplete = (event: MatchEvent) => {
-    setActiveEventNotifications(prev => prev.filter(e => e.id !== event.id));
-  };
-
   const handleContinueToNextMatch = async () => {
     advanceDate(1);
     setShowResultSummary(false);
@@ -554,16 +550,7 @@ const PlayMatch = () => {
         )}
 
         {/* Event Notifications */}
-        {activeEventNotifications.map((event, index) => (
-          <div key={event.id} style={{ top: `${4 + index * 4}rem` }}>
-            <MatchEventNotification
-              event={event}
-              homeTeam={homeTeamName}
-              awayTeam={awayTeamName}
-              onComplete={() => handleEventNotificationComplete(event)}
-            />
-          </div>
-        ))}
+        <MatchEventNotifications events={activeEventNotifications} />
 
         <div className="flex justify-between items-center mb-2">
           <h1 className="text-lg font-heading font-bold gradient-text">Play Match</h1>

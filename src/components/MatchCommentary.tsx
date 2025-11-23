@@ -4,6 +4,7 @@ import { ScrollArea } from "./ui/scroll-area";
 import { Badge } from "./ui/badge";
 import { MatchEvent } from "@/types/match";
 import { MessageSquare, TrendingUp, TrendingDown } from "lucide-react";
+import { getRandomEventDescription } from "@/services/matchEventLibrary";
 
 interface MatchCommentaryProps {
   events: MatchEvent[];
@@ -33,17 +34,26 @@ const MatchCommentary = ({
   const generateCommentary = (event: MatchEvent): CommentaryLine[] => {
     const lines: CommentaryLine[] = [];
     const team = event.team === 'home' ? homeTeam : awayTeam;
+    
+    // Get varied description from library
+    const eventDesc = getRandomEventDescription(event.type);
+    let mainText = eventDesc.text;
+    
+    // Replace generic player references with actual player names
+    if (event.player) {
+      mainText = mainText.replace(/\bplayer\b/gi, event.player);
+    }
 
     switch (event.type) {
       case 'goal':
         lines.push({
           minute: event.minute,
-          text: `🎯 GOAL! What a finish from ${event.player}! ${team} take the lead with a clinical strike!`,
+          text: `${mainText} ${event.player}! ${team} score!`,
           type: 'event'
         });
         lines.push({
           minute: event.minute,
-          text: `The stadium erupts! That's a crucial moment in this match. ${team} showing their attacking prowess.`,
+          text: `The stadium erupts! That's a crucial moment. ${team} showing their quality!`,
           type: 'tactical'
         });
         break;
@@ -51,7 +61,7 @@ const MatchCommentary = ({
       case 'shot_on_target':
         lines.push({
           minute: event.minute,
-          text: `${event.player} tests the goalkeeper! Great shot from ${team}, forcing a save.`,
+          text: `${event.player} - ${mainText}`,
           type: 'event'
         });
         break;
@@ -59,7 +69,7 @@ const MatchCommentary = ({
       case 'shot':
         lines.push({
           minute: event.minute,
-          text: `${event.player} shoots... but it goes wide. ${team} building pressure here.`,
+          text: `${event.player} - ${mainText}`,
           type: 'event'
         });
         break;
@@ -67,7 +77,7 @@ const MatchCommentary = ({
       case 'save':
         lines.push({
           minute: event.minute,
-          text: `Outstanding save by ${event.player}! Quick reflexes deny what looked like a certain goal.`,
+          text: `${event.player} - ${mainText}`,
           type: 'event'
         });
         break;
@@ -75,7 +85,7 @@ const MatchCommentary = ({
       case 'corner':
         lines.push({
           minute: event.minute,
-          text: `Corner kick for ${team}. This could be dangerous...`,
+          text: `${mainText} ${team} looking dangerous!`,
           type: 'event'
         });
         break;
@@ -83,15 +93,16 @@ const MatchCommentary = ({
       case 'foul':
         lines.push({
           minute: event.minute,
-          text: `Foul called. ${event.player} goes into the book. Referee keeping tight control here.`,
+          text: `${event.player} - ${mainText}`,
           type: 'event'
         });
         break;
 
       case 'yellow_card':
+      case 'red_card':
         lines.push({
           minute: event.minute,
-          text: `⚠️ Yellow card! ${event.player} will need to be careful now. One more and they're off!`,
+          text: `${event.player} - ${mainText}`,
           type: 'event'
         });
         break;
@@ -99,7 +110,7 @@ const MatchCommentary = ({
       case 'substitution':
         lines.push({
           minute: event.minute,
-          text: `🔄 Tactical change: ${event.playerIn} comes on for ${event.playerOut}. ${team} looking to change the game.`,
+          text: `🔄 ${event.playerIn} replaces ${event.playerOut}. ${team} making a change!`,
           type: 'tactical'
         });
         break;
@@ -107,10 +118,17 @@ const MatchCommentary = ({
       case 'offside':
         lines.push({
           minute: event.minute,
-          text: `Flag's up! ${event.player} caught in an offside position. Good awareness from the defense.`,
+          text: `${event.player} - ${mainText}`,
           type: 'event'
         });
         break;
+
+      default:
+        lines.push({
+          minute: event.minute,
+          text: mainText,
+          type: 'event'
+        });
     }
 
     return lines;
