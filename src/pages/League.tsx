@@ -4,14 +4,19 @@ import { europeanLeagues } from "@/data/leagues";
 import { europeanTeams } from "@/data/teams";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useSeason } from "@/contexts/SeasonContext";
+import { useCurrentSave } from "@/hooks/useCurrentSave";
+import { useSeasonData } from "@/hooks/useSeasonData";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const League = () => {
-  const { leagueStandings } = useSeason();
+  const { currentSave } = useCurrentSave();
+  const { seasonData, loading } = useSeasonData(currentSave?.id);
   
   // Get Premier League teams
   const premierLeague = europeanLeagues.find(l => l.id === "premier-league");
   const premierLeagueTeams = europeanTeams.filter(t => t.leagueId === "premier-league");
+
+  const standings = (seasonData?.standings_state as any[]) || [];
 
   return (
     <DashboardLayout>
@@ -19,7 +24,7 @@ const League = () => {
         <div className="mb-8">
           <h1 className="text-4xl font-bold mb-2">{premierLeague?.name}</h1>
           <p className="text-muted-foreground">
-            2024/25 Season • Matchweek 28 • {premierLeagueTeams.length} Teams
+            {seasonData?.season_year}/{(seasonData?.season_year || 2024) + 1} Season • Matchweek {seasonData?.current_matchday || 1} • {premierLeagueTeams.length} Teams
           </p>
         </div>
 
@@ -32,7 +37,11 @@ const League = () => {
           </TabsList>
 
           <TabsContent value="table">
-            <LeagueTable standings={leagueStandings} />
+            {loading ? (
+              <Skeleton className="h-[600px] w-full" />
+            ) : (
+              <LeagueTable standings={standings} />
+            )}
 
             <div className="mt-8 p-4 bg-muted/30 rounded-lg border border-border">
               <div className="flex gap-6 text-sm flex-wrap">
