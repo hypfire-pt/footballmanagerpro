@@ -8,12 +8,18 @@ import { Trophy, Target, Activity, ArrowRight, BarChart3, Repeat } from "lucide-
 import { MatchStatisticsComparison } from "@/components/MatchStatisticsComparison";
 import { MatchHighlightsReplay } from "@/components/MatchHighlightsReplay";
 
+import { TeamLogo } from "@/components/TeamLogo";
+
 interface MatchResultSummaryProps {
   homeTeam: string;
   awayTeam: string;
   result: SimulationResult;
   open: boolean;
   onContinue: () => void;
+  homeLogoUrl?: string;
+  awayLogoUrl?: string;
+  homeColor?: string;
+  awayColor?: string;
 }
 
 export const MatchResultSummary = ({
@@ -22,10 +28,18 @@ export const MatchResultSummary = ({
   result,
   open,
   onContinue,
+  homeLogoUrl,
+  awayLogoUrl,
+  homeColor = '#22c55e',
+  awayColor = '#3b82f6'
 }: MatchResultSummaryProps) => {
 
   const homeGoals = result.events.filter(e => e.type === 'goal' && e.team === 'home');
   const awayGoals = result.events.filter(e => e.type === 'goal' && e.team === 'away');
+  const homeFirstHalfGoals = homeGoals.filter(g => g.minute <= 45);
+  const awayFirstHalfGoals = awayGoals.filter(g => g.minute <= 45);
+  const homeSecondHalfGoals = homeGoals.filter(g => g.minute > 45);
+  const awaySecondHalfGoals = awayGoals.filter(g => g.minute > 45);
   const homeShots = result.events.filter(e => e.team === 'home' && ['shot', 'shot_on_target'].includes(e.type)).length;
   const awayShots = result.events.filter(e => e.team === 'away' && ['shot', 'shot_on_target'].includes(e.type)).length;
   
@@ -61,19 +75,59 @@ export const MatchResultSummary = ({
           </TabsList>
 
           <TabsContent value="summary" className="space-y-4">
-          {/* Final Score */}
+          {/* Final Score with Logos */}
           <Card className="glass border-border/50 p-6">
-            <div className="flex items-center justify-between">
-              <div className="flex-1 text-center">
-                <h3 className="text-lg font-heading font-bold">{homeTeam}</h3>
+            <div className="flex items-center justify-between gap-6">
+              {/* Home Team */}
+              <div className="flex-1 flex flex-col items-center gap-2">
+                <TeamLogo
+                  teamName={homeTeam}
+                  primaryColor={homeColor}
+                  secondaryColor="#ffffff"
+                  logoUrl={homeLogoUrl}
+                  size="lg"
+                />
+                <h3 className="text-lg font-heading font-bold text-center">{homeTeam}</h3>
               </div>
-              <div className="flex items-center gap-4">
-                <span className={`text-4xl font-heading font-bold ${resultColor}`}>{result.homeScore}</span>
-                <span className="text-2xl text-muted-foreground">-</span>
-                <span className={`text-4xl font-heading font-bold ${resultType === 'loss' ? 'text-green-500' : resultType === 'win' ? 'text-red-500' : 'text-yellow-500'}`}>{result.awayScore}</span>
+              
+              {/* Score and Half Breakdown */}
+              <div className="flex flex-col items-center gap-3">
+                <div className="flex items-center gap-4">
+                  <span className={`text-5xl font-heading font-bold ${resultColor}`}>{result.homeScore}</span>
+                  <span className="text-3xl text-muted-foreground">-</span>
+                  <span className={`text-5xl font-heading font-bold ${resultType === 'loss' ? 'text-green-500' : resultType === 'win' ? 'text-red-500' : 'text-yellow-500'}`}>{result.awayScore}</span>
+                </div>
+                
+                {/* Half Time and Full Time Breakdown */}
+                <div className="flex items-center gap-6 text-sm">
+                  <div className="text-center">
+                    <p className="text-xs text-muted-foreground mb-1">HT</p>
+                    <p className="font-semibold">
+                      {homeFirstHalfGoals.length} - {awayFirstHalfGoals.length}
+                    </p>
+                  </div>
+                  <div className="w-px h-8 bg-border" />
+                  <div className="text-center">
+                    <p className="text-xs text-muted-foreground mb-1">FT</p>
+                    <p className="font-semibold">
+                      {result.homeScore} - {result.awayScore}
+                    </p>
+                  </div>
+                </div>
+                
+                <Badge variant="outline" className="text-xs">Full Time</Badge>
               </div>
-              <div className="flex-1 text-center">
-                <h3 className="text-lg font-heading font-bold">{awayTeam}</h3>
+              
+              {/* Away Team */}
+              <div className="flex-1 flex flex-col items-center gap-2">
+                <TeamLogo
+                  teamName={awayTeam}
+                  primaryColor={awayColor}
+                  secondaryColor="#ffffff"
+                  logoUrl={awayLogoUrl}
+                  size="lg"
+                />
+                <h3 className="text-lg font-heading font-bold text-center">{awayTeam}</h3>
               </div>
             </div>
           </Card>

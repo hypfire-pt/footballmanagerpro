@@ -358,29 +358,63 @@ const PitchVisualization = ({
     animate();
   };
 
-  // Simple ball movement simulation (no scoring)
+  // Enhanced ball movement with passing sequences
   useEffect(() => {
     if (!isPlaying) return;
 
+    let passCount = 0;
+    const maxPassesBeforeAction = 3 + Math.floor(Math.random() * 4); // 3-6 passes
+    
     const moveBall = () => {
-      // Move ball smoothly across the pitch
-      const targetX = 20 + Math.random() * 60;
-      const targetY = 10 + Math.random() * 80;
+      passCount++;
       
+      // Determine ball movement based on attack momentum
+      const homeAttackStrength = attackMomentum?.home || 50;
+      const awayAttackStrength = attackMomentum?.away || 50;
+      
+      let targetX: number;
+      let targetY: number;
+      
+      if (passCount >= maxPassesBeforeAction) {
+        // Build-up complete - move towards goal
+        if (homeAttackStrength > awayAttackStrength) {
+          // Home attacking
+          targetX = 40 + Math.random() * 20; // Center attacking third
+          targetY = 15 + Math.random() * 25; // Move towards away goal
+        } else {
+          // Away attacking
+          targetX = 40 + Math.random() * 20;
+          targetY = 60 + Math.random() * 25; // Move towards home goal
+        }
+        passCount = 0; // Reset for next sequence
+      } else {
+        // Passing in build-up
+        if (homeAttackStrength > awayAttackStrength) {
+          // Home possession - midfield passing
+          targetX = 25 + Math.random() * 50;
+          targetY = 45 + Math.random() * 30;
+        } else {
+          // Away possession - midfield passing
+          targetX = 25 + Math.random() * 50;
+          targetY = 25 + Math.random() * 30;
+        }
+      }
+      
+      // Smooth interpolation
       setBallPosition(prev => ({
-        x: prev.x + (targetX - prev.x) * 0.05,
-        y: prev.y + (targetY - prev.y) * 0.05,
+        x: prev.x + (targetX - prev.x) * 0.15, // Faster movement for better flow
+        y: prev.y + (targetY - prev.y) * 0.15,
         visible: true,
       }));
       
       if (isPlaying) {
-        setTimeout(moveBall, 100);
+        setTimeout(moveBall, 150); // Slightly faster updates
       }
     };
 
-    const timer = setTimeout(moveBall, 100);
+    const timer = setTimeout(moveBall, 150);
     return () => clearTimeout(timer);
-  }, [isPlaying]);
+  }, [isPlaying, attackMomentum]);
 
   // Handle match events and animate accordingly
   useEffect(() => {
