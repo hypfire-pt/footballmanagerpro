@@ -681,6 +681,8 @@ const PlayMatch = () => {
                 attackMomentum={momentum}
                 homeColor={teamColors.home.primary}
                 awayColor={teamColors.away.primary}
+                homeSecondaryColor={teamColors.home.secondary}
+                awaySecondaryColor={teamColors.away.secondary}
               />
               )}
             </Card>
