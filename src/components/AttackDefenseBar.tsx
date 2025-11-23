@@ -52,7 +52,7 @@ export const AttackDefenseBar = ({
         <div className="relative h-8 bg-muted rounded-full overflow-hidden">
           {/* Home Attack (Left side) */}
           <motion.div
-            className="absolute left-0 top-0 h-full bg-gradient-to-r from-primary via-primary/80 to-primary/60"
+            className="absolute left-0 top-0 h-full bg-gradient-to-r from-green-500 via-green-500/80 to-green-500/60"
             initial={{ width: "50%" }}
             animate={{ width: `${homePercent}%` }}
             transition={{ duration: 0.5, ease: "easeInOut" }}
@@ -60,7 +60,7 @@ export const AttackDefenseBar = ({
           
           {/* Away Attack (Right side) */}
           <motion.div
-            className="absolute right-0 top-0 h-full bg-gradient-to-l from-red-500 via-red-500/80 to-red-500/60"
+            className="absolute right-0 top-0 h-full bg-gradient-to-l from-blue-500 via-blue-500/80 to-blue-500/60"
             initial={{ width: "50%" }}
             animate={{ width: `${awayPercent}%` }}
             transition={{ duration: 0.5, ease: "easeInOut" }}
@@ -79,12 +79,12 @@ export const AttackDefenseBar = ({
         {/* Legend */}
         <div className="flex items-center justify-center gap-4 text-xs text-muted-foreground">
           <div className="flex items-center gap-1">
-            <div className="w-3 h-3 rounded-full bg-gradient-to-r from-primary to-primary/60" />
-            <span>Attack</span>
+            <div className="w-3 h-3 rounded-full bg-gradient-to-r from-green-500 to-green-500/60" />
+            <span>Home Attack</span>
           </div>
           <div className="flex items-center gap-1">
-            <div className="w-3 h-3 rounded-full bg-muted" />
-            <span>Defense</span>
+            <div className="w-3 h-3 rounded-full bg-gradient-to-r from-blue-500 to-blue-500/60" />
+            <span>Away Attack</span>
           </div>
         </div>
       </div>
