@@ -1,206 +1,103 @@
-import { useEffect, useState } from "react";
-import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import confetti from "canvas-confetti";
 import { MatchEvent } from "@/types/match";
-import { Trophy, Zap, AlertCircle, Users, Flag, Circle } from "lucide-react";
+import { Badge } from "./ui/badge";
+import { motion, AnimatePresence } from "framer-motion";
+import { Trophy, AlertCircle, Target, Flag, Zap, Shield, X } from "lucide-react";
+import { getRandomEventDescription } from "@/services/matchEventLibrary";
 
-interface MatchEventNotificationProps {
-  event: MatchEvent;
-  homeTeam: string;
-  awayTeam: string;
-  onComplete?: () => void;
+export interface MatchEventNotificationsProps {
+  events: MatchEvent[];
 }
 
-export function MatchEventNotification({ 
-  event, 
-  homeTeam, 
-  awayTeam,
-  onComplete 
-}: MatchEventNotificationProps) {
-  const [visible, setVisible] = useState(true);
-
-  const playSound = (type: string) => {
-    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-    const oscillator = audioContext.createOscillator();
-    const gainNode = audioContext.createGain();
-    
-    oscillator.connect(gainNode);
-    gainNode.connect(audioContext.destination);
-    
-    switch(type) {
+export function MatchEventNotifications({ events }: MatchEventNotificationsProps) {
+  const getEventColor = (type: string) => {
+    switch (type) {
       case 'goal':
-        // Celebratory ascending tone
-        oscillator.frequency.setValueAtTime(440, audioContext.currentTime);
-        oscillator.frequency.exponentialRampToValueAtTime(880, audioContext.currentTime + 0.3);
-        gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
-        break;
-      case 'card':
-        // Sharp warning tone
-        oscillator.frequency.setValueAtTime(200, audioContext.currentTime);
-        gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
-        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
-        break;
-      case 'shot':
-        // Quick blip
-        oscillator.frequency.setValueAtTime(600, audioContext.currentTime);
-        gainNode.gain.setValueAtTime(0.15, audioContext.currentTime);
-        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
-        break;
-      default:
-        oscillator.frequency.setValueAtTime(440, audioContext.currentTime);
-        gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
-        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.15);
-    }
-    
-    oscillator.start();
-    oscillator.stop(audioContext.currentTime + 0.5);
-  };
-
-  const triggerConfetti = () => {
-    const duration = 3000;
-    const animationEnd = Date.now() + duration;
-    const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 9999 };
-
-    function randomInRange(min: number, max: number) {
-      return Math.random() * (max - min) + min;
-    }
-
-    const interval: any = setInterval(function() {
-      const timeLeft = animationEnd - Date.now();
-
-      if (timeLeft <= 0) {
-        return clearInterval(interval);
-      }
-
-      const particleCount = 50 * (timeLeft / duration);
-      
-      confetti({
-        ...defaults,
-        particleCount,
-        origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 }
-      });
-      confetti({
-        ...defaults,
-        particleCount,
-        origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 }
-      });
-    }, 250);
-  };
-
-  const getEventIcon = () => {
-    switch(event.type) {
-      case 'goal':
-        return <Trophy className="h-6 w-6" />;
-      case 'shot':
-      case 'shot_on_target':
-        return <Zap className="h-6 w-6" />;
+        return 'bg-green-500/20 border-green-500 text-green-400';
       case 'yellow_card':
+        return 'bg-yellow-500/20 border-yellow-500 text-yellow-400';
       case 'red_card':
-        return <AlertCircle className="h-6 w-6" />;
+        return 'bg-red-500/20 border-red-500 text-red-400';
+      case 'shot_on_target':
+        return 'bg-blue-500/20 border-blue-500 text-blue-400';
+      case 'shot':
+        return 'bg-orange-500/20 border-orange-500 text-orange-400';
       case 'substitution':
-        return <Users className="h-6 w-6" />;
-      case 'corner':
-        return <Flag className="h-6 w-6" />;
+        return 'bg-purple-500/20 border-purple-500 text-purple-400';
+      case 'save':
+        return 'bg-cyan-500/20 border-cyan-500 text-cyan-400';
+      case 'foul':
+        return 'bg-amber-500/20 border-amber-500 text-amber-400';
       default:
-        return <Circle className="h-6 w-6" />;
+        return 'bg-gray-500/20 border-gray-500 text-gray-400';
     }
   };
 
-  const getEventColor = () => {
-    switch(event.type) {
+  const getEventIcon = (type: string) => {
+    switch (type) {
       case 'goal':
-        return 'bg-gradient-gaming';
-      case 'shot':
-      case 'shot_on_target':
-        return 'bg-gradient-accent';
+        return <Trophy className="h-4 w-4" />;
       case 'yellow_card':
-        return 'bg-gradient-gold';
       case 'red_card':
-        return 'bg-destructive';
+        return <AlertCircle className="h-4 w-4" />;
+      case 'shot_on_target':
+        return <Target className="h-4 w-4" />;
+      case 'shot':
+        return <X className="h-4 w-4" />;
+      case 'save':
+        return <Shield className="h-4 w-4" />;
+      case 'corner':
+      case 'offside':
+        return <Flag className="h-4 w-4" />;
+      case 'foul':
+        return <Zap className="h-4 w-4" />;
       default:
-        return 'bg-muted';
+        return null;
     }
   };
-
-  useEffect(() => {
-    // Play sound effect
-    if (event.type === 'goal') {
-      playSound('goal');
-      triggerConfetti();
-    } else if (event.type === 'yellow_card' || event.type === 'red_card') {
-      playSound('card');
-    } else if (event.type === 'shot' || event.type === 'shot_on_target') {
-      playSound('shot');
-    } else {
-      playSound('default');
-    }
-
-    // Auto-hide after duration
-    const duration = event.type === 'goal' ? 5000 : 3000;
-    const timer = setTimeout(() => {
-      setVisible(false);
-      setTimeout(() => onComplete?.(), 300);
-    }, duration);
-
-    return () => clearTimeout(timer);
-  }, [event, onComplete]);
-
-  if (!visible) return null;
-
-  const teamName = event.team === 'home' ? homeTeam : awayTeam;
 
   return (
-    <Card 
-      className={`
-        fixed top-24 right-6 z-[100] 
-        ${getEventColor()} 
-        border-0 text-white
-        shadow-glow-strong
-        animate-fade-in-up
-        ${event.type === 'goal' ? 'animate-glow-pulse' : ''}
-        transition-all duration-300
-        ${!visible ? 'opacity-0 translate-x-full' : 'opacity-100 translate-x-0'}
-      `}
-      style={{
-        width: '350px',
-        maxWidth: 'calc(100vw - 3rem)'
-      }}
-    >
-      <div className="p-4">
-        <div className="flex items-start gap-3">
-          <div className="flex-shrink-0 p-2 bg-white/20 rounded-lg backdrop-blur-sm">
-            {getEventIcon()}
-          </div>
+    <div className="fixed top-24 right-6 z-[100] space-y-2 max-w-sm">
+      <AnimatePresence mode="popLayout">
+        {events.map((event, index) => {
+          const eventDesc = getRandomEventDescription(event.type);
+          const isHighEmphasis = eventDesc.emphasis === 'high';
           
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-1">
-              <Badge variant="secondary" className="bg-white/20 text-white border-0">
-                {event.minute}'
-              </Badge>
-              <span className="text-xs font-bold uppercase tracking-wider">
-                {event.type.replace('_', ' ')}
-              </span>
-            </div>
-            
-            <p className="font-heading font-bold text-lg mb-1 leading-tight">
-              {event.type === 'goal' && '⚽ GOAL! '}
-              {event.player || teamName}
-            </p>
-            
-            <p className="text-sm text-white/90 leading-snug">
-              {event.description}
-            </p>
-            
-            {event.additionalInfo && (
-              <p className="text-xs text-white/70 mt-1">
-                {event.additionalInfo}
-              </p>
-            )}
-          </div>
-        </div>
-      </div>
-    </Card>
+          return (
+            <motion.div
+              key={`${event.minute}-${index}-${event.type}`}
+              initial={{ opacity: 0, x: 100, scale: 0.8 }}
+              animate={{ 
+                opacity: 1, 
+                x: 0, 
+                scale: isHighEmphasis ? [0.8, 1.15, 1] : 1 
+              }}
+              exit={{ opacity: 0, x: 100, scale: 0.8 }}
+              transition={{ 
+                duration: isHighEmphasis ? 0.6 : 0.3,
+                scale: { duration: 0.6, times: [0, 0.5, 1] }
+              }}
+              className={`flex items-center gap-2 px-3 py-2 rounded-lg border backdrop-blur-sm ${getEventColor(event.type)} ${
+                isHighEmphasis ? 'shadow-lg ring-2 ring-white/20' : ''
+              }`}
+            >
+              <motion.div
+                animate={isHighEmphasis ? { 
+                  rotate: [0, -12, 12, -8, 0],
+                  scale: [1, 1.3, 1.2, 1.3, 1]
+                } : {}}
+                transition={{ duration: 0.6 }}
+              >
+                {getEventIcon(event.type)}
+              </motion.div>
+              <div className="flex-1">
+                <span className={`text-xs ${isHighEmphasis ? 'font-bold text-white' : 'font-medium'}`}>
+                  {event.minute}' - {event.description}
+                </span>
+              </div>
+            </motion.div>
+          );
+        })}
+      </AnimatePresence>
+    </div>
   );
 }

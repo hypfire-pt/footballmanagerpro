@@ -425,10 +425,10 @@ export class ProbabilisticMatchEngine {
       this.stats.shotsOnTarget.away++;
     }
 
-    // Calculate goal probability
+    // Calculate goal probability - INCREASED for more exciting matches
     const gkQuality = goalkeeper ? (goalkeeper.overall * 0.8 + goalkeeper.physical * 0.2) * (goalkeeper.fitness / 100) : 70;
     
-    let goalProbability = (shotQuality / gkQuality) * 0.3;
+    let goalProbability = (shotQuality / gkQuality) * 0.45; // Increased from 0.3 to 0.45 for 50% more goals
     
     // Wonder goal chance (1% base + modifiers)
     let wonderGoalChance = 0.01;
