@@ -20,7 +20,9 @@ const LeagueTable = ({ standings }: LeagueTableProps) => {
       
       if (data) {
         const logos = data.reduce((acc, team) => {
-          acc[team.name] = team.logo_url || '';
+          if (team.logo_url) {
+            acc[team.name] = team.logo_url;
+          }
           return acc;
         }, {} as Record<string, string>);
         setTeamLogos(logos);

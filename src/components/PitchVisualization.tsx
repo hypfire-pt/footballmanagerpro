@@ -358,33 +358,64 @@ const PitchVisualization = ({
     animate();
   };
 
-  // Continuous ball movement simulation based on attack/defense flow
+  // Realistic player-to-player passing simulation
   useEffect(() => {
     if (!isPlaying) return;
 
-    const moveBall = () => {
-      // Calculate attack direction based on momentum
+    const simulatePassing = () => {
+      const allPlayers = Array.from(dynamicPositions.values());
+      if (allPlayers.length === 0) return;
+
+      // Determine which team has possession based on attack momentum
       const homeAttacking = attackMomentum.home > attackMomentum.away;
-      const attackDirection = homeAttacking ? -1 : 1; // -1 up (home attacks), 1 down (away attacks)
+      const possessingTeam = homeAttacking ? 'home' : 'away';
       
-      // Move ball gradually towards attacking third
-      const targetY = homeAttacking ? 25 : 75;
-      const targetX = 50 + (Math.random() - 0.5) * 20; // Some horizontal variation
+      // Get players from possessing team
+      const teamPlayers = allPlayers.filter(p => p.team === possessingTeam);
+      if (teamPlayers.length === 0) return;
+
+      // Find player closest to ball
+      const ballHolder = teamPlayers.reduce((closest, player) => {
+        const distToBall = Math.sqrt(
+          Math.pow(ballPosition.x - player.x, 2) + 
+          Math.pow(ballPosition.y - player.y, 2)
+        );
+        const closestDist = Math.sqrt(
+          Math.pow(ballPosition.x - closest.x, 2) + 
+          Math.pow(ballPosition.y - closest.y, 2)
+        );
+        return distToBall < closestDist ? player : closest;
+      });
+
+      // Select random teammate to pass to (preferably forward)
+      const targetY = possessingTeam === 'home' ? 0 : 100;
+      const forwardPlayers = teamPlayers
+        .filter(p => p !== ballHolder)
+        .filter(p => possessingTeam === 'home' ? p.y < ballHolder.y : p.y > ballHolder.y);
       
-      setBallPosition(prev => ({
-        x: prev.x + (targetX - prev.x) * 0.02,
-        y: prev.y + (targetY - prev.y) * 0.03,
-        visible: true,
-      }));
-      
-      if (isPlaying) {
-        setTimeout(moveBall, 100);
+      const passTarget = forwardPlayers.length > 0 
+        ? forwardPlayers[Math.floor(Math.random() * forwardPlayers.length)]
+        : teamPlayers[Math.floor(Math.random() * teamPlayers.length)];
+
+      if (passTarget) {
+        // Animate ball to target player with slight randomness
+        const targetX = passTarget.x + (Math.random() - 0.5) * 3;
+        const targetY = passTarget.y + (Math.random() - 0.5) * 3;
+        
+        animateBallMovement(
+          ballPosition, 
+          { x: targetX, y: targetY }, 
+          400 + Math.random() * 200
+        );
       }
     };
 
-    const timer = setTimeout(moveBall, 100);
+    // Pass every 1-2 seconds during play
+    const passInterval = 1000 + Math.random() * 1000;
+    const timer = setTimeout(simulatePassing, passInterval);
+    
     return () => clearTimeout(timer);
-  }, [isPlaying, attackMomentum]);
+  }, [isPlaying, attackMomentum, ballPosition, dynamicPositions]);
 
   // Handle match events and animate accordingly
   useEffect(() => {
