@@ -1,12 +1,37 @@
-import { LeagueStanding } from "@/types/game";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "./ui/table";
 import { Badge } from "./ui/badge";
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { TeamLogo } from "./TeamLogo";
 
 interface LeagueTableProps {
-  standings: LeagueStanding[];
+  standings: any[];
 }
 
 const LeagueTable = ({ standings }: LeagueTableProps) => {
+  const [teamLogos, setTeamLogos] = useState<Record<string, string>>({});
+  useEffect(() => {
+    const fetchTeamLogos = async () => {
+      const teamNames = standings.map(s => s.team_name);
+      const { data } = await supabase
+        .from('teams')
+        .select('name, logo_url')
+        .in('name', teamNames);
+      
+      if (data) {
+        const logos = data.reduce((acc, team) => {
+          acc[team.name] = team.logo_url || '';
+          return acc;
+        }, {} as Record<string, string>);
+        setTeamLogos(logos);
+      }
+    };
+
+    if (standings.length > 0) {
+      fetchTeamLogos();
+    }
+  }, [standings]);
+
   const getFormBadge = (result: string) => {
     const variants: Record<string, string> = {
       W: "bg-result-win/20 text-result-win",
@@ -50,23 +75,32 @@ const LeagueTable = ({ standings }: LeagueTableProps) => {
               <TableCell className="text-center font-bold">
                 {team.position}
               </TableCell>
-              <TableCell className="font-semibold">{team.club}</TableCell>
+              <TableCell>
+                <div className="flex items-center gap-3">
+                  <TeamLogo 
+                    teamName={team.team_name} 
+                    logoUrl={teamLogos[team.team_name]}
+                    size="sm"
+                  />
+                  <span className="font-semibold">{team.team_name}</span>
+                </div>
+              </TableCell>
               <TableCell className="text-center">{team.played}</TableCell>
               <TableCell className="text-center">{team.won}</TableCell>
               <TableCell className="text-center">{team.drawn}</TableCell>
               <TableCell className="text-center">{team.lost}</TableCell>
-              <TableCell className="text-center">{team.goalsFor}</TableCell>
-              <TableCell className="text-center">{team.goalsAgainst}</TableCell>
+              <TableCell className="text-center">{team.goals_for}</TableCell>
+              <TableCell className="text-center">{team.goals_against}</TableCell>
               <TableCell className="text-center font-semibold">
-                {team.goalDifference > 0 && "+"}
-                {team.goalDifference}
+                {team.goal_difference > 0 && "+"}
+                {team.goal_difference}
               </TableCell>
               <TableCell className="text-center font-bold text-lg">
                 {team.points}
               </TableCell>
               <TableCell className="text-center">
                 <div className="flex gap-1 justify-center">
-                  {team.form.map((result, idx) => (
+                  {team.form && Array.isArray(team.form) && team.form.slice(-5).map((result: string, idx: number) => (
                     <Badge
                       key={idx}
                       className={`${getFormBadge(result)} w-6 h-6 flex items-center justify-center p-0 text-xs font-bold`}
