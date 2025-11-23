@@ -515,11 +515,16 @@ const PlayMatch = () => {
           )}
         </Card>
 
-        <Card className="glass gaming-card p-4 mb-6 border-border/50">
+        <Card className="glass gaming-card p-4 mb-6 border-border/50" style={{ position: 'relative', zIndex: 50 }}>
           <div className="flex items-center justify-between gap-4 flex-wrap">
             <div className="flex items-center gap-3 flex-wrap">
               {!result && (
                 <>
+                  <div className="text-sm text-muted-foreground mb-2">
+                    Debug: Loading={loading ? 'true' : 'false'}, 
+                    HomeLineup={homeLineupState ? `${homeLineupState.players.length} players` : 'null'}, 
+                    AwayLineup={awayLineupState ? `${awayLineupState.players.length} players` : 'null'}
+                  </div>
                   <div className="flex gap-2">
                     <Button
                       variant={speed === 'normal' ? 'default' : 'outline'}
@@ -557,6 +562,7 @@ const PlayMatch = () => {
                     disabled={isSimulating || loading || !homeLineupState || !awayLineupState}
                     className="gap-2 btn-glow font-heading"
                     type="button"
+                    style={{ position: 'relative', zIndex: 100, pointerEvents: 'auto' }}
                   >
                     <Play className="h-4 w-4" />
                     {loading ? 'Loading...' : 'Play Match'}
