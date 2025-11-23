@@ -142,6 +142,40 @@ const PlayMatch = () => {
           }));
         }
 
+        // Load saved tactics from TacticsPage
+        const savedTacticsRaw = localStorage.getItem('savedTactics');
+        let userTactics: {
+          mentality: 'balanced' | 'attacking' | 'defensive';
+          tempo: 'standard' | 'fast' | 'slow';
+          width: 'standard' | 'wide' | 'narrow';
+          pressing: 'medium' | 'high' | 'low';
+        } = {
+          mentality: 'balanced',
+          tempo: 'standard',
+          width: 'standard',
+          pressing: 'medium',
+        };
+
+        if (savedTacticsRaw) {
+          try {
+            const savedTactics = JSON.parse(savedTacticsRaw);
+            // Convert slider values to match engine format
+            const mentalityValue = savedTactics.mentality || 50;
+            const tempoValue = savedTactics.tempo || 50;
+            const widthValue = savedTactics.width || 50;
+            const pressingValue = savedTactics.pressing || 50;
+
+            userTactics = {
+              mentality: mentalityValue < 40 ? 'defensive' : mentalityValue < 60 ? 'balanced' : 'attacking',
+              tempo: tempoValue < 33 ? 'slow' : tempoValue < 67 ? 'standard' : 'fast',
+              width: widthValue < 33 ? 'narrow' : widthValue < 67 ? 'standard' : 'wide',
+              pressing: pressingValue < 33 ? 'low' : pressingValue < 67 ? 'medium' : 'high',
+            };
+          } catch (e) {
+            console.error('Failed to parse saved tactics', e);
+          }
+        }
+
         // Map to TeamLineup format
         const homeLineup: TeamLineup = {
           formation: "4-2-3-1",
@@ -158,7 +192,7 @@ const PlayMatch = () => {
             fitness: sp.fitness,
             morale: sp.morale,
           })),
-          tactics: {
+          tactics: isHome ? userTactics : {
             mentality: 'balanced',
             tempo: 'standard',
             width: 'standard',
@@ -181,7 +215,7 @@ const PlayMatch = () => {
             fitness: sp.fitness,
             morale: sp.morale,
           })),
-          tactics: {
+          tactics: !isHome ? userTactics : {
             mentality: 'defensive',
             tempo: 'slow',
             width: 'narrow',
