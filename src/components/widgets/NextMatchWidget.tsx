@@ -2,15 +2,51 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { TeamLogo } from "@/components/TeamLogo";
 import { Clock, MapPin } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useCurrentSave } from "@/hooks/useCurrentSave";
 import { useSeasonData } from "@/hooks/useSeasonData";
+import { supabase } from "@/integrations/supabase/client";
+import { useEffect, useState } from "react";
 
 export function NextMatchWidget() {
   const navigate = useNavigate();
   const { currentSave, loading: saveLoading } = useCurrentSave();
   const { seasonData, loading: seasonLoading } = useSeasonData(currentSave?.id);
+  const [teamColors, setTeamColors] = useState<Record<string, { primary: string; secondary: string }>>({});
+
+  useEffect(() => {
+    const fetchTeamColors = async () => {
+      if (!seasonData) return;
+      
+      const fixtures = seasonData?.fixtures_state as any[] || [];
+      const nextMatch = fixtures.find((f: any) => 
+        (f.homeTeam === currentSave?.team_name || f.awayTeam === currentSave?.team_name) && 
+        f.status === 'scheduled'
+      );
+
+      if (!nextMatch) return;
+
+      const { data: teams } = await supabase
+        .from('teams')
+        .select('name, primary_color, secondary_color')
+        .in('id', [nextMatch.homeTeamId, nextMatch.awayTeamId]);
+
+      if (teams) {
+        const colorsMap: Record<string, { primary: string; secondary: string }> = {};
+        teams.forEach(team => {
+          colorsMap[team.name] = {
+            primary: team.primary_color,
+            secondary: team.secondary_color
+          };
+        });
+        setTeamColors(colorsMap);
+      }
+    };
+
+    fetchTeamColors();
+  }, [seasonData, currentSave?.team_name]);
 
   if (saveLoading || seasonLoading) {
     return (
@@ -57,11 +93,13 @@ export function NextMatchWidget() {
 
         <div className="flex items-center justify-between mb-6">
           <div className="flex flex-col items-center flex-1">
-            <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl flex items-center justify-center mb-3 shadow-lg">
-              <span className="text-white font-bold text-2xl">
-                {nextMatch.homeTeam.substring(0, 3).toUpperCase()}
-              </span>
-            </div>
+            <TeamLogo
+              teamName={nextMatch.homeTeam}
+              primaryColor={teamColors[nextMatch.homeTeam]?.primary}
+              secondaryColor={teamColors[nextMatch.homeTeam]?.secondary}
+              size="lg"
+              className="mb-3 drop-shadow-lg"
+            />
             <span className="font-bold text-lg">{nextMatch.homeTeam}</span>
             {isHome && (
               <Badge variant="default" className="mt-1 text-xs">Your Team</Badge>
@@ -77,11 +115,13 @@ export function NextMatchWidget() {
           </div>
 
           <div className="flex flex-col items-center flex-1">
-            <div className="w-20 h-20 bg-gradient-to-br from-red-500 to-red-600 rounded-2xl flex items-center justify-center mb-3 shadow-lg">
-              <span className="text-white font-bold text-2xl">
-                {nextMatch.awayTeam.substring(0, 3).toUpperCase()}
-              </span>
-            </div>
+            <TeamLogo
+              teamName={nextMatch.awayTeam}
+              primaryColor={teamColors[nextMatch.awayTeam]?.primary}
+              secondaryColor={teamColors[nextMatch.awayTeam]?.secondary}
+              size="lg"
+              className="mb-3 drop-shadow-lg"
+            />
             <span className="font-bold text-lg">{nextMatch.awayTeam}</span>
             {!isHome && (
               <Badge variant="default" className="mt-1 text-xs">Your Team</Badge>
