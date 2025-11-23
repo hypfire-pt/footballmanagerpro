@@ -361,8 +361,33 @@ const PlayMatch = () => {
     });
   };
 
-  const handleHalfTimeContinue = (substitutions: any[]) => {
+  const handleHalfTimeContinue = (substitutions: any[], tacticsChanges: any) => {
     setPlannedSubstitutions(substitutions);
+    
+    // Apply tactical changes
+    if (homeLineupState && Object.keys(tacticsChanges).length > 0) {
+      const updatedLineup = { ...homeLineupState };
+      
+      // Update formation if changed
+      if (tacticsChanges.formation) {
+        updatedLineup.formation = tacticsChanges.formation;
+      }
+      
+      // Update tactics
+      updatedLineup.tactics = { ...homeLineupState.tactics };
+      if (tacticsChanges.mentality) updatedLineup.tactics.mentality = tacticsChanges.mentality;
+      if (tacticsChanges.tempo) updatedLineup.tactics.tempo = tacticsChanges.tempo;
+      if (tacticsChanges.width) updatedLineup.tactics.width = tacticsChanges.width;
+      if (tacticsChanges.pressing) updatedLineup.tactics.pressing = tacticsChanges.pressing;
+      
+      setHomeLineupState(updatedLineup);
+      
+      toast({
+        title: "Tactical Changes Applied",
+        description: "Your tactical adjustments will take effect in the second half",
+      });
+    }
+    
     setShowHalfTime(false);
     setIsPaused(false);
     
@@ -425,7 +450,7 @@ const PlayMatch = () => {
 
     toast({
       title: "Second Half Started",
-      description: substitutions.length > 0 ? `${substitutions.length} substitution(s) planned` : "No substitutions planned",
+      description: `${substitutions.length > 0 ? `${substitutions.length} substitution(s) planned. ` : ''}${Object.keys(tacticsChanges).length > 0 ? 'Tactical changes applied.' : 'No changes made.'}`,
     });
   };
 
@@ -463,6 +488,13 @@ const PlayMatch = () => {
               name: p.name,
               position: p.position,
             }))}
+            currentTactics={{
+              formation: homeLineupState.formation,
+              mentality: homeLineupState.tactics.mentality,
+              tempo: homeLineupState.tactics.tempo,
+              width: homeLineupState.tactics.width,
+              pressing: homeLineupState.tactics.pressing,
+            }}
             open={showHalfTime}
             onContinue={handleHalfTimeContinue}
           />
