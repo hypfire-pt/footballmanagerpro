@@ -254,30 +254,59 @@ export class ProbabilisticMatchEngine {
 
     const attackQuality = (attackStrength / defenseStrength) * momentumEffect * (Math.random() * 0.5 + 0.75);
 
-    // Late match drama
+    // Late match drama amplifier (minutes 75-90+)
     let urgencyBonus = 1.0;
+    let dramaProbability = 1.0;
+    
     if (minute > 75) {
-      if (attackingTeam === 'home' && this.homeScore < this.awayScore) urgencyBonus = 1.20;
-      if (attackingTeam === 'away' && this.awayScore < this.homeScore) urgencyBonus = 1.20;
+      // Trailing team gets urgency bonus
+      if (attackingTeam === 'home' && this.homeScore < this.awayScore) {
+        urgencyBonus = 1.20; // +20% attacking urgency
+      } else if (attackingTeam === 'away' && this.awayScore < this.homeScore) {
+        urgencyBonus = 1.20;
+      }
+      
+      // Late match drama amplifier
+      dramaProbability = 1.4; // +40% event probability after 75'
+    }
+    
+    if (minute > 85) {
+      dramaProbability = 1.6; // +60% event probability after 85'
     }
 
     const finalQuality = attackQuality * urgencyBonus;
 
-    // Event probabilities
+    // Calculate foul probability based on pressure and tactics
+    let foulProbability = 0.06; // Base 6%
+    
+    if (this.isDerby) foulProbability += 0.04; // Derby = +40% fouls
+    if (minute > 75) foulProbability += 0.03; // Late match tension
+    if (Math.abs(this.momentum) > 50) foulProbability += 0.02; // High pressure
+    if (defending.tactics.pressing === 'high') foulProbability += 0.02; // Aggressive pressing
+    
+    foulProbability *= dramaProbability;
+
+    // Event probabilities with drama multiplier
     const rand = Math.random();
 
-    if (finalQuality > 1.4 && rand < 0.12) {
-      // High quality chance
+    if (finalQuality > 1.4 && rand < 0.12 * dramaProbability) {
+      // High quality chance - likely on target
       this.generateShot(attackingTeam, minute, true, context);
-    } else if (finalQuality > 1.1 && rand < 0.20) {
-      // Good chance
-      const onTarget = Math.random() < 0.65;
+    } else if (finalQuality > 1.1 && rand < 0.20 * dramaProbability) {
+      // Good chance - variable accuracy
+      const onTargetChance = 0.50 + (finalQuality - 1.1) * 0.5; // 50-65% on target
+      const onTarget = Math.random() < onTargetChance;
       this.generateShot(attackingTeam, minute, onTarget, context);
-    } else if (rand < 0.08) {
+    } else if (finalQuality > 0.8 && rand < 0.15 * dramaProbability) {
+      // Moderate chance - likely off target
+      const onTarget = Math.random() < 0.35; // 35% on target
+      this.generateShot(attackingTeam, minute, onTarget, context);
+    } else if (rand < 0.08 * dramaProbability) {
       this.generateCorner(attackingTeam, minute);
-    } else if (rand < 0.04) {
+    } else if (rand < 0.04 * dramaProbability) {
       this.generateOffside(attackingTeam, minute);
-    } else if (rand < 0.06) {
+    } else if (rand < foulProbability) {
+      // Defending team commits foul
       this.generateFoul(attackingTeam === 'home' ? 'away' : 'home', minute, context);
     }
 
@@ -302,39 +331,116 @@ export class ProbabilisticMatchEngine {
       ['ST', 'CF', 'LW', 'RW', 'CAM'].includes(p.position)
     );
     const shooter = attackers[Math.floor(Math.random() * attackers.length)] || lineup.players[0];
+    const goalkeeper = opposingLineup.players.find(p => p.position === 'GK');
+
+    // Calculate shot quality based on multiple factors
+    const shooterFitness = shooter.fitness / 100;
+    const shooterMorale = shooter.morale / 100;
+    const shooterForm = (shooter.fitness + shooter.morale) / 200; // Simplified form
+    
+    // Technical attributes weight (30%)
+    const technicalQuality = (shooter.shooting * 0.6 + shooter.passing * 0.2 + shooter.physical * 0.2) / 100;
+    
+    // Mental attributes weight (25%)
+    const mentalQuality = shooterMorale;
+    
+    // Physical attributes weight (20%)
+    const physicalQuality = (shooter.pace * 0.3 + shooter.physical * 0.7) / 100;
+    
+    // Dynamic state modifiers
+    const stateMultiplier = shooterFitness * 0.5 + shooterMorale * 0.3 + shooterForm * 0.2;
+    
+    // Overall shooting quality (0-100 scale)
+    let shotQuality = (technicalQuality * 30 + mentalQuality * 25 + physicalQuality * 20) * stateMultiplier * 100;
+    
+    // Context modifiers
+    if (minute > 75) {
+      // Late match urgency
+      const scoreDiff = team === 'home' ? context.homeScore - context.awayScore : context.awayScore - context.homeScore;
+      if (scoreDiff < 0) shotQuality *= 1.15; // Losing = +15% desperation
+    }
+    
+    if (minute > 85 && Math.abs(context.homeScore - context.awayScore) === 0) {
+      shotQuality *= 1.10; // Drawing late = +10% pressure
+    }
+    
+    // Weather modifiers
+    const weatherMods = this.getWeatherModifiers();
+    shotQuality *= weatherMods.shotAccuracy;
+    
+    // Momentum effect
+    const teamMomentum = team === 'home' ? context.momentum : -context.momentum;
+    if (teamMomentum > 50) shotQuality *= 1.15;
+    else if (teamMomentum < -50) shotQuality *= 0.85;
 
     // Update stats
     if (team === 'home') {
       this.stats.shots.home++;
-      if (onTarget) this.stats.shotsOnTarget.home++;
     } else {
       this.stats.shots.away++;
-      if (onTarget) this.stats.shotsOnTarget.away++;
     }
 
-    if (!onTarget) {
+    // Determine if shot is on target based on shooting quality
+    const onTargetProbability = shotQuality / 100 * 0.65; // 65% base for good players
+    const actuallyOnTarget = onTarget && Math.random() < onTargetProbability;
+    
+    if (!actuallyOnTarget) {
+      // MISSED SHOT
+      if (team === 'home') {
+        this.stats.shots.home;
+      } else {
+        this.stats.shots.away;
+      }
+      
+      // Determine miss type
+      const missType = Math.random();
+      let missDescription = '';
+      
+      if (missType < 0.4) {
+        missDescription = `${shooter.name} shoots wide of the post!`;
+      } else if (missType < 0.7) {
+        missDescription = `${shooter.name}'s shot goes over the bar!`;
+      } else {
+        missDescription = `${shooter.name} completely mishits the shot!`;
+      }
+      
       this.events.push({
         id: `event_${Date.now()}_${Math.random()}`,
         minute,
         type: 'shot',
         team,
         player: shooter.name,
-        description: `${shooter.name} shoots wide!`,
+        description: missDescription,
       });
+      
+      // Small momentum shift for missing
+      this.updateMomentum(team === 'home' ? 'away' : 'home', 3);
       return;
     }
 
-    // Shot on target - calculate goal probability
-    const goalkeeper = opposingLineup.players.find(p => p.position === 'GK');
-    const shootingQuality = (shooter.shooting + shooter.physical * 0.3) * (shooter.fitness / 100);
-    const saveAbility = goalkeeper ? (goalkeeper.overall * 0.8 + goalkeeper.physical * 0.2) * (goalkeeper.fitness / 100) : 70;
+    // Shot is ON TARGET
+    if (team === 'home') {
+      this.stats.shotsOnTarget.home++;
+    } else {
+      this.stats.shotsOnTarget.away++;
+    }
 
-    const weatherMods = this.getWeatherModifiers();
-    let goalProbability = (shootingQuality / saveAbility) * 0.3 * weatherMods.shotAccuracy;
-
-    // Wonder goal chance
-    if (shooter.shooting >= 85 && Math.random() < 0.03) {
-      goalProbability = 1.0;
+    // Calculate goal probability
+    const gkQuality = goalkeeper ? (goalkeeper.overall * 0.8 + goalkeeper.physical * 0.2) * (goalkeeper.fitness / 100) : 70;
+    
+    let goalProbability = (shotQuality / gkQuality) * 0.3;
+    
+    // Wonder goal chance (1% base + modifiers)
+    let wonderGoalChance = 0.01;
+    if (shooter.shooting >= 90) wonderGoalChance = 0.03; // +3% for elite shooters
+    if (shooterForm > 0.85) wonderGoalChance += 0.015; // Hot form
+    if (context.isDerby) wonderGoalChance += 0.02; // Derby magic
+    if (minute > 85) wonderGoalChance += 0.02; // Late drama
+    
+    if (Math.random() < wonderGoalChance) {
+      // WONDER GOAL!
+      if (team === 'home') this.homeScore++; else this.awayScore++;
+      
       this.events.push({
         id: `event_${Date.now()}_${Math.random()}`,
         minute,
@@ -342,15 +448,23 @@ export class ProbabilisticMatchEngine {
         team,
         player: shooter.name,
         description: `⚡ WONDER GOAL! ${shooter.name} scores a spectacular goal!`,
-        additionalInfo: team === 'home' ? `${this.homeScore + 1} - ${this.awayScore}` : `${this.homeScore} - ${this.awayScore + 1}`,
+        additionalInfo: team === 'home' ? `${this.homeScore} - ${this.awayScore}` : `${this.homeScore} - ${this.awayScore}`,
       });
-      if (team === 'home') this.homeScore++; else this.awayScore++;
+      
       this.updateMomentum(team, 50);
       return;
     }
 
-    // Goalkeeper howler
-    if (Math.random() < 0.005 * weatherMods.goalkeeperError) {
+    // Goalkeeper howler check
+    let howlerChance = 0.005 * weatherMods.goalkeeperError;
+    if (goalkeeper && goalkeeper.morale < 40) howlerChance += 0.02; // Low morale
+    if (minute > 80) howlerChance += 0.005; // Pressure
+    if (context.isDerby) howlerChance += 0.005; // Derby pressure
+    
+    if (Math.random() < howlerChance) {
+      // GOALKEEPER ERROR!
+      if (team === 'home') this.homeScore++; else this.awayScore++;
+      
       this.events.push({
         id: `event_${Date.now()}_${Math.random()}`,
         minute,
@@ -358,13 +472,14 @@ export class ProbabilisticMatchEngine {
         team,
         player: shooter.name,
         description: `🤦 GOALKEEPER ERROR! ${goalkeeper?.name || 'Goalkeeper'} fumbles - ${shooter.name} scores!`,
-        additionalInfo: team === 'home' ? `${this.homeScore + 1} - ${this.awayScore}` : `${this.homeScore} - ${this.awayScore + 1}`,
+        additionalInfo: team === 'home' ? `${this.homeScore} - ${this.awayScore}` : `${this.homeScore} - ${this.awayScore}`,
       });
-      if (team === 'home') this.homeScore++; else this.awayScore++;
+      
       this.updateMomentum(team, 30);
       return;
     }
 
+    // Normal goal calculation
     if (Math.random() < goalProbability) {
       // GOAL!
       if (team === 'home') this.homeScore++; else this.awayScore++;
@@ -383,15 +498,18 @@ export class ProbabilisticMatchEngine {
       
       this.updateMomentum(team, 30);
     } else {
-      // Save
+      // SAVE!
       this.events.push({
         id: `event_${Date.now()}_${Math.random()}`,
         minute,
         type: 'save',
         team: team === 'home' ? 'away' : 'home',
         player: goalkeeper?.name || 'Goalkeeper',
-        description: `Great save by ${goalkeeper?.name || 'the goalkeeper'}!`,
+        description: `Excellent save by ${goalkeeper?.name || 'the goalkeeper'}!`,
       });
+      
+      // Small momentum boost for great save
+      this.updateMomentum(team === 'home' ? 'away' : 'home', 8);
     }
   }
 
@@ -435,7 +553,20 @@ export class ProbabilisticMatchEngine {
   private generateFoul(team: 'home' | 'away', minute: number, context: MatchContext): void {
     const lineup = team === 'home' ? this.homeLineup : this.awayLineup;
     const defenders = lineup.players.filter(p => ['CB', 'LB', 'RB', 'CDM'].includes(p.position));
-    const player = defenders[Math.floor(Math.random() * defenders.length)] || lineup.players[0];
+    const player = defenders[Math.floor(Math.random() * defenders.length)] || lineup.players[Math.floor(Math.random() * lineup.players.length)];
+
+    // Calculate base foul probability based on context
+    let foulSeverity = Math.random();
+    
+    // Factors increasing foul severity
+    if (context.isDerby) foulSeverity += 0.2; // Derby matches = +40% foul probability
+    if (minute > 75 && Math.abs(context.homeScore - context.awayScore) <= 1) foulSeverity += 0.15; // Late match tension
+    if (Math.abs(context.momentum) > 50) foulSeverity += 0.1; // High momentum = more desperate defending
+    
+    // Player attributes affecting fouls
+    const playerDiscipline = player.morale / 100; // Higher morale = better discipline
+    const playerTackling = player.defending / 100; // Better defending = cleaner tackles
+    foulSeverity *= (1.2 - (playerDiscipline * 0.5 + playerTackling * 0.5));
 
     if (team === 'home') {
       this.stats.fouls.home++;
@@ -443,10 +574,45 @@ export class ProbabilisticMatchEngine {
       this.stats.fouls.away++;
     }
 
-    // Referee bias - away team more likely to get cards (home advantage)
-    const cardChance = team === 'away' ? 0.25 : 0.15;
+    // Referee bias - away team 60% more likely to get cards (home advantage)
+    const homeAdvantageBias = team === 'away' ? 1.6 : 1.0;
     
-    if (Math.random() < cardChance) {
+    // Calculate card probability
+    let cardProbability = 0.15 * homeAdvantageBias; // Base 15% chance
+    
+    // Modifiers for card probability
+    if (foulSeverity > 0.7) cardProbability += 0.15; // Severe foul
+    if (minute > 80) cardProbability += 0.1; // Late match = stricter refereeing
+    if (context.isDerby) cardProbability += 0.1; // Derby = stricter control
+    if (player.morale < 50) cardProbability += 0.05; // Low morale = poor discipline
+    
+    const cardRoll = Math.random();
+    
+    // Red card probability (much lower)
+    const redCardProbability = cardProbability * 0.05; // 5% of card probability
+    
+    if (cardRoll < redCardProbability) {
+      // RED CARD
+      if (team === 'home') {
+        this.stats.redCards.home++;
+      } else {
+        this.stats.redCards.away++;
+      }
+
+      this.events.push({
+        id: `event_${Date.now()}_${Math.random()}`,
+        minute,
+        type: 'red_card',
+        team,
+        player: player.name,
+        description: `🟥 RED CARD! ${player.name} sent off!`,
+      });
+      
+      // Massive momentum swing
+      this.updateMomentum(team === 'home' ? 'away' : 'home', 40);
+      
+    } else if (cardRoll < cardProbability) {
+      // YELLOW CARD
       if (team === 'home') {
         this.stats.yellowCards.home++;
       } else {
@@ -463,7 +629,9 @@ export class ProbabilisticMatchEngine {
       });
       
       this.updateMomentum(team === 'home' ? 'away' : 'home', 10);
+      
     } else {
+      // Regular foul (no card)
       this.events.push({
         id: `event_${Date.now()}_${Math.random()}`,
         minute,
@@ -505,22 +673,32 @@ export class ProbabilisticMatchEngine {
   public simulate(): SimulationResult {
     this.calculatePossession();
 
-    // Simulate 90 minutes
-    for (let minute = 1; minute <= 90; minute++) {
+    // Simulate 90 minutes + potential injury time
+    const totalMinutes = 90 + Math.floor(Math.random() * 5); // 0-4 minutes injury time
+    
+    for (let minute = 1; minute <= totalMinutes; minute++) {
+      // Determine if this is a key moment
       const isKeyMoment = 
-        minute < 5 || 
-        (minute > 40 && minute < 50) || 
-        minute > 80;
-
-      const eventProbability = isKeyMoment ? 0.4 : 0.15;
+        minute < 5 ||  // Opening minutes
+        (minute > 40 && minute < 50) ||  // Around half time
+        minute > 80;  // Final push
+      
+      // Late drama amplifier for injury time
+      const isInjuryTime = minute > 90;
+      let eventProbability = isKeyMoment ? 0.4 : 0.15;
+      
+      if (isInjuryTime) {
+        eventProbability *= 1.4; // +40% event probability in injury time
+      }
 
       if (Math.random() < eventProbability) {
         const attackingTeam = Math.random() * 100 < this.stats.possession.home ? 'home' : 'away';
         this.simulateAttack(attackingTeam, minute);
       }
       
-      // Store momentum for this minute
-      this.momentumByMinute[minute] = this.momentum;
+      // Store momentum for this minute (cap at 90 for display)
+      const displayMinute = Math.min(minute, 90);
+      this.momentumByMinute[displayMinute] = this.momentum;
     }
 
     this.calculatePassAccuracy();
