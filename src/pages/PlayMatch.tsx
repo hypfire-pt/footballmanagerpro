@@ -9,6 +9,7 @@ import TacticalAdjustmentPanel from "@/components/TacticalAdjustmentPanel";
 import CrowdAtmosphere from "@/components/CrowdAtmosphere";
 import { MatchEventNotification } from "@/components/MatchEventNotification";
 import { MomentumVisualizer } from "@/components/MomentumVisualizer";
+import { MatchResultSummary } from "@/components/MatchResultSummary";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -49,6 +50,7 @@ const PlayMatch = () => {
   const [homeReputation, setHomeReputation] = useState(85);
   const [activeEventNotifications, setActiveEventNotifications] = useState<MatchEvent[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showResultSummary, setShowResultSummary] = useState(false);
   const matchEngineRef = useRef<ProbabilisticMatchEngine | null>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -199,12 +201,8 @@ const PlayMatch = () => {
       setMatchEnded(true);
       
       processMatchResult(matchId, homeTeamName, awayTeamName, simResult);
-      advanceDate(1);
       
-      toast({
-        title: "⏱️ Full Time",
-        description: `Final Score: ${homeTeamName} ${simResult.homeScore} - ${simResult.awayScore} ${awayTeamName}`,
-      });
+      setShowResultSummary(true);
     } else {
       const engine = new ProbabilisticMatchEngine(
         homeLineupState,
@@ -256,12 +254,8 @@ const PlayMatch = () => {
           setMatchEnded(true);
           
           processMatchResult(matchId, homeTeamName, awayTeamName, simResult);
-          advanceDate(1);
           
-          toast({
-            title: "⏱️ Full Time",
-            description: `Final Score: ${homeTeamName} ${simResult.homeScore} - ${simResult.awayScore} ${awayTeamName}`,
-          });
+          setShowResultSummary(true);
         }
       }, intervalTime);
     }
@@ -322,6 +316,38 @@ const PlayMatch = () => {
     setActiveEventNotifications(prev => prev.filter(e => e.id !== event.id));
   };
 
+  const handleContinueToNextMatch = async () => {
+    advanceDate(1);
+    setShowResultSummary(false);
+    
+    // Fetch next match
+    const { data: nextSeason } = await supabase
+      .from("save_seasons")
+      .select("fixtures_state, season_current_date")
+      .eq("save_id", currentSave?.id)
+      .eq("is_current", true)
+      .single();
+
+    if (nextSeason?.fixtures_state) {
+      const fixtures = nextSeason.fixtures_state as any[];
+      const nextMatch = fixtures.find(
+        (f: any) => f.status === "scheduled" && new Date(f.date) >= new Date(nextSeason.season_current_date)
+      );
+      
+      if (nextMatch) {
+        navigate("/calendar");
+      } else {
+        toast({
+          title: "No upcoming matches",
+          description: "Season complete or no more scheduled fixtures",
+        });
+        navigate("/dashboard");
+      }
+    } else {
+      navigate("/calendar");
+    }
+  };
+
   if (loading) {
     return (
       <DashboardLayout>
@@ -335,6 +361,17 @@ const PlayMatch = () => {
   return (
     <DashboardLayout>
       <div className="h-screen overflow-hidden p-2 flex flex-col">
+        {/* Match Result Summary Modal */}
+        {result && (
+          <MatchResultSummary
+            homeTeam={homeTeamName}
+            awayTeam={awayTeamName}
+            result={result}
+            open={showResultSummary}
+            onContinue={handleContinueToNextMatch}
+          />
+        )}
+
         {/* Event Notifications */}
         {activeEventNotifications.map((event, index) => (
           <div key={event.id} style={{ top: `${4 + index * 4}rem` }}>
