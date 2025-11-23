@@ -20,12 +20,13 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ProbabilisticMatchEngine } from "@/services/probabilisticMatchEngine";
 import { TeamLineup, SimulationResult, MatchEvent } from "@/types/match";
-import { Play, Pause, FastForward, Zap, Activity, Clock, CheckCircle, ArrowRight } from "lucide-react";
+import { Play, Pause, FastForward, Zap, Activity, Clock, CheckCircle, ArrowRight, Sparkles, Calculator } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { useSeason } from "@/contexts/SeasonContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentSave } from "@/hooks/useCurrentSave";
 import { matchSounds } from "@/services/matchSoundEffects";
+import { AIMatchSimulatorService } from "@/services/aiMatchSimulatorService";
 
 const PlayMatch = () => {
   const navigate = useNavigate();
@@ -52,6 +53,7 @@ const PlayMatch = () => {
   const [currentMinute, setCurrentMinute] = useState(0);
   const [result, setResult] = useState<SimulationResult | null>(null);
   const [speed, setSpeed] = useState<'normal' | 'fast' | 'instant'>('normal');
+  const [simulationMode, setSimulationMode] = useState<'probabilistic' | 'ai'>('probabilistic');
   const [currentEventIndex, setCurrentEventIndex] = useState(0);
   const [homeLineupState, setHomeLineupState] = useState<TeamLineup | null>(null);
   const [awayLineupState, setAwayLineupState] = useState<TeamLineup | null>(null);
@@ -217,7 +219,7 @@ const PlayMatch = () => {
     fetchMatchData();
   }, [currentSave, homeTeamId, awayTeamId]);
 
-  const startSimulation = () => {
+  const startSimulation = async () => {
     if (!homeLineupState || !awayLineupState) {
       toast({
         title: "Error",
@@ -238,7 +240,90 @@ const PlayMatch = () => {
 
     setIsSimulating(true);
     setIsPaused(false);
-    toast({ title: "⚽ Match Started" });
+    toast({ 
+      title: "⚽ Match Started", 
+      description: simulationMode === 'ai' ? '🤖 Using AI Simulation' : '📊 Using Probabilistic Engine'
+    });
+
+    // AI Simulation Mode
+    if (simulationMode === 'ai') {
+      try {
+        const aiResult = await AIMatchSimulatorService.simulateMatch({
+          homeTeam: {
+            name: homeTeamName,
+            players: homeLineupState.players,
+            tactics: homeLineupState.tactics
+          },
+          awayTeam: {
+            name: awayTeamName,
+            players: awayLineupState.players,
+            tactics: awayLineupState.tactics
+          },
+          competition,
+          matchday: 1
+        });
+
+        if (!aiResult.success || !aiResult.result) {
+          throw new Error(aiResult.error || 'AI simulation failed');
+        }
+
+        const simResult: SimulationResult = {
+          homeScore: aiResult.result.homeScore,
+          awayScore: aiResult.result.awayScore,
+          events: aiResult.result.events.map((e, idx) => ({
+            ...e,
+            id: `ai-event-${idx}`,
+            type: e.type as any
+          })),
+          stats: {
+            ...aiResult.result.stats,
+            yellowCards: { 
+              home: aiResult.result.events.filter(e => e.type === 'yellow_card' && e.team === 'home').length,
+              away: aiResult.result.events.filter(e => e.type === 'yellow_card' && e.team === 'away').length
+            },
+            redCards: { 
+              home: aiResult.result.events.filter(e => e.type === 'red_card' && e.team === 'home').length,
+              away: aiResult.result.events.filter(e => e.type === 'red_card' && e.team === 'away').length
+            },
+            offsides: { home: 0, away: 0 }
+          },
+          momentumByMinute: {},
+          playerRatings: { home: {}, away: {} },
+          playerPerformance: { home: [], away: [] }
+        };
+
+        setResult(simResult);
+        
+        if (speed === 'instant') {
+          setCurrentMinute(90);
+          setCurrentEventIndex(simResult.events.length);
+          setIsSimulating(false);
+          setMatchEnded(true);
+          processMatchResult(matchId, homeTeamName, awayTeamName, simResult);
+          setShowResultSummary(true);
+        } else {
+          // Animate AI results
+          playAIMatchAnimation(simResult);
+        }
+      } catch (error) {
+        console.error('AI simulation error:', error);
+        toast({
+          title: "AI Simulation Failed",
+          description: "Falling back to probabilistic engine",
+          variant: "destructive",
+        });
+        // Fallback to probabilistic
+        startProbabilisticSimulation();
+      }
+      return;
+    }
+
+    // Probabilistic Simulation Mode
+    startProbabilisticSimulation();
+  };
+
+  const startProbabilisticSimulation = () => {
+    if (!homeLineupState || !awayLineupState) return;
 
     if (speed === 'instant') {
       const engine = new ProbabilisticMatchEngine(
@@ -375,6 +460,58 @@ const PlayMatch = () => {
         }
       }, intervalTime);
     }
+  };
+
+  const playAIMatchAnimation = (simResult: SimulationResult) => {
+    let minute = 0;
+    let eventIndex = 0;
+    const intervalTime = speed === 'fast' ? 200 : 1000;
+
+    intervalRef.current = setInterval(() => {
+      if (isPaused) return;
+      
+      minute += speed === 'fast' ? 2 : 1;
+      setCurrentMinute(minute);
+
+      if (minute === 45 && !showHalfTime) {
+        setShowHalfTime(true);
+      }
+
+      // Process events up to current minute
+      while (eventIndex < simResult.events.length && simResult.events[eventIndex].minute <= minute) {
+        const event = simResult.events[eventIndex];
+        setCurrentEventIndex(eventIndex);
+        
+        // Play sound effects
+        if (event.type === 'goal') {
+          matchSounds.goal();
+          setGoalCelebration({
+            team: event.team,
+            playerName: event.player || 'Unknown'
+          });
+        } else if (event.type === 'yellow_card') {
+          matchSounds.yellowCard();
+        } else if (event.type === 'red_card') {
+          matchSounds.redCard();
+        } else if (event.type === 'save') {
+          matchSounds.save();
+        }
+        
+        if (['goal', 'yellow_card', 'red_card', 'injury', 'substitution'].includes(event.type)) {
+          setActiveEventNotifications(prev => [...prev, event]);
+        }
+        
+        eventIndex++;
+      }
+
+      if (minute >= 90) {
+        clearInterval(intervalRef.current!);
+        setIsSimulating(false);
+        setMatchEnded(true);
+        processMatchResult(matchId, homeTeamName, awayTeamName, simResult);
+        setShowResultSummary(true);
+      }
+    }, intervalTime);
   };
 
   const togglePause = () => {
@@ -643,6 +780,36 @@ const PlayMatch = () => {
                     </Button>
                   </>
                 )}
+                
+                {/* Simulation Mode Selector */}
+                {!result && (
+                  <div className="space-y-1.5 py-2 border-t border-border/30">
+                    <h4 className="text-xs font-semibold text-muted-foreground">Engine</h4>
+                    <div className="grid grid-cols-2 gap-1">
+                      <Button
+                        variant={simulationMode === 'probabilistic' ? 'default' : 'outline'}
+                        onClick={() => setSimulationMode('probabilistic')}
+                        disabled={isSimulating}
+                        size="sm"
+                        className="flex items-center justify-center gap-1 text-xs h-7"
+                      >
+                        <Calculator className="h-3 w-3" />
+                        Math
+                      </Button>
+                      <Button
+                        variant={simulationMode === 'ai' ? 'default' : 'outline'}
+                        onClick={() => setSimulationMode('ai')}
+                        disabled={isSimulating}
+                        size="sm"
+                        className="flex items-center justify-center gap-1 text-xs h-7"
+                      >
+                        <Sparkles className="h-3 w-3" />
+                        AI
+                      </Button>
+                    </div>
+                  </div>
+                )}
+                
                 <Button onClick={startSimulation} disabled={isSimulating || loading || !homeLineupState || !awayLineupState} className="w-full gap-1 btn-glow text-xs h-7">
                   <Play className="h-3 w-3" />
                   {loading ? 'Loading...' : 'Play Match'}
