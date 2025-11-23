@@ -543,6 +543,34 @@ const PitchVisualization = ({
         playerPos.x = playerPos.currentX;
         playerPos.y = playerPos.currentY;
 
+        // Collision avoidance - prevent player merging
+        newPositions.forEach((otherPos, otherPlayerId) => {
+          if (playerId !== otherPlayerId) {
+            const dx = playerPos.currentX - otherPos.currentX;
+            const dy = playerPos.currentY - otherPos.currentY;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            const minDistance = 4; // Minimum distance between players (percentage)
+            
+            if (distance < minDistance && distance > 0) {
+              // Push players apart
+              const pushStrength = (minDistance - distance) / 2;
+              const pushX = (dx / distance) * pushStrength;
+              const pushY = (dy / distance) * pushStrength;
+              
+              playerPos.currentX += pushX;
+              playerPos.currentY += pushY;
+              playerPos.x = playerPos.currentX;
+              playerPos.y = playerPos.currentY;
+              
+              // Constrain to pitch boundaries
+              playerPos.currentX = Math.max(5, Math.min(95, playerPos.currentX));
+              playerPos.currentY = Math.max(5, Math.min(95, playerPos.currentY));
+              playerPos.x = playerPos.currentX;
+              playerPos.y = playerPos.currentY;
+            }
+          }
+        });
+
         // Record position for heat map
         const heatPoints = heatMapData.get(playerId) || [];
         heatPoints.push({

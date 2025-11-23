@@ -41,6 +41,11 @@ const PlayMatch = () => {
   const competition = fixture?.competition || "Premier League";
   const [matchEnded, setMatchEnded] = useState(false);
   
+  // Determine if user's team is home or away
+  const isHome = currentSave?.team_id === homeTeamId;
+  const userTeamName = isHome ? homeTeamName : awayTeamName;
+  const opponentTeamName = isHome ? awayTeamName : homeTeamName;
+  
   const [isSimulating, setIsSimulating] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [currentMinute, setCurrentMinute] = useState(0);
@@ -156,8 +161,9 @@ const PlayMatch = () => {
         setHomeLineupState(homeLineup);
         setAwayLineupState(awayLineup);
 
-        // Store bench players (next 7 players after starting 11)
-        const bench = (homePlayers || []).slice(11, 18).map((sp: any) => ({
+        // Store bench players (next 7 players after starting 11) for user's team
+        const userPlayers = isHome ? homePlayers : awayPlayers;
+        const bench = (userPlayers || []).slice(11, 18).map((sp: any) => ({
           id: sp.player_id,
           name: sp.players.name,
           position: sp.players.position,
@@ -243,12 +249,9 @@ const PlayMatch = () => {
         minute += speed === 'fast' ? 2 : 1;
         setCurrentMinute(minute);
 
-        // Pause at half-time (minute 45)
-        if (minute === 45) {
-          clearInterval(intervalRef.current!);
-          setIsPaused(true);
+        // Show half-time modal at minute 45 but keep match running
+        if (minute === 45 && !showHalfTime) {
           setShowHalfTime(true);
-          return;
         }
 
         // Execute planned substitutions
@@ -335,13 +338,14 @@ const PlayMatch = () => {
     });
   };
 
-  const handleSubstitution = (playerOut: any, playerIn: any, team: 'home' | 'away') => {
-    if (team === 'home' && homeLineupState) {
+  const handleSubstitution = (playerOut: any, playerIn: any) => {
+    // Apply substitution to user's team
+    if (isHome && homeLineupState) {
       const updatedPlayers = homeLineupState.players.map(p =>
         p.id === playerOut.id ? { ...playerIn, ...p } : p
       );
       setHomeLineupState({ ...homeLineupState, players: updatedPlayers });
-    } else if (team === 'away' && awayLineupState) {
+    } else if (!isHome && awayLineupState) {
       const updatedPlayers = awayLineupState.players.map(p =>
         p.id === playerOut.id ? { ...playerIn, ...p } : p
       );
@@ -355,10 +359,16 @@ const PlayMatch = () => {
   };
 
   const handleTacticalAdjustment = (adjustment: any) => {
-    if (homeLineupState) {
+    // Apply tactics to user's team
+    if (isHome && homeLineupState) {
       setHomeLineupState({
         ...homeLineupState,
         tactics: { ...homeLineupState.tactics, ...adjustment }
+      });
+    } else if (!isHome && awayLineupState) {
+      setAwayLineupState({
+        ...awayLineupState,
+        tactics: { ...awayLineupState.tactics, ...adjustment }
       });
     }
     
@@ -399,9 +409,12 @@ const PlayMatch = () => {
   const handleHalfTimeContinue = (substitutions: any[], tacticsChanges: any) => {
     setPlannedSubstitutions(substitutions);
     
-    // Apply tactical changes
-    if (homeLineupState && Object.keys(tacticsChanges).length > 0) {
-      const updatedLineup = { ...homeLineupState };
+    // Apply tactical changes to user's team
+    const userLineup = isHome ? homeLineupState : awayLineupState;
+    const setUserLineup = isHome ? setHomeLineupState : setAwayLineupState;
+    
+    if (userLineup && Object.keys(tacticsChanges).length > 0) {
+      const updatedLineup = { ...userLineup };
       
       // Update formation if changed
       if (tacticsChanges.formation) {
@@ -409,101 +422,17 @@ const PlayMatch = () => {
       }
       
       // Update tactics
-      updatedLineup.tactics = { ...homeLineupState.tactics };
+      updatedLineup.tactics = { ...userLineup.tactics };
       if (tacticsChanges.mentality) updatedLineup.tactics.mentality = tacticsChanges.mentality;
       if (tacticsChanges.tempo) updatedLineup.tactics.tempo = tacticsChanges.tempo;
       if (tacticsChanges.width) updatedLineup.tactics.width = tacticsChanges.width;
       if (tacticsChanges.pressing) updatedLineup.tactics.pressing = tacticsChanges.pressing;
       
-      setHomeLineupState(updatedLineup);
-      
-      toast({
-        title: "Tactical Changes Applied",
-        description: "Your tactical adjustments will take effect in the second half",
-      });
+      setUserLineup(updatedLineup);
     }
     
     setShowHalfTime(false);
-    setIsPaused(false);
     
-    // Resume second half
-    if (result) {
-      let minute = 45;
-      let eventIndex = result.events.findIndex(e => e.minute > 45);
-      const intervalTime = speed === 'fast' ? 200 : 1000;
-
-      intervalRef.current = setInterval(() => {
-        if (isPaused) return;
-        
-        minute += speed === 'fast' ? 2 : 1;
-        setCurrentMinute(minute);
-
-        // Execute planned substitutions
-        substitutions.forEach((sub) => {
-          if (sub.minute === minute || (sub.minute === 'auto' && minute >= 60 && minute <= 75 && Math.random() < 0.1)) {
-            toast({
-              title: "Substitution",
-              description: `${sub.playerIn} replaces ${sub.playerOut}`,
-            });
-          }
-        });
-
-        const recentEvents = result.events.filter(e => e.minute >= minute - 5 && e.minute <= minute);
-        const homeEvents = recentEvents.filter(e => e.team === 'home' && ['shot', 'shot_on_target', 'corner'].includes(e.type)).length;
-        const awayEvents = recentEvents.filter(e => e.team === 'away' && ['shot', 'shot_on_target', 'corner'].includes(e.type)).length;
-        const totalEvents = homeEvents + awayEvents;
-        
-        if (totalEvents > 0) {
-          setMomentum({
-            home: Math.min(80, Math.max(20, 50 + ((homeEvents - awayEvents) / totalEvents) * 30)),
-            away: Math.min(80, Math.max(20, 50 + ((awayEvents - homeEvents) / totalEvents) * 30))
-          });
-        }
-
-        while (eventIndex < result.events.length && result.events[eventIndex].minute <= minute) {
-          const event = result.events[eventIndex];
-          setCurrentEventIndex(eventIndex);
-          
-          // Play sound effects
-          if (event.type === 'goal') {
-            matchSounds.goal();
-            setGoalCelebration({
-              team: event.team,
-              playerName: event.player || 'Unknown'
-            });
-          } else if (event.type === 'shot_on_target') {
-            matchSounds.shotOnTarget();
-          } else if (event.type === 'shot') {
-            matchSounds.missedShot();
-          } else if (event.type === 'yellow_card') {
-            matchSounds.yellowCard();
-          } else if (event.type === 'red_card') {
-            matchSounds.redCard();
-          } else if (event.type === 'save') {
-            matchSounds.save();
-          } else if (event.type === 'corner') {
-            matchSounds.corner();
-          }
-          
-          if (['goal', 'yellow_card', 'red_card', 'shot_on_target', 'substitution'].includes(event.type)) {
-            setActiveEventNotifications(prev => [...prev, event]);
-          }
-          
-          eventIndex++;
-        }
-
-        if (minute >= 90) {
-          clearInterval(intervalRef.current!);
-          setIsSimulating(false);
-          setMatchEnded(true);
-          
-          processMatchResult(matchId, homeTeamName, awayTeamName, result);
-          
-          setShowResultSummary(true);
-        }
-      }, intervalTime);
-    }
-
     toast({
       title: "Second Half Started",
       description: `${substitutions.length > 0 ? `${substitutions.length} substitution(s) planned. ` : ''}${Object.keys(tacticsChanges).length > 0 ? 'Tactical changes applied.' : 'No changes made.'}`,
@@ -541,7 +470,7 @@ const PlayMatch = () => {
         )}
 
         {/* Half Time Modal */}
-        {result && showHalfTime && homeLineupState && (
+        {result && showHalfTime && (isHome ? homeLineupState : awayLineupState) && (
           <HalfTimeModal
             homeTeam={homeTeamName}
             awayTeam={awayTeamName}
@@ -556,17 +485,17 @@ const PlayMatch = () => {
               },
             }}
             availablePlayers={benchPlayers}
-            currentPlayers={homeLineupState.players.map(p => ({
+            currentPlayers={(isHome ? homeLineupState : awayLineupState)!.players.map(p => ({
               id: p.id,
               name: p.name,
               position: p.position,
             }))}
             currentTactics={{
-              formation: homeLineupState.formation,
-              mentality: homeLineupState.tactics.mentality,
-              tempo: homeLineupState.tactics.tempo,
-              width: homeLineupState.tactics.width,
-              pressing: homeLineupState.tactics.pressing,
+              formation: (isHome ? homeLineupState : awayLineupState)!.formation,
+              mentality: (isHome ? homeLineupState : awayLineupState)!.tactics.mentality,
+              tempo: (isHome ? homeLineupState : awayLineupState)!.tactics.tempo,
+              width: (isHome ? homeLineupState : awayLineupState)!.tactics.width,
+              pressing: (isHome ? homeLineupState : awayLineupState)!.tactics.pressing,
             }}
             open={showHalfTime}
             onContinue={handleHalfTimeContinue}
@@ -757,7 +686,7 @@ const PlayMatch = () => {
                     const playerOut = homeLineupState.players.find(p => p.id === playerOutId);
                     const playerIn = homeLineupState.players.find(p => p.id === playerInId);
                     if (playerOut && playerIn) {
-                      handleSubstitution(playerOut, playerIn, 'home');
+                      handleSubstitution(playerOut, playerIn);
                     }
                   }}
                   substitutionsRemaining={3}
