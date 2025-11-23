@@ -50,7 +50,9 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                       </div>
                       <div className="hidden sm:block text-left">
                         <p className="font-heading font-semibold text-sm">{currentSave.team_name}</p>
-                        <p className="text-xs text-muted-foreground">Season {currentSave.season_year}</p>
+                        <p className="text-xs text-muted-foreground">
+                          Season {currentSave.season_year}/{(currentSave.season_year + 1).toString().slice(-2)}
+                        </p>
                       </div>
                     </button>
                   </DropdownMenuTrigger>

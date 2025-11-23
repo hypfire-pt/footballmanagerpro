@@ -1,9 +1,12 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
-import { addDays } from "date-fns";
+import { addDays, isAfter, parseISO } from "date-fns";
 import { LeagueStanding, Match } from "@/types/game";
 import { SimulationResult } from "@/types/match";
 import { MatchResultProcessor } from "@/services/matchResultProcessor";
 import { mockStandings, mockMatches } from "@/data/mockData";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/hooks/use-toast";
+import { useCurrentSave } from "@/hooks/useCurrentSave";
 
 interface SeasonContextType {
   currentDate: Date;
@@ -70,8 +73,103 @@ export function SeasonProvider({ children }: { children: React.ReactNode }) {
     MatchResultProcessor.saveToLocalStorage(leagueStandings, fixtures, []);
   }, [leagueStandings, fixtures]);
 
-  const advanceDate = (days: number) => {
-    setCurrentDate(prev => addDays(prev, days));
+  const advanceDate = async (days: number) => {
+    const newDate = addDays(currentDate, days);
+    setCurrentDate(newDate);
+    
+    // Check if season has ended (May 31st)
+    if (newDate.getMonth() === 4 && newDate.getDate() === 31) {
+      await handleSeasonEnd();
+    }
+    
+    // Check transfer window status
+    await checkTransferWindow(newDate);
+  };
+  
+  const handleSeasonEnd = async () => {
+    try {
+      toast({
+        title: "🏆 Season Complete!",
+        description: "Preparing next season...",
+      });
+      
+      // Get current save from hook
+      const { data: saves } = await supabase
+        .from('game_saves')
+        .select('id, user_id')
+        .eq('is_active', true)
+        .single();
+        
+      if (!saves) return;
+      
+      const { data: currentSeason } = await supabase
+        .from('save_seasons')
+        .select('id')
+        .eq('save_id', saves.id)
+        .eq('is_current', true)
+        .single();
+        
+      if (!currentSeason) return;
+      
+      // Call edge function to handle season transition
+      const { data, error } = await supabase.functions.invoke('manage-season-transition', {
+        body: {
+          saveId: saves.id,
+          currentSeasonId: currentSeason.id,
+          userId: saves.user_id
+        }
+      });
+      
+      if (error) throw error;
+      
+      toast({
+        title: "✅ New Season Started!",
+        description: `${data.fixturesGenerated} fixtures generated for season ${data.newSeasonYear}`,
+      });
+      
+      // Reload page to refresh data
+      window.location.reload();
+      
+    } catch (error) {
+      console.error('Season transition error:', error);
+      toast({
+        title: "Error",
+        description: "Failed to transition to new season",
+        variant: "destructive"
+      });
+    }
+  };
+  
+  const checkTransferWindow = async (date: Date) => {
+    try {
+      const { data: saves } = await supabase
+        .from('game_saves')
+        .select('id')
+        .eq('is_active', true)
+        .single();
+        
+      if (!saves) return;
+      
+      const { data, error } = await supabase.functions.invoke('check-transfer-window', {
+        body: {
+          saveId: saves.id,
+          currentDate: date.toISOString().split('T')[0]
+        }
+      });
+      
+      if (error) throw error;
+      
+      if (data?.transferWindow?.isOpen) {
+        const window = data.transferWindow;
+        toast({
+          title: `🔄 ${window.type === 'summer' ? 'Summer' : 'Winter'} Transfer Window Open`,
+          description: `${window.daysRemaining} days remaining`,
+        });
+      }
+      
+    } catch (error) {
+      console.error('Transfer window check error:', error);
+    }
   };
 
   const resetSeason = () => {
