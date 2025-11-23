@@ -12,6 +12,8 @@ interface PitchVisualizationProps {
   attackMomentum?: { home: number; away: number };
   homeColor?: string;
   awayColor?: string;
+  homeSecondaryColor?: string;
+  awaySecondaryColor?: string;
 }
 
 interface PlayerPosition {
@@ -54,7 +56,9 @@ const PitchVisualization = ({
   showHeatMap = false,
   attackMomentum = { home: 50, away: 50 },
   homeColor = '#22c55e',
-  awayColor = '#3b82f6'
+  awayColor = '#3b82f6',
+  homeSecondaryColor = '#ffffff',
+  awaySecondaryColor = '#ffffff'
 }: PitchVisualizationProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [ballPosition, setBallPosition] = useState<BallPosition>({ x: 50, y: 50, visible: true });
@@ -199,30 +203,59 @@ const PitchVisualization = ({
   ) => {
     const pixelX = (x / 100) * width;
     const pixelY = (y / 100) * height;
+    const radius = isActive ? 14 : 12;
+    
+    const primaryColor = team === 'home' ? homeColor : awayColor;
+    const secondaryColor = team === 'home' ? homeSecondaryColor : awaySecondaryColor;
 
     // Movement trail effect
     if (isMoving && isPlaying) {
       ctx.beginPath();
       ctx.arc(pixelX, pixelY, 16, 0, Math.PI * 2);
-      ctx.fillStyle = team === 'home' ? `${homeColor}33` : `${awayColor}33`; // 33 = 20% opacity
+      ctx.fillStyle = `${primaryColor}33`; // 33 = 20% opacity
       ctx.fill();
     }
 
-    // Player circle
-    ctx.beginPath();
-    ctx.arc(pixelX, pixelY, isActive ? 14 : 12, 0, Math.PI * 2);
-    
     if (isActive) {
       // Glow effect for active player
-      ctx.shadowColor = team === 'home' ? homeColor : awayColor;
+      ctx.shadowColor = primaryColor;
       ctx.shadowBlur = 15;
     }
 
-    ctx.fillStyle = team === 'home' ? homeColor : awayColor;
-    ctx.fill();
+    // Draw jersey with pattern
+    ctx.save();
+    
+    // Create circular clipping path for jersey
+    ctx.beginPath();
+    ctx.arc(pixelX, pixelY, radius, 0, Math.PI * 2);
+    ctx.clip();
+    
+    // Draw jersey pattern (vertical stripes)
+    const stripeWidth = 4;
+    const numStripes = Math.ceil((radius * 2) / stripeWidth);
+    
+    for (let i = -numStripes; i <= numStripes; i++) {
+      const stripeX = pixelX + (i * stripeWidth);
+      ctx.fillStyle = i % 2 === 0 ? primaryColor : secondaryColor;
+      ctx.fillRect(stripeX - stripeWidth/2, pixelY - radius, stripeWidth, radius * 2);
+    }
+    
+    // Draw collar/shoulder accent (horizontal band at top)
+    ctx.fillStyle = secondaryColor;
+    ctx.fillRect(pixelX - radius, pixelY - radius, radius * 2, 4);
+    
+    // Draw sleeves accent (side bands)
+    ctx.fillStyle = secondaryColor;
+    ctx.fillRect(pixelX - radius, pixelY - radius/2, 3, radius);
+    ctx.fillRect(pixelX + radius - 3, pixelY - radius/2, 3, radius);
+    
+    ctx.restore();
+    
     ctx.shadowBlur = 0;
 
     // White border
+    ctx.beginPath();
+    ctx.arc(pixelX, pixelY, radius, 0, Math.PI * 2);
     ctx.strokeStyle = '#ffffff';
     ctx.lineWidth = 2;
     ctx.stroke();
@@ -231,8 +264,11 @@ const PitchVisualization = ({
     ctx.fillStyle = '#ffffff';
     ctx.font = 'bold 10px Arial';
     ctx.textAlign = 'center';
+    ctx.shadowColor = '#000000';
+    ctx.shadowBlur = 3;
     const shortName = name.split(' ').pop()?.substring(0, 3).toUpperCase() || '';
-    ctx.fillText(shortName, pixelX, pixelY - 18);
+    ctx.fillText(shortName, pixelX, pixelY - radius - 6);
+    ctx.shadowBlur = 0;
   };
 
   const drawBall = (
