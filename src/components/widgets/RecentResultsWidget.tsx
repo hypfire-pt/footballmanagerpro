@@ -82,14 +82,14 @@ export function RecentResultsWidget() {
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Calendar className="h-5 w-5" />
+      <CardHeader className="pb-3">
+        <CardTitle className="flex items-center gap-2 text-base">
+          <Calendar className="h-4 w-4 text-primary" />
           Recent Results
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="space-y-2">
+        <div className="space-y-1.5">
           {recentMatches.map((match, idx) => {
             const isHome = match.home_team_name === currentSave?.team_name;
             const myScore = isHome ? match.home_score : match.away_score;
@@ -99,28 +99,27 @@ export function RecentResultsWidget() {
             return (
               <div 
                 key={idx}
-                className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer"
+                className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/50 transition-colors"
               >
-                <div className="flex items-center gap-3 flex-1">
-                  <div className="text-xs text-muted-foreground w-16">
-                    {new Date(match.match_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                  </div>
-                  <Badge variant="outline" className="text-xs w-10 justify-center">
+                <div className="flex items-center gap-2 flex-1 min-w-0">
+                  <Badge variant="outline" className="text-xs flex-shrink-0 w-8 justify-center">
                     {match.competition.slice(0, 3).toUpperCase()}
                   </Badge>
-                  <div className="flex-1 text-sm">
+                  <div className="text-sm truncate">
                     <span className={match.home_team_name === currentSave?.team_name ? 'font-semibold' : ''}>
-                      {match.home_team_name}
+                      {match.home_team_name.length > 12 ? match.home_team_name.slice(0, 12) + '...' : match.home_team_name}
                     </span>
                     {' '}
-                    <span className="text-muted-foreground text-xs">{match.home_score}-{match.away_score}</span>
+                    <span className="text-muted-foreground font-bold text-xs">{match.home_score}-{match.away_score}</span>
                     {' '}
                     <span className={match.away_team_name === currentSave?.team_name ? 'font-semibold' : ''}>
-                      {match.away_team_name}
+                      {match.away_team_name.length > 12 ? match.away_team_name.slice(0, 12) + '...' : match.away_team_name}
                     </span>
                   </div>
                 </div>
-                {getResultBadge(result)}
+                <div className="flex-shrink-0">
+                  {getResultBadge(result)}
+                </div>
               </div>
             );
           })}
