@@ -3,8 +3,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SimulationResult } from "@/types/match";
-import { Trophy, Target, Activity, ArrowRight } from "lucide-react";
+import { Trophy, Target, Activity, ArrowRight, BarChart3, Repeat } from "lucide-react";
+import { MatchStatisticsComparison } from "@/components/MatchStatisticsComparison";
+import { MatchHighlightsReplay } from "@/components/MatchHighlightsReplay";
 
 interface MatchResultSummaryProps {
   homeTeam: string;
@@ -55,12 +58,28 @@ export const MatchResultSummary = ({
 
   return (
     <Dialog open={open}>
-      <DialogContent className="max-w-2xl glass border-border/50">
+      <DialogContent className="max-w-4xl max-h-[90vh] glass border-border/50 overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-2xl font-heading gradient-text text-center">Full Time</DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4">
+        <Tabs defaultValue="summary" className="w-full">
+          <TabsList className="grid grid-cols-3 w-full mb-4">
+            <TabsTrigger value="summary">
+              <Trophy className="h-4 w-4 mr-2" />
+              Summary
+            </TabsTrigger>
+            <TabsTrigger value="stats">
+              <BarChart3 className="h-4 w-4 mr-2" />
+              Statistics
+            </TabsTrigger>
+            <TabsTrigger value="highlights">
+              <Repeat className="h-4 w-4 mr-2" />
+              Highlights
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="summary" className="space-y-4">
           {/* Final Score */}
           <Card className="glass border-border/50 p-6">
             <div className="flex items-center justify-between">
@@ -141,7 +160,34 @@ export const MatchResultSummary = ({
               Continue <ArrowRight className="h-4 w-4" />
             </Button>
           </div>
-        </div>
+          </TabsContent>
+
+          <TabsContent value="stats" className="space-y-4">
+            <MatchStatisticsComparison
+              stats={result.stats}
+              homeTeam={homeTeam}
+              awayTeam={awayTeam}
+            />
+            <div className="flex justify-end">
+              <Button onClick={onContinue} size="sm" className="gap-2">
+                Continue <ArrowRight className="h-4 w-4" />
+              </Button>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="highlights" className="space-y-4">
+            <MatchHighlightsReplay
+              events={result.events}
+              homeTeam={homeTeam}
+              awayTeam={awayTeam}
+            />
+            <div className="flex justify-end">
+              <Button onClick={onContinue} size="sm" className="gap-2">
+                Continue <ArrowRight className="h-4 w-4" />
+              </Button>
+            </div>
+          </TabsContent>
+        </Tabs>
       </DialogContent>
     </Dialog>
   );
