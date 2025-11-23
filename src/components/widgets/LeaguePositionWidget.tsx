@@ -103,7 +103,12 @@ export function LeaguePositionWidget() {
           variant="outline" 
           size="sm"
           className="w-full text-xs h-8"
-          onClick={() => navigate('/competitions')}
+          onClick={() => {
+            const leagueTableElement = document.getElementById('league-table-section');
+            if (leagueTableElement) {
+              leagueTableElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+          }}
         >
           Full Table
         </Button>

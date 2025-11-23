@@ -304,7 +304,13 @@ export const DashboardCalendar = () => {
                       <span className={`truncate text-right ${isUserMatch ? 'font-semibold' : ''}`}>
                         {fixture.homeTeam}
                       </span>
-                      <span className="text-muted-foreground text-xs">vs</span>
+                      {fixture.status === 'finished' && fixture.homeScore !== undefined && fixture.awayScore !== undefined ? (
+                        <span className="text-xs font-bold px-2 py-0.5 bg-muted rounded">
+                          {fixture.homeScore} - {fixture.awayScore}
+                        </span>
+                      ) : (
+                        <span className="text-muted-foreground text-xs">vs</span>
+                      )}
                       <span className={`truncate ${isUserMatch ? 'font-semibold' : ''}`}>
                         {fixture.awayTeam}
                       </span>
