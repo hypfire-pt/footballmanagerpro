@@ -74,23 +74,42 @@ const Dashboard = () => {
       // Store old standings before simulating
       const oldStandings = [...standings];
 
-      // First, simulate any remaining AI matches in current matchweek
-      if (!aiMatchesComplete.complete) {
+      // Calculate how many AI matches need to be simulated
+      const matchweekFixtures = fixtures.filter(f => 
+        (f.matchweek === currentMatchweek || f.matchday === currentMatchweek)
+      );
+      const pendingMatches = matchweekFixtures.filter(f => 
+        f.status === 'scheduled' && 
+        f.homeTeamId !== currentSave.team_id && 
+        f.awayTeamId !== currentSave.team_id
+      );
+
+      console.log(`[CONTINUE] Matchweek ${currentMatchweek}: ${pendingMatches.length} AI matches pending`);
+
+      // Always simulate remaining AI matches in current matchweek
+      if (pendingMatches.length > 0) {
         toast({
-          title: "Simulating Remaining Matches",
-          description: `Completing ${aiMatchesComplete.total - aiMatchesComplete.finished} remaining matches in Matchweek ${currentMatchweek}...`,
+          title: "⚽ Simulating AI Matches",
+          description: `Processing ${pendingMatches.length} remaining match${pendingMatches.length > 1 ? 'es' : ''} in Matchweek ${currentMatchweek}...`,
         });
 
         const { AIMatchSimulator } = await import('@/services/aiMatchSimulator');
-        await AIMatchSimulator.simulateMatchdayAIMatches(
+        const simulated = await AIMatchSimulator.simulateMatchdayAIMatches(
           seasonData.id,
           currentSave.id,
           currentMatchweek,
           currentSave.team_id
         );
 
+        console.log(`[CONTINUE] Simulated ${simulated} AI matches`);
+
         // Refresh data to get updated fixtures and standings
         await refetch();
+        
+        toast({
+          title: "✅ Simulation Complete",
+          description: `${simulated} match${simulated > 1 ? 'es' : ''} simulated successfully`,
+        });
       }
 
       // Get refreshed season data
