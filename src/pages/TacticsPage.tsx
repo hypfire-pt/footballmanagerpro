@@ -222,10 +222,18 @@ const TacticsPage = () => {
             <h1 className="text-3xl font-bold mb-2">Tactical Setup</h1>
             <p className="text-muted-foreground">Configure your team's formation and playing style</p>
           </div>
-          <Button onClick={handleSaveTactics} size="lg">
-            <Save className="h-4 w-4 mr-2" />
-            Save Tactics
-          </Button>
+          <div className="flex gap-2">
+            <Button onClick={() => window.location.href = '/dashboard'} variant="outline" size="lg">
+              Back to Dashboard
+            </Button>
+            <Button onClick={() => window.location.href = '/match'} variant="outline" size="lg">
+              Play Match
+            </Button>
+            <Button onClick={handleSaveTactics} size="lg">
+              <Save className="h-4 w-4 mr-2" />
+              Save Tactics
+            </Button>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
