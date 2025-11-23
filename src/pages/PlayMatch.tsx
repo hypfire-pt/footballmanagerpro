@@ -708,6 +708,52 @@ const PlayMatch = () => {
         {/* Event Notifications */}
         <MatchEventNotifications events={activeEventNotifications} />
 
+        {/* Match Progress - Upper Left Corner */}
+        <div className="absolute top-4 left-4 z-10">
+          <Card className="glass p-3 border-border/50 w-80">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <TeamLogo
+                  teamName={homeTeamName}
+                  primaryColor={teamColors.home.primary}
+                  secondaryColor={teamColors.home.secondary}
+                  logoUrl={teamColors.home.logoUrl}
+                  size="sm"
+                />
+                <span className="text-2xl font-heading font-bold gradient-text">{currentHomeScore}</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <Clock className="h-3 w-3 text-accent" />
+                <span className="text-sm font-medium text-accent">{currentMinute}'</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-2xl font-heading font-bold gradient-text">{currentAwayScore}</span>
+                <TeamLogo
+                  teamName={awayTeamName}
+                  primaryColor={teamColors.away.primary}
+                  secondaryColor={teamColors.away.secondary}
+                  logoUrl={teamColors.away.logoUrl}
+                  size="sm"
+                />
+              </div>
+            </div>
+            
+            {/* Field Progression Bar */}
+            <div className="relative h-2 bg-muted/20 rounded-full overflow-hidden">
+              <div 
+                className="absolute inset-0 flex"
+                style={{
+                  background: `linear-gradient(to right, ${teamColors.home.primary} 0%, ${teamColors.home.primary} ${momentum.home}%, ${teamColors.away.primary} ${momentum.home}%, ${teamColors.away.primary} 100%)`
+                }}
+              />
+            </div>
+            <div className="flex justify-between text-xs text-muted-foreground mt-1">
+              <span>{Math.round(momentum.home)}%</span>
+              <span>{Math.round(momentum.away)}%</span>
+            </div>
+          </Card>
+        </div>
+
         <div className="flex justify-between items-center mb-2">
           <h1 className="text-lg font-heading font-bold gradient-text">Play Match</h1>
           <Badge variant="outline" className="text-xs">{competition}</Badge>
@@ -715,47 +761,8 @@ const PlayMatch = () => {
 
         {/* Main Layout: 3 Columns */}
         <div className="grid grid-cols-[1fr_2fr_1fr] gap-2 flex-1 min-h-0">
-          {/* Left Column: Match Result + Controls + Tactics */}
+          {/* Left Column: Controls + Tactics */}
           <div className="space-y-2 overflow-auto">
-            {/* Match Header */}
-            <Card className="glass p-2 border-border/50 flex-shrink-0">
-            <div className="flex flex-col items-center mb-1">
-              <TeamLogo
-                teamName={homeTeamName}
-                primaryColor={teamColors.home.primary}
-                secondaryColor={teamColors.home.secondary}
-                logoUrl={teamColors.home.logoUrl}
-                size="sm"
-                className="mb-1"
-              />
-              <h3 className="text-sm font-heading font-bold">{homeTeamName}</h3>
-              <p className="text-xs text-muted-foreground">Home</p>
-            </div>
-            <div className="text-center py-2">
-              <div className="flex items-center justify-center gap-2">
-                <span className="text-2xl font-heading font-bold gradient-text">{currentHomeScore}</span>
-                <span className="text-lg text-muted-foreground">-</span>
-                <span className="text-2xl font-heading font-bold gradient-text">{currentAwayScore}</span>
-              </div>
-              <div className="flex items-center justify-center gap-1 mt-1">
-                <Clock className="h-3 w-3 text-accent" />
-                <p className="text-xs font-medium text-accent">{currentMinute}'</p>
-              </div>
-              {result && <Badge variant="secondary" className="mt-1 text-xs">Full Time</Badge>}
-            </div>
-            <div className="flex flex-col items-center mt-1">
-              <TeamLogo
-                teamName={awayTeamName}
-                primaryColor={teamColors.away.primary}
-                secondaryColor={teamColors.away.secondary}
-                logoUrl={teamColors.away.logoUrl}
-                size="sm"
-                className="mb-1"
-              />
-              <h3 className="text-sm font-heading font-bold">{awayTeamName}</h3>
-              <p className="text-xs text-muted-foreground">Away</p>
-            </div>
-          </Card>
 
             {/* Controls */}
             <Card className="glass p-2 border-border/50 flex-shrink-0">
@@ -893,30 +900,6 @@ const PlayMatch = () => {
                 momentum={momentum}
                 />
               </div>
-            </Card>
-
-            {/* Attack/Defense */}
-            <Card className="glass p-2 border-border/50 flex-shrink-0">
-              <h3 className="text-xs font-heading font-semibold mb-2">Field Progression</h3>
-              <ImprovedAttackDefenseBar 
-                homeTeam={homeTeamName}
-                awayTeam={awayTeamName}
-                homeAttack={momentum.home}
-                awayAttack={momentum.away}
-                currentMinute={currentMinute}
-                homeColor={teamColors.home.primary}
-                awayColor={teamColors.away.primary}
-                homeLogoUrl={teamColors.home.logoUrl}
-                awayLogoUrl={teamColors.away.logoUrl}
-                homeScore={currentHomeScore}
-                awayScore={currentAwayScore}
-                matchPeriod={
-                  currentMinute === 0 ? 'first_half' :
-                  currentMinute === 45 ? 'half_time' :
-                  currentMinute > 45 && currentMinute < 90 ? 'second_half' :
-                  'full_time'
-                }
-              />
             </Card>
 
             {/* Substitutions */}
