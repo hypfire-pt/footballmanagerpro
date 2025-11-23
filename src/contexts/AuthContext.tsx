@@ -42,7 +42,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const signUp = async (email: string, password: string, managerName: string) => {
-    const redirectUrl = `${window.location.origin}/dashboard`;
+    const redirectUrl = `${window.location.origin}/careers`;
     
     const { error } = await supabase.auth.signUp({
       email,
@@ -56,7 +56,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
     
     if (!error) {
-      setTimeout(() => navigate('/dashboard'), 100);
+      setTimeout(() => navigate('/careers'), 100);
     }
     
     return { error };
@@ -69,7 +69,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
     
     if (!error) {
-      setTimeout(() => navigate('/dashboard'), 100);
+      setTimeout(() => navigate('/careers'), 100);
     }
     
     return { error };
