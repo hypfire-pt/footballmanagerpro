@@ -85,7 +85,7 @@ export function SeasonProvider({ children }: { children: React.ReactNode }) {
         .select('id')
         .eq('save_id', currentSave.id)
         .eq('is_current', true)
-        .single();
+        .maybeSingle();
 
       if (season) {
         const { AIMatchSimulator } = await import('@/services/aiMatchSimulator');
@@ -103,7 +103,7 @@ export function SeasonProvider({ children }: { children: React.ReactNode }) {
           .from('save_seasons')
           .select('standings_state, fixtures_state')
           .eq('id', season.id)
-          .single();
+          .maybeSingle();
 
         if (refreshedSeason) {
           setLeagueStandings(refreshedSeason.standings_state as any[]);
@@ -133,7 +133,7 @@ export function SeasonProvider({ children }: { children: React.ReactNode }) {
         .from('game_saves')
         .select('id, user_id')
         .eq('is_active', true)
-        .single();
+        .maybeSingle();
         
       if (!saves) return;
       
@@ -142,7 +142,7 @@ export function SeasonProvider({ children }: { children: React.ReactNode }) {
         .select('id')
         .eq('save_id', saves.id)
         .eq('is_current', true)
-        .single();
+        .maybeSingle();
         
       if (!currentSeason) return;
       
@@ -181,7 +181,7 @@ export function SeasonProvider({ children }: { children: React.ReactNode }) {
         .from('game_saves')
         .select('id')
         .eq('is_active', true)
-        .single();
+        .maybeSingle();
         
       if (!saves) return;
       
@@ -234,9 +234,12 @@ export function SeasonProvider({ children }: { children: React.ReactNode }) {
         .select('*')
         .eq('save_id', currentSave.id)
         .eq('is_current', true)
-        .single();
+        .maybeSingle();
 
       if (seasonError) throw seasonError;
+      if (!season) {
+        throw new Error('No current season found');
+      }
 
       // Update match status to finished in save_matches
       const { error: matchError } = await supabase
@@ -350,7 +353,7 @@ export function SeasonProvider({ children }: { children: React.ReactNode }) {
           .from('save_seasons')
           .select('standings_state, fixtures_state')
           .eq('id', season.id)
-          .single();
+          .maybeSingle();
 
         if (refreshedSeason) {
           setLeagueStandings(refreshedSeason.standings_state as any[]);
