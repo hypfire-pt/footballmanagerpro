@@ -265,15 +265,27 @@ const PlayMatch = () => {
           }
         });
 
-        const recentEvents = simResult.events.filter(e => e.minute >= minute - 5 && e.minute <= minute);
-        const homeEvents = recentEvents.filter(e => e.team === 'home' && ['shot', 'shot_on_target', 'corner'].includes(e.type)).length;
-        const awayEvents = recentEvents.filter(e => e.team === 'away' && ['shot', 'shot_on_target', 'corner'].includes(e.type)).length;
-        const totalEvents = homeEvents + awayEvents;
-        
-        if (totalEvents > 0) {
+        // Update momentum from simulation data
+        if (simResult.momentumByMinute[minute] !== undefined) {
+          const engineMomentum = simResult.momentumByMinute[minute];
+          // Convert -100 to +100 range to home/away attack percentages
+          const homeAttackPercentage = Math.min(80, Math.max(20, 50 + engineMomentum * 0.3));
+          const awayAttackPercentage = Math.min(80, Math.max(20, 50 - engineMomentum * 0.3));
+          
           setMomentum({
-            home: Math.min(80, Math.max(20, 50 + ((homeEvents - awayEvents) / totalEvents) * 30)),
-            away: Math.min(80, Math.max(20, 50 + ((awayEvents - homeEvents) / totalEvents) * 30))
+            home: homeAttackPercentage,
+            away: awayAttackPercentage
+          });
+        }
+        if (simResult.momentumByMinute[minute] !== undefined) {
+          const engineMomentum = simResult.momentumByMinute[minute];
+          // Convert -100 to +100 range to home/away attack percentages
+          const homeAttackPercentage = Math.min(80, Math.max(20, 50 + engineMomentum * 0.3));
+          const awayAttackPercentage = Math.min(80, Math.max(20, 50 - engineMomentum * 0.3));
+          
+          setMomentum({
+            home: homeAttackPercentage,
+            away: awayAttackPercentage
           });
         }
 

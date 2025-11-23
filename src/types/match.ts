@@ -58,6 +58,7 @@ export interface SimulationResult {
   awayScore: number;
   events: MatchEvent[];
   stats: MatchStats;
+  momentumByMinute: Record<number, number>; // -100 to +100 per minute
   playerRatings: {
     home: Record<string, number>;
     away: Record<string, number>;
