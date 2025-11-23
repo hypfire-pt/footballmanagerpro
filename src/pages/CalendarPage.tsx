@@ -54,6 +54,15 @@ const CalendarPage = () => {
   }, [monthFixtures]);
 
   const handleSimulateMatch = (fixture: Fixture) => {
+    if (!fixture.homeTeamId || !fixture.awayTeamId) {
+      toast({
+        title: "Error",
+        description: "This match cannot be played. Please create a new career save.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     toast({
       title: "Play Match",
       description: `${fixture.homeTeam} vs ${fixture.awayTeam}`,
@@ -61,7 +70,11 @@ const CalendarPage = () => {
     
     navigate("/match", { 
       state: { 
-        fixture,
+        fixture: {
+          ...fixture,
+          homeTeamId: fixture.homeTeamId,
+          awayTeamId: fixture.awayTeamId,
+        },
         homeTeam: fixture.homeTeam,
         awayTeam: fixture.awayTeam
       } 

@@ -4,6 +4,8 @@ import { Team } from "@/data/teams";
 
 export interface Fixture extends Omit<Match, 'id'> {
   id: string;
+  homeTeamId?: string;
+  awayTeamId?: string;
   matchweek: number;
   importance: 'low' | 'medium' | 'high';
 }
@@ -81,6 +83,8 @@ export function generateLeagueFixtures(
         id: `${leagueId}-${matchweek + 1}-${idx}`,
         homeTeam: match.home.name,
         awayTeam: match.away.name,
+        homeTeamId: match.home.id,
+        awayTeamId: match.away.id,
         date: matchDate.toISOString().split('T')[0],
         competition: leagueName,
         status: 'scheduled',
