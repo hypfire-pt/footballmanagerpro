@@ -18,7 +18,6 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { ProbabilisticMatchEngine } from "@/services/probabilisticMatchEngine";
 import { TeamLineup, SimulationResult, MatchEvent } from "@/types/match";
 import { Play, Pause, FastForward, Zap, Activity, Clock, CheckCircle, ArrowRight, Sparkles, Calculator } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
@@ -26,7 +25,7 @@ import { useSeason } from "@/contexts/SeasonContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentSave } from "@/hooks/useCurrentSave";
 import { matchSounds } from "@/services/matchSoundEffects";
-import { AIMatchSimulatorService } from "@/services/aiMatchSimulatorService";
+import { HybridMatchEngine } from "@/services/hybridMatchEngine";
 
 const PlayMatch = () => {
   const navigate = useNavigate();
@@ -53,7 +52,6 @@ const PlayMatch = () => {
   const [currentMinute, setCurrentMinute] = useState(0);
   const [result, setResult] = useState<SimulationResult | null>(null);
   const [speed, setSpeed] = useState<'normal' | 'fast' | 'instant'>('normal');
-  const [simulationMode, setSimulationMode] = useState<'probabilistic' | 'ai'>('probabilistic');
   const [currentEventIndex, setCurrentEventIndex] = useState(0);
   const [homeLineupState, setHomeLineupState] = useState<TeamLineup | null>(null);
   const [awayLineupState, setAwayLineupState] = useState<TeamLineup | null>(null);
@@ -73,7 +71,6 @@ const PlayMatch = () => {
     away: { primary: '#3b82f6', secondary: '#ffffff' }
   });
   const [stadiumImageUrl, setStadiumImageUrl] = useState<string>('');
-  const matchEngineRef = useRef<ProbabilisticMatchEngine | null>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // Fetch real players from database
@@ -242,120 +239,64 @@ const PlayMatch = () => {
     setIsPaused(false);
     toast({ 
       title: "⚽ Match Started", 
-      description: simulationMode === 'ai' ? '🤖 Using AI Simulation' : '📊 Using Probabilistic Engine'
+      description: '🎯 Hybrid Mode: Math Engine + AI Commentary'
     });
 
-    // AI Simulation Mode
-    if (simulationMode === 'ai') {
+    // Use Hybrid Engine (Math + AI)
+    if (speed === 'instant') {
       try {
-        const aiResult = await AIMatchSimulatorService.simulateMatch({
-          homeTeam: {
-            name: homeTeamName,
-            players: homeLineupState.players,
-            tactics: homeLineupState.tactics
-          },
-          awayTeam: {
-            name: awayTeamName,
-            players: awayLineupState.players,
-            tactics: awayLineupState.tactics
-          },
-          competition,
-          matchday: 1
-        });
-
-        if (!aiResult.success || !aiResult.result) {
-          throw new Error(aiResult.error || 'AI simulation failed');
-        }
-
-        const simResult: SimulationResult = {
-          homeScore: aiResult.result.homeScore,
-          awayScore: aiResult.result.awayScore,
-          events: aiResult.result.events.map((e, idx) => ({
-            ...e,
-            id: `ai-event-${idx}`,
-            type: e.type as any
-          })),
-          stats: {
-            ...aiResult.result.stats,
-            yellowCards: { 
-              home: aiResult.result.events.filter(e => e.type === 'yellow_card' && e.team === 'home').length,
-              away: aiResult.result.events.filter(e => e.type === 'yellow_card' && e.team === 'away').length
-            },
-            redCards: { 
-              home: aiResult.result.events.filter(e => e.type === 'red_card' && e.team === 'home').length,
-              away: aiResult.result.events.filter(e => e.type === 'red_card' && e.team === 'away').length
-            },
-            offsides: { home: 0, away: 0 }
-          },
-          momentumByMinute: {},
-          playerRatings: { home: {}, away: {} },
-          playerPerformance: { home: [], away: [] }
-        };
-
-        setResult(simResult);
+        const hybridResult = await HybridMatchEngine.simulate(
+          homeLineupState,
+          awayLineupState,
+          homeTeamName,
+          awayTeamName,
+          stadiumCapacity,
+          homeReputation,
+          false
+        );
         
-        if (speed === 'instant') {
-          setCurrentMinute(90);
-          setCurrentEventIndex(simResult.events.length);
-          setIsSimulating(false);
-          setMatchEnded(true);
-          processMatchResult(matchId, homeTeamName, awayTeamName, simResult);
-          setShowResultSummary(true);
-        } else {
-          // Animate AI results
-          playAIMatchAnimation(simResult);
-        }
+        setResult(hybridResult);
+        setCurrentMinute(90);
+        setCurrentEventIndex(hybridResult.events.length);
+        setIsSimulating(false);
+        setMatchEnded(true);
+        
+        processMatchResult(matchId, homeTeamName, awayTeamName, hybridResult);
+        
+        setShowResultSummary(true);
       } catch (error) {
-        console.error('AI simulation error:', error);
+        console.error('Hybrid simulation error:', error);
         toast({
-          title: "AI Simulation Failed",
-          description: "Falling back to probabilistic engine",
+          title: "Error",
+          description: "Match simulation failed",
           variant: "destructive",
         });
-        // Fallback to probabilistic
-        startProbabilisticSimulation();
+        setIsSimulating(false);
       }
-      return;
+    } else {
+      // Animated hybrid simulation
+      startHybridSimulation();
     }
-
-    // Probabilistic Simulation Mode
-    startProbabilisticSimulation();
   };
 
-  const startProbabilisticSimulation = () => {
+  const startHybridSimulation = async () => {
     if (!homeLineupState || !awayLineupState) return;
 
-    if (speed === 'instant') {
-      const engine = new ProbabilisticMatchEngine(
+    try {
+      // Generate full match result using hybrid engine
+      const hybridResult = await HybridMatchEngine.simulate(
         homeLineupState,
         awayLineupState,
+        homeTeamName,
+        awayTeamName,
         stadiumCapacity,
         homeReputation,
         false
       );
-      matchEngineRef.current = engine;
-      const simResult = engine.simulate();
-      setResult(simResult);
-      setCurrentMinute(90);
-      setCurrentEventIndex(simResult.events.length);
-      setIsSimulating(false);
-      setMatchEnded(true);
       
-      processMatchResult(matchId, homeTeamName, awayTeamName, simResult);
-      
-      setShowResultSummary(true);
-    } else {
-      const engine = new ProbabilisticMatchEngine(
-        homeLineupState,
-        awayLineupState,
-        stadiumCapacity,
-        homeReputation,
-        false
-      );
-      matchEngineRef.current = engine;
-      const simResult = engine.simulate();
-      setResult(simResult);
+      setResult(hybridResult);
 
+      // Animate the events
       let minute = 0;
       let eventIndex = 0;
       const intervalTime = speed === 'fast' ? 200 : 1000;
@@ -375,7 +316,6 @@ const PlayMatch = () => {
         // Execute planned substitutions
         plannedSubstitutions.forEach((sub) => {
           if (sub.minute === minute || (sub.minute === 'auto' && minute >= 60 && minute <= 75 && Math.random() < 0.1)) {
-            // Execute substitution
             toast({
               title: "Substitution",
               description: `${sub.playerIn} replaces ${sub.playerOut}`,
@@ -384,20 +324,8 @@ const PlayMatch = () => {
         });
 
         // Update momentum from simulation data
-        if (simResult.momentumByMinute[minute] !== undefined) {
-          const engineMomentum = simResult.momentumByMinute[minute];
-          // Convert -100 to +100 range to home/away attack percentages
-          const homeAttackPercentage = Math.min(80, Math.max(20, 50 + engineMomentum * 0.3));
-          const awayAttackPercentage = Math.min(80, Math.max(20, 50 - engineMomentum * 0.3));
-          
-          setMomentum({
-            home: homeAttackPercentage,
-            away: awayAttackPercentage
-          });
-        }
-        if (simResult.momentumByMinute[minute] !== undefined) {
-          const engineMomentum = simResult.momentumByMinute[minute];
-          // Convert -100 to +100 range to home/away attack percentages
+        if (hybridResult.momentumByMinute[minute] !== undefined) {
+          const engineMomentum = hybridResult.momentumByMinute[minute];
           const homeAttackPercentage = Math.min(80, Math.max(20, 50 + engineMomentum * 0.3));
           const awayAttackPercentage = Math.min(80, Math.max(20, 50 - engineMomentum * 0.3));
           
@@ -407,8 +335,8 @@ const PlayMatch = () => {
           });
         }
 
-        while (eventIndex < simResult.events.length && simResult.events[eventIndex].minute <= minute) {
-          const event = simResult.events[eventIndex];
+        while (eventIndex < hybridResult.events.length && hybridResult.events[eventIndex].minute <= minute) {
+          const event = hybridResult.events[eventIndex];
           setCurrentEventIndex(eventIndex);
           
           // Update momentum dynamically based on events
@@ -447,7 +375,7 @@ const PlayMatch = () => {
             });
           } else if (event.type === 'shot_on_target') {
             matchSounds.shotOnTarget();
-            if (Math.random() < 0.3) { // 30% chance for tense moment
+            if (Math.random() < 0.3) {
               setTenseMoment('close_call');
             }
           } else if (event.type === 'shot') {
@@ -462,10 +390,9 @@ const PlayMatch = () => {
           } else if (event.type === 'corner') {
             matchSounds.corner();
           } else if (event.type === 'injury') {
-            matchSounds.whistle(); // Use whistle sound for injuries
+            matchSounds.whistle();
           }
 
-          // Final minutes tension
           if (minute >= 85 && minute <= 90 && event.type === 'shot_on_target') {
             setTenseMoment('final_minutes');
           }
@@ -482,66 +409,22 @@ const PlayMatch = () => {
           setIsSimulating(false);
           setMatchEnded(true);
           
-          processMatchResult(matchId, homeTeamName, awayTeamName, simResult);
+          processMatchResult(matchId, homeTeamName, awayTeamName, hybridResult);
           
           setShowResultSummary(true);
         }
       }, intervalTime);
+    } catch (error) {
+      console.error('Hybrid simulation error:', error);
+      toast({
+        title: "Simulation Error",
+        description: "Failed to simulate match",
+        variant: "destructive",
+      });
+      setIsSimulating(false);
     }
   };
 
-  const playAIMatchAnimation = (simResult: SimulationResult) => {
-    let minute = 0;
-    let eventIndex = 0;
-    const intervalTime = speed === 'fast' ? 200 : 1000;
-
-    intervalRef.current = setInterval(() => {
-      if (isPaused) return;
-      
-      minute += speed === 'fast' ? 2 : 1;
-      setCurrentMinute(minute);
-
-      if (minute === 45 && !showHalfTime) {
-        setIsPaused(true);
-        setShowHalfTime(true);
-      }
-
-      // Process events up to current minute
-      while (eventIndex < simResult.events.length && simResult.events[eventIndex].minute <= minute) {
-        const event = simResult.events[eventIndex];
-        setCurrentEventIndex(eventIndex);
-        
-        // Play sound effects
-        if (event.type === 'goal') {
-          matchSounds.goal();
-          setGoalCelebration({
-            team: event.team,
-            playerName: event.player || 'Unknown'
-          });
-        } else if (event.type === 'yellow_card') {
-          matchSounds.yellowCard();
-        } else if (event.type === 'red_card') {
-          matchSounds.redCard();
-        } else if (event.type === 'save') {
-          matchSounds.save();
-        }
-        
-        if (['goal', 'yellow_card', 'red_card', 'injury', 'substitution'].includes(event.type)) {
-          setActiveEventNotifications(prev => [...prev, event]);
-        }
-        
-        eventIndex++;
-      }
-
-      if (minute >= 90) {
-        clearInterval(intervalRef.current!);
-        setIsSimulating(false);
-        setMatchEnded(true);
-        processMatchResult(matchId, homeTeamName, awayTeamName, simResult);
-        setShowResultSummary(true);
-      }
-    }, intervalTime);
-  };
 
   const togglePause = () => {
     setIsPaused(!isPaused);
@@ -841,32 +724,21 @@ const PlayMatch = () => {
                   </>
                 )}
                 
-                {/* Simulation Mode Selector */}
+                {/* Hybrid Engine Info */}
                 {!result && (
-                  <div className="space-y-1.5 py-2 border-t border-border/30">
-                    <h4 className="text-xs font-semibold text-muted-foreground">Engine</h4>
-                    <div className="grid grid-cols-2 gap-1">
-                      <Button
-                        variant={simulationMode === 'probabilistic' ? 'default' : 'outline'}
-                        onClick={() => setSimulationMode('probabilistic')}
-                        disabled={isSimulating}
-                        size="sm"
-                        className="flex items-center justify-center gap-1 text-xs h-7"
-                      >
+                  <div className="space-y-1 py-2 border-t border-border/30">
+                    <div className="flex items-center gap-1.5 text-xs">
+                      <div className="flex items-center gap-1 px-2 py-1 bg-primary/10 text-primary rounded">
                         <Calculator className="h-3 w-3" />
-                        Math
-                      </Button>
-                      <Button
-                        variant={simulationMode === 'ai' ? 'default' : 'outline'}
-                        onClick={() => setSimulationMode('ai')}
-                        disabled={isSimulating}
-                        size="sm"
-                        className="flex items-center justify-center gap-1 text-xs h-7"
-                      >
+                        <span className="font-semibold">Math</span>
+                      </div>
+                      <span className="text-muted-foreground">+</span>
+                      <div className="flex items-center gap-1 px-2 py-1 bg-accent/10 text-accent-foreground rounded">
                         <Sparkles className="h-3 w-3" />
-                        AI
-                      </Button>
+                        <span className="font-semibold">AI</span>
+                      </div>
                     </div>
+                    <p className="text-xs text-muted-foreground">Hybrid engine for realistic results</p>
                   </div>
                 )}
                 

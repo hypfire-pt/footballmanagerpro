@@ -195,23 +195,44 @@ export class ProbabilisticMatchEngine {
   ): number {
     let modified = strength;
 
-    // Mentality impact
+    // Mentality impact - ENHANCED
     if (aspect === 'attack') {
-      if (tactics.mentality === 'attacking') modified *= 1.20;
-      if (tactics.mentality === 'defensive') modified *= 0.80;
+      if (tactics.mentality === 'attacking') modified *= 1.30; // +30% attack
+      if (tactics.mentality === 'balanced') modified *= 1.0;
+      if (tactics.mentality === 'defensive') modified *= 0.70; // -30% attack
     } else if (aspect === 'defense') {
-      if (tactics.mentality === 'defensive') modified *= 1.15;
-      if (tactics.mentality === 'attacking') modified *= 0.85;
+      if (tactics.mentality === 'defensive') modified *= 1.25; // +25% defense
+      if (tactics.mentality === 'balanced') modified *= 1.0;
+      if (tactics.mentality === 'attacking') modified *= 0.80; // -20% defense
+    } else if (aspect === 'midfield') {
+      if (tactics.mentality === 'balanced') modified *= 1.10; // Balanced boosts midfield
     }
 
-    // Tempo impact
-    if (tactics.tempo === 'fast' && aspect === 'attack') {
-      modified *= 1.15;
+    // Tempo impact - ENHANCED
+    if (tactics.tempo === 'fast') {
+      if (aspect === 'attack') modified *= 1.20; // Fast tempo increases attack
+      if (aspect === 'midfield') modified *= 1.10; // Fast tempo helps midfield pressure
+    } else if (tactics.tempo === 'slow') {
+      if (aspect === 'defense') modified *= 1.15; // Slow tempo improves defense
+      if (aspect === 'attack') modified *= 0.85; // Slow tempo reduces attack
     }
 
-    // Pressing impact
-    if (tactics.pressing === 'high' && aspect === 'midfield') {
-      modified *= 1.10;
+    // Width impact - NEW
+    if (tactics.width === 'wide') {
+      if (aspect === 'attack') modified *= 1.15; // Wide play stretches defense
+      if (aspect === 'defense') modified *= 0.90; // Wide leaves gaps
+    } else if (tactics.width === 'narrow') {
+      if (aspect === 'midfield') modified *= 1.15; // Narrow dominates center
+      if (aspect === 'defense') modified *= 1.10; // Compact defense
+    }
+
+    // Pressing impact - ENHANCED
+    if (tactics.pressing === 'high') {
+      if (aspect === 'midfield') modified *= 1.20; // High press dominates midfield
+      if (aspect === 'attack') modified *= 1.10; // High press wins ball higher
+    } else if (tactics.pressing === 'low') {
+      if (aspect === 'defense') modified *= 1.15; // Low block strengthens defense
+      if (aspect === 'midfield') modified *= 0.85; // Low press gives up midfield
     }
 
     return modified;
