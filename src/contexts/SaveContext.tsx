@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useEffect, ReactNode } from "react
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { SeasonInitializer } from "@/services/seasonInitializer";
 
 interface GameSave {
   id: string;
@@ -101,30 +102,22 @@ export const SaveProvider = ({ children }: { children: ReactNode }) => {
 
       if (saveError) throw saveError;
 
-      // Create initial season
-      const { data: season, error: seasonError } = await supabase
-        .from("save_seasons")
-        .insert({
-          save_id: newSave.id,
-          season_year: new Date().getFullYear(),
-          is_current: true,
-        })
-        .select()
+      // Get team info for league ID
+      const { data: teamData, error: teamError } = await supabase
+        .from("teams")
+        .select("league_id")
+        .eq("id", teamId)
         .single();
 
-      if (seasonError) throw seasonError;
+      if (teamError) throw teamError;
 
-      // Create initial finances
-      await supabase.from("save_finances").insert({
-        save_id: newSave.id,
-        transfer_budget: 50000000,
-        wage_budget: 2000000,
-        balance: 50000000,
-      });
-
-      // Create manager performance record
-      await supabase.from("manager_performance").insert({
-        save_id: newSave.id,
+      // Initialize complete season with fixtures, standings, and player cloning
+      await SeasonInitializer.initializeSeason({
+        saveId: newSave.id,
+        userId: user.id,
+        teamId,
+        teamName,
+        leagueId: teamData.league_id,
       });
 
       await refreshSaves();
