@@ -70,6 +70,7 @@ const PlayMatch = () => {
     home: { primary: '#22c55e', secondary: '#ffffff' },
     away: { primary: '#3b82f6', secondary: '#ffffff' }
   });
+  const [stadiumImageUrl, setStadiumImageUrl] = useState<string>('');
   const matchEngineRef = useRef<ProbabilisticMatchEngine | null>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -105,7 +106,7 @@ const PlayMatch = () => {
         // Fetch team info
         const { data: homeTeamData } = await supabase
           .from("teams")
-          .select("capacity, reputation, primary_color, secondary_color, logo_url")
+          .select("capacity, reputation, primary_color, secondary_color, logo_url, stadium_image_url")
           .eq("id", homeTeamId)
           .single();
 
@@ -120,6 +121,7 @@ const PlayMatch = () => {
         if (homeTeamData) {
           setStadiumCapacity(homeTeamData.capacity);
           setHomeReputation(homeTeamData.reputation);
+          setStadiumImageUrl(homeTeamData.stadium_image_url || '');
           setTeamColors(prev => ({
             ...prev,
             home: {
@@ -489,7 +491,17 @@ const PlayMatch = () => {
 
   return (
     <DashboardLayout>
-      <div className="h-screen overflow-hidden p-2 flex flex-col">
+      <div className="h-screen overflow-hidden p-2 flex flex-col relative">
+        {/* Stadium Background */}
+        {stadiumImageUrl && (
+          <div className="absolute inset-0 z-0 pointer-events-none">
+            <div 
+              className="absolute inset-0 bg-cover bg-center opacity-15"
+              style={{ backgroundImage: `url(${stadiumImageUrl})` }}
+            />
+            <div className="absolute inset-0 bg-gradient-to-b from-background/95 via-background/90 to-background/95" />
+          </div>
+        )}
         {/* Tense Moment Effects */}
         {tenseMoment && (
           <TenseMomentEffect
