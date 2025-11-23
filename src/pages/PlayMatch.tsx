@@ -147,6 +147,10 @@ const PlayMatch = () => {
 
         setHomeLineupState(homeLineup);
         setAwayLineupState(awayLineup);
+        console.log('Lineups loaded:', {
+          home: homeLineup.players.length,
+          away: awayLineup.players.length
+        });
       } catch (error) {
         console.error("Error fetching match data:", error);
         toast({
@@ -163,7 +167,14 @@ const PlayMatch = () => {
   }, [currentSave, homeTeamId, awayTeamId]);
 
   const startSimulation = () => {
+    console.log('Start simulation called');
+    console.log('Home lineup state:', homeLineupState);
+    console.log('Away lineup state:', awayLineupState);
+    console.log('Home players count:', homeLineupState?.players.length);
+    console.log('Away players count:', awayLineupState?.players.length);
+    
     if (!homeLineupState || !awayLineupState) {
+      console.error('Lineups not loaded!');
       toast({
         title: "Error",
         description: "Match data not loaded",
@@ -171,7 +182,28 @@ const PlayMatch = () => {
       });
       return;
     }
+    
+    if (homeLineupState.players.length < 11) {
+      console.error('Not enough home players:', homeLineupState.players.length);
+      toast({
+        title: "Error",
+        description: `Not enough home players (${homeLineupState.players.length}/11)`,
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (awayLineupState.players.length < 11) {
+      console.error('Not enough away players:', awayLineupState.players.length);
+      toast({
+        title: "Error",
+        description: `Not enough away players (${awayLineupState.players.length}/11)`,
+        variant: "destructive",
+      });
+      return;
+    }
 
+    console.log('Starting match simulation...');
     setIsSimulating(true);
     setIsPaused(false);
     toast({
@@ -517,11 +549,11 @@ const PlayMatch = () => {
 
                   <Button
                     onClick={startSimulation}
-                    disabled={isSimulating}
+                    disabled={isSimulating || loading || !homeLineupState || !awayLineupState}
                     className="gap-2 btn-glow font-heading"
                   >
                     <Play className="h-4 w-4" />
-                    Play Match
+                    {loading ? 'Loading...' : 'Play Match'}
                   </Button>
                 </>
               )}
