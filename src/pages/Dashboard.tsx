@@ -533,7 +533,7 @@ const Dashboard = () => {
         </div>
 
         {/* Full League Table */}
-        <div>
+        <div id="league-table-section">
           <h2 className="text-lg font-bold mb-3">League Standings</h2>
           {seasonLoading ? (
             <div className="space-y-2">

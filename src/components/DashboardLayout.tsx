@@ -2,6 +2,8 @@ import { ReactNode } from "react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { Bell, User, LogOut, CloudUpload, Check, Inbox, Search, FolderOpen, Settings } from "lucide-react";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import gameLogo from "@/assets/game-logo.png";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -17,6 +19,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useSave } from "@/contexts/SaveContext";
 import { useNavigate } from "react-router-dom";
 import { useAutoSave } from "@/hooks/useAutoSave";
+import { supabase } from "@/integrations/supabase/client";
+import * as React from "react";
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -28,6 +32,17 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const navigate = useNavigate();
   const { isSaving, lastSaveTime } = useAutoSave({ interval: 120000, enabled: true });
   
+  const [userProfile, setUserProfile] = React.useState<any>(null);
+  
+  React.useEffect(() => {
+    const fetchProfile = async () => {
+      if (!user) return;
+      const { data } = await supabase.from('profiles').select('*').eq('user_id', user.id).single();
+      setUserProfile(data);
+    };
+    fetchProfile();
+  }, [user]);
+  
   return (
     <SidebarProvider defaultOpen={true}>
       <div className="min-h-screen flex w-full">
@@ -38,6 +53,9 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
           <header className="h-16 border-b border-border/30 glass-strong flex items-center justify-between px-6 sticky top-0 z-50 backdrop-blur-2xl bg-card/50">
             <div className="flex items-center gap-4">
               <SidebarTrigger className="hover:bg-primary/10 transition-all hover:scale-105" />
+              
+              {/* Game Logo */}
+              <img src={gameLogo} alt="Football Manager" className="h-10 w-10" />
               
               {currentSave ? (
                 <DropdownMenu>
@@ -143,15 +161,28 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
               </Button>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="icon" className="hover:bg-primary/10 transition-all hover:scale-105">
-                    <User className="h-4 w-4" />
+                  <Button variant="ghost" size="icon" className="hover:bg-primary/10 transition-all hover:scale-105 rounded-full p-0">
+                    <Avatar className="h-9 w-9">
+                      <AvatarImage src={userProfile?.avatar_url} />
+                      <AvatarFallback className="bg-gradient-blue text-white font-bold text-sm">
+                        {userProfile?.manager_name?.substring(0, 2).toUpperCase() || user?.email?.substring(0, 2).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-56">
                   <DropdownMenuLabel>
-                    <div className="flex flex-col space-y-1">
-                      <p className="text-sm font-medium">Manager Account</p>
-                      <p className="text-xs text-muted-foreground">{user?.email}</p>
+                    <div className="flex items-center gap-3">
+                      <Avatar className="h-10 w-10">
+                        <AvatarImage src={userProfile?.avatar_url} />
+                        <AvatarFallback className="bg-gradient-blue text-white font-bold">
+                          {userProfile?.manager_name?.substring(0, 2).toUpperCase() || user?.email?.substring(0, 2).toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex flex-col space-y-1">
+                        <p className="text-sm font-medium">{userProfile?.manager_name || 'Manager'}</p>
+                        <p className="text-xs text-muted-foreground">{user?.email}</p>
+                      </div>
                     </div>
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
