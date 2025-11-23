@@ -140,6 +140,28 @@ const CalendarPage = () => {
       return;
     }
 
+    // Enforce chronological sequence - only allow playing next upcoming match
+    const nextMatch = upcomingFixtures[0];
+    if (!nextMatch || fixture.id !== nextMatch.id) {
+      toast({
+        title: "❌ Cannot Play Match",
+        description: "Matches must be played in chronological order. Please play the next scheduled match first.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Check if match date is in the future relative to current season date
+    const matchDate = new Date(fixture.date);
+    if (matchDate > currentDate) {
+      toast({
+        title: "❌ Match Not Available",
+        description: "This match is scheduled for a future date. Advance time to reach this match.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     navigate("/match", {
       state: {
         fixture: {
@@ -364,9 +386,20 @@ const CalendarPage = () => {
                           </div>
 
                           {fixture.status === 'scheduled' && (
-                            <Button onClick={() => handleSimulateMatch(fixture)} className="w-full gap-1 h-7 text-xs">
-                              <Play className="h-3 w-3" />
-                              Play
+                            <Button 
+                              onClick={() => handleSimulateMatch(fixture)} 
+                              className="w-full gap-1 h-7 text-xs"
+                              variant={upcomingFixtures[0]?.id === fixture.id ? 'default' : 'ghost'}
+                              disabled={upcomingFixtures[0]?.id !== fixture.id}
+                            >
+                              {upcomingFixtures[0]?.id === fixture.id ? (
+                                <>
+                                  <Play className="h-3 w-3" />
+                                  Play
+                                </>
+                              ) : (
+                                'Locked'
+                              )}
                             </Button>
                           )}
                         </div>
@@ -401,9 +434,21 @@ const CalendarPage = () => {
                     </div>
 
                     {fixture.status === 'scheduled' && (
-                      <Button onClick={() => handleSimulateMatch(fixture)} size="sm" className="gap-1 text-xs">
-                        <Play className="h-3 w-3" />
-                        Play
+                      <Button 
+                        onClick={() => handleSimulateMatch(fixture)} 
+                        size="sm" 
+                        variant={upcomingFixtures[0]?.id === fixture.id ? 'default' : 'ghost'}
+                        disabled={upcomingFixtures[0]?.id !== fixture.id}
+                        className="gap-1 text-xs"
+                      >
+                        {upcomingFixtures[0]?.id === fixture.id ? (
+                          <>
+                            <Play className="h-3 w-3" />
+                            Play
+                          </>
+                        ) : (
+                          'Locked'
+                        )}
                       </Button>
                     )}
                   </div>
