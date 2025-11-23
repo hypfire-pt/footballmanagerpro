@@ -7,6 +7,7 @@ import { FinancialSummaryWidget } from "@/components/widgets/FinancialSummaryWid
 import { TopScorersWidget } from "@/components/widgets/TopScorersWidget";
 import LeagueTable from "@/components/LeagueTable";
 import { DashboardCalendar } from "@/components/DashboardCalendar";
+import { MatchweekSummaryModal } from "@/components/MatchweekSummaryModal";
 import { useSeason } from "@/contexts/SeasonContext";
 import { useSave } from "@/contexts/SaveContext";
 import { useCurrentSave } from "@/hooks/useCurrentSave";
@@ -28,6 +29,8 @@ const Dashboard = () => {
   const { seasonData, loading: seasonLoading, refetch } = useSeasonData(currentSave?.id);
   const navigate = useNavigate();
   const [continuing, setContinuing] = useState(false);
+  const [showSummary, setShowSummary] = useState(false);
+  const [summaryData, setSummaryData] = useState<any>(null);
 
   const standings = (seasonData?.standings_state as any[]) || [];
   const fixtures = (seasonData?.fixtures_state as any[]) || [];
@@ -68,6 +71,9 @@ const Dashboard = () => {
     
     setContinuing(true);
     try {
+      // Store old standings before simulating
+      const oldStandings = [...standings];
+
       // First, simulate any remaining AI matches in current matchweek
       if (!aiMatchesComplete.complete) {
         toast({
@@ -83,11 +89,98 @@ const Dashboard = () => {
           currentSave.team_id
         );
 
-        // Refresh data
+        // Refresh data to get updated fixtures and standings
         await refetch();
       }
 
-      // Advance to next matchweek
+      // Get refreshed season data
+      const { data: refreshedSeason } = await supabase
+        .from('save_seasons')
+        .select('*')
+        .eq('id', seasonData.id)
+        .single();
+
+      if (!refreshedSeason) return;
+
+      const updatedFixtures = (refreshedSeason.fixtures_state as any[]) || [];
+      const updatedStandings = (refreshedSeason.standings_state as any[]) || [];
+
+      // Prepare summary data
+      const matchweekResults = updatedFixtures.filter(f => 
+        (f.matchweek === currentMatchweek || f.matchday === currentMatchweek) &&
+        f.status === 'finished'
+      );
+
+      // Extract goal scorers
+      const goalScorers: { player: string; team: string; goals: number }[] = [];
+      matchweekResults.forEach(match => {
+        if (match.match_data?.events) {
+          match.match_data.events.forEach((event: any) => {
+            if (event.type === 'goal' && event.player) {
+              const existing = goalScorers.find(g => g.player === event.player);
+              if (existing) {
+                existing.goals++;
+              } else {
+                goalScorers.push({ 
+                  player: event.player, 
+                  team: event.team === 'home' ? match.homeTeam : match.awayTeam,
+                  goals: 1 
+                });
+              }
+            }
+          });
+        }
+      });
+
+      // Calculate position changes
+      const standingChanges = updatedStandings.map((team: any) => {
+        const oldTeam = oldStandings.find((t: any) => t.team_id === team.team_id);
+        const oldPosition = oldTeam?.position || team.position;
+        const oldPoints = oldTeam?.points || 0;
+        
+        return {
+          team_name: team.team_name,
+          old_position: oldPosition,
+          new_position: team.position,
+          points_gained: team.points - oldPoints,
+          change: oldPosition - team.position
+        };
+      });
+
+      // Set summary data and show modal
+      setSummaryData({
+        matchweek: currentMatchweek,
+        results: matchweekResults.map((m: any) => ({
+          id: m.id,
+          homeTeam: m.homeTeam,
+          awayTeam: m.awayTeam,
+          homeScore: m.homeScore,
+          awayScore: m.awayScore,
+          homeTeamId: m.homeTeamId,
+          awayTeamId: m.awayTeamId
+        })),
+        topScorers: goalScorers.sort((a, b) => b.goals - a.goals),
+        standingChanges
+      });
+
+      setShowSummary(true);
+      setContinuing(false);
+
+    } catch (error) {
+      console.error('Error continuing:', error);
+      toast({
+        title: "Error",
+        description: "Failed to continue to next matchweek",
+        variant: "destructive"
+      });
+      setContinuing(false);
+    }
+  };
+
+  const handleAdvanceToNextMatchweek = async () => {
+    if (!currentSave || !seasonData) return;
+
+    try {
       const nextMatchweek = currentMatchweek + 1;
       
       // Find next matchweek's first fixture date
@@ -118,29 +211,38 @@ const Dashboard = () => {
           description: `Advanced to Matchweek ${nextMatchweek}`,
         });
 
-        // Refresh data
+        // Refresh data and close modal
         await refetch();
+        setShowSummary(false);
       } else {
         toast({
           title: "Season Complete",
           description: "No more matchweeks remaining",
         });
+        setShowSummary(false);
       }
-
     } catch (error) {
-      console.error('Error continuing:', error);
+      console.error('Error advancing matchweek:', error);
       toast({
         title: "Error",
-        description: "Failed to continue to next matchweek",
+        description: "Failed to advance to next matchweek",
         variant: "destructive"
       });
-    } finally {
-      setContinuing(false);
     }
   };
 
   return (
     <DashboardLayout>
+      <MatchweekSummaryModal
+        open={showSummary}
+        onClose={() => setShowSummary(false)}
+        onContinue={handleAdvanceToNextMatchweek}
+        matchweek={summaryData?.matchweek || currentMatchweek}
+        results={summaryData?.results || []}
+        topScorers={summaryData?.topScorers || []}
+        standingChanges={summaryData?.standingChanges || []}
+      />
+
       <div className="container mx-auto p-6 space-y-6">
         {/* Header Section */}
         <div className="flex items-start justify-between">
