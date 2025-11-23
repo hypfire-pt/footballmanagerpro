@@ -5,19 +5,28 @@ import { LeaguePositionWidget } from "@/components/widgets/LeaguePositionWidget"
 import { RecentResultsWidget } from "@/components/widgets/RecentResultsWidget";
 import { FinancialSummaryWidget } from "@/components/widgets/FinancialSummaryWidget";
 import { TopScorersWidget } from "@/components/widgets/TopScorersWidget";
+import LeagueTable from "@/components/LeagueTable";
 import { useSeason } from "@/contexts/SeasonContext";
 import { useSave } from "@/contexts/SaveContext";
+import { useCurrentSave } from "@/hooks/useCurrentSave";
+import { useSeasonData } from "@/hooks/useSeasonData";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { Calendar, Users, TrendingUp } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const Dashboard = () => {
   const { currentDate, seasonStartDate, currentMatchweek } = useSeason();
-  const { currentSave } = useSave();
+  const { currentSave: contextSave } = useSave();
+  const { currentSave } = useCurrentSave();
+  const { seasonData, loading: seasonLoading } = useSeasonData(currentSave?.id);
   const navigate = useNavigate();
+
+  const standings = (seasonData?.standings_state as any[]) || [];
 
   const handleContinue = async () => {
     if (!currentSave) return;
@@ -108,6 +117,22 @@ const Dashboard = () => {
           <SquadStatusWidget />
           <FinancialSummaryWidget />
         </div>
+
+        {/* League Table */}
+        <Card className="p-4">
+          <h2 className="text-lg font-bold mb-3">League Table</h2>
+          {seasonLoading ? (
+            <div className="space-y-2">
+              {[...Array(5)].map((_, i) => (
+                <Skeleton key={i} className="h-12 w-full" />
+              ))}
+            </div>
+          ) : standings.length > 0 ? (
+            <LeagueTable standings={standings} />
+          ) : (
+            <p className="text-sm text-muted-foreground text-center py-4">No standings data available</p>
+          )}
+        </Card>
 
         {/* Performance Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

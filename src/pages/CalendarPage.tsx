@@ -156,6 +156,19 @@ const CalendarPage = () => {
   }, [monthFixtures]);
 
   const handleSimulateMatch = (fixture: Fixture) => {
+    // Check if this is a user team match
+    const isUserMatch = fixture.homeTeamId === currentSave?.team_id || 
+                        fixture.awayTeamId === currentSave?.team_id;
+
+    if (!isUserMatch) {
+      toast({
+        title: "❌ AI Match",
+        description: "This match doesn't involve your team. AI matches are simulated automatically.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (!fixture.homeTeamId || !fixture.awayTeamId) {
       toast({
         title: "Error",
@@ -165,9 +178,13 @@ const CalendarPage = () => {
       return;
     }
 
-    // Enforce chronological sequence - only allow playing next upcoming match
-    const nextMatch = upcomingFixtures[0];
-    if (!nextMatch || fixture.id !== nextMatch.id) {
+    // Find next user team match
+    const nextUserMatch = upcomingFixtures.find(f => 
+      f.homeTeamId === currentSave?.team_id || f.awayTeamId === currentSave?.team_id
+    );
+
+    // Enforce chronological sequence - only allow playing next upcoming user match
+    if (!nextUserMatch || fixture.id !== nextUserMatch.id) {
       toast({
         title: "❌ Cannot Play Match",
         description: "Matches must be played in chronological order. Please play the next scheduled match first.",
@@ -233,12 +250,21 @@ const CalendarPage = () => {
         })
         .eq('id', currentSave.id);
 
+      // Auto-simulate AI matches
+      const { AIMatchSimulator } = await import('@/services/aiMatchSimulator');
+      const simulated = await AIMatchSimulator.simulateAIMatches(
+        season.id,
+        currentSave.id,
+        newDate.toISOString().split('T')[0],
+        currentSave.team_id
+      );
+
       setSelectedDate(newDate);
       setSeason({ ...season, season_current_date: newDate.toISOString().split('T')[0] });
 
       toast({
         title: "Time Advanced",
-        description: `Advanced ${daysToAdvance} day(s) to ${format(newDate, "PPP")}`,
+        description: `Advanced ${daysToAdvance} day(s). ${simulated} AI matches simulated.`,
       });
 
     } catch (error) {
@@ -274,11 +300,20 @@ const CalendarPage = () => {
         })
         .eq('id', currentSave.id);
 
+      // Auto-simulate AI matches
+      const { AIMatchSimulator } = await import('@/services/aiMatchSimulator');
+      const simulated = await AIMatchSimulator.simulateAIMatches(
+        season.id,
+        currentSave.id,
+        newDate.toISOString().split('T')[0],
+        currentSave.team_id
+      );
+
       setSeason({ ...season, season_current_date: newDate.toISOString().split('T')[0] });
 
       toast({
         title: "Time Advanced",
-        description: `Advanced ${days} day(s)`,
+        description: `Advanced ${days} day(s). ${simulated} AI matches simulated.`,
       });
 
     } catch (error) {
@@ -411,21 +446,40 @@ const CalendarPage = () => {
                           </div>
 
                           {fixture.status === 'scheduled' && (
-                            <Button 
-                              onClick={() => handleSimulateMatch(fixture)} 
-                              className="w-full gap-1 h-7 text-xs"
-                              variant={upcomingFixtures[0]?.id === fixture.id ? 'default' : 'ghost'}
-                              disabled={upcomingFixtures[0]?.id !== fixture.id}
-                            >
-                              {upcomingFixtures[0]?.id === fixture.id ? (
-                                <>
-                                  <Play className="h-3 w-3" />
-                                  Play
-                                </>
-                              ) : (
-                                'Locked'
-                              )}
-                            </Button>
+                            (() => {
+                              const isUserMatch = fixture.homeTeamId === currentSave?.team_id || 
+                                                  fixture.awayTeamId === currentSave?.team_id;
+                              const nextUserMatch = upcomingFixtures.find(f => 
+                                f.homeTeamId === currentSave?.team_id || f.awayTeamId === currentSave?.team_id
+                              );
+                              const canPlay = isUserMatch && nextUserMatch?.id === fixture.id;
+
+                              if (!isUserMatch) {
+                                return (
+                                  <div className="w-full text-center text-xs text-muted-foreground py-1">
+                                    AI Match
+                                  </div>
+                                );
+                              }
+
+                              return (
+                                <Button 
+                                  onClick={() => handleSimulateMatch(fixture)} 
+                                  className="w-full gap-1 h-7 text-xs"
+                                  variant={canPlay ? 'default' : 'ghost'}
+                                  disabled={!canPlay}
+                                >
+                                  {canPlay ? (
+                                    <>
+                                      <Play className="h-3 w-3" />
+                                      Play
+                                    </>
+                                  ) : (
+                                    'Locked'
+                                  )}
+                                </Button>
+                              );
+                            })()
                           )}
                         </div>
                       </Card>
@@ -459,22 +513,39 @@ const CalendarPage = () => {
                     </div>
 
                     {fixture.status === 'scheduled' && (
-                      <Button 
-                        onClick={() => handleSimulateMatch(fixture)} 
-                        size="sm" 
-                        variant={upcomingFixtures[0]?.id === fixture.id ? 'default' : 'ghost'}
-                        disabled={upcomingFixtures[0]?.id !== fixture.id}
-                        className="gap-1 text-xs"
-                      >
-                        {upcomingFixtures[0]?.id === fixture.id ? (
-                          <>
-                            <Play className="h-3 w-3" />
-                            Play
-                          </>
-                        ) : (
-                          'Locked'
-                        )}
-                      </Button>
+                      (() => {
+                        const isUserMatch = fixture.homeTeamId === currentSave?.team_id || 
+                                            fixture.awayTeamId === currentSave?.team_id;
+                        const nextUserMatch = upcomingFixtures.find(f => 
+                          f.homeTeamId === currentSave?.team_id || f.awayTeamId === currentSave?.team_id
+                        );
+                        const canPlay = isUserMatch && nextUserMatch?.id === fixture.id;
+
+                        if (!isUserMatch) {
+                          return (
+                            <Badge variant="secondary" className="text-xs">AI Match</Badge>
+                          );
+                        }
+
+                        return (
+                          <Button 
+                            onClick={() => handleSimulateMatch(fixture)} 
+                            size="sm" 
+                            variant={canPlay ? 'default' : 'ghost'}
+                            disabled={!canPlay}
+                            className="gap-1 text-xs"
+                          >
+                            {canPlay ? (
+                              <>
+                                <Play className="h-3 w-3" />
+                                Play
+                              </>
+                            ) : (
+                              'Locked'
+                            )}
+                          </Button>
+                        );
+                      })()
                     )}
                   </div>
                 </Card>
