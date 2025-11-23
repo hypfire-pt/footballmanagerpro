@@ -78,6 +78,40 @@ export function SeasonProvider({ children }: { children: React.ReactNode }) {
     const newDate = addDays(currentDate, days);
     setCurrentDate(newDate);
     
+    // Simulate AI matches for the new date
+    if (currentSave?.id) {
+      const { data: season } = await supabase
+        .from('save_seasons')
+        .select('id')
+        .eq('save_id', currentSave.id)
+        .eq('is_current', true)
+        .single();
+
+      if (season) {
+        const { AIMatchSimulator } = await import('@/services/aiMatchSimulator');
+        const simulatedCount = await AIMatchSimulator.simulateAIMatches(
+          season.id,
+          currentSave.id,
+          newDate.toISOString().split('T')[0],
+          currentSave.team_id
+        );
+
+        console.log(`Simulated ${simulatedCount} AI matches`);
+
+        // Refresh standings and fixtures after AI matches
+        const { data: refreshedSeason } = await supabase
+          .from('save_seasons')
+          .select('standings_state, fixtures_state')
+          .eq('id', season.id)
+          .single();
+
+        if (refreshedSeason) {
+          setLeagueStandings(refreshedSeason.standings_state as any[]);
+          setFixtures(refreshedSeason.fixtures_state as any[]);
+        }
+      }
+    }
+    
     // Check if season has ended (May 31st)
     if (newDate.getMonth() === 4 && newDate.getDate() === 31) {
       await handleSeasonEnd();
@@ -219,6 +253,31 @@ export function SeasonProvider({ children }: { children: React.ReactNode }) {
         console.error('Error updating match:', matchError);
       }
 
+      // Update standings in database
+      const standings = (season.standings_state as any[]) || [];
+      const homeTeamData = standings.find(s => s.team_name === homeTeam);
+      const awayTeamData = standings.find(s => s.team_name === awayTeam);
+
+      if (homeTeamData && awayTeamData) {
+        const updatedStandings = updateStandingsAfterMatch(
+          standings,
+          homeTeamData.team_id,
+          awayTeamData.team_id,
+          result.homeScore,
+          result.awayScore
+        );
+
+        await supabase
+          .from('save_seasons')
+          .update({ 
+            standings_state: updatedStandings,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', season.id);
+
+        setLeagueStandings(updatedStandings);
+      }
+
       // Update fixtures_state in season
       const fixtures = (season.fixtures_state as any[]) || [];
       const updatedFixtures = fixtures.map((f: any) => {
@@ -238,6 +297,8 @@ export function SeasonProvider({ children }: { children: React.ReactNode }) {
         .update({ fixtures_state: updatedFixtures })
         .eq('id', season.id);
 
+      setFixtures(updatedFixtures);
+
       // Update player stats
       const playerStats = MatchResultProcessor.extractPlayerStats(result);
       
@@ -247,37 +308,28 @@ export function SeasonProvider({ children }: { children: React.ReactNode }) {
           .select('*')
           .eq('save_id', currentSave.id)
           .eq('player_id', stat.playerId)
-          .single();
+          .maybeSingle();
 
         if (existingPlayer) {
+          const newAppearances = existingPlayer.appearances + stat.appearances;
+          const newAvgRating = ((existingPlayer.average_rating || 0) * existingPlayer.appearances + stat.rating) / newAppearances;
+
           await supabase
             .from('save_players')
             .update({
               goals: existingPlayer.goals + stat.goals,
               assists: existingPlayer.assists + stat.assists,
-              appearances: existingPlayer.appearances + stat.appearances,
-              average_rating: ((existingPlayer.average_rating || 0) * existingPlayer.appearances + stat.rating) / (existingPlayer.appearances + 1)
+              appearances: newAppearances,
+              average_rating: newAvgRating,
+              updated_at: new Date().toISOString()
             })
             .eq('id', existingPlayer.id);
         }
       }
 
-      // Update local state
-      const processed = MatchResultProcessor.processMatchResult(
-        matchId,
-        homeTeam,
-        awayTeam,
-        result,
-        leagueStandings,
-        fixtures
-      );
-
-      setLeagueStandings(processed.updatedStandings);
-      setFixtures(processed.updatedFixtures);
-
       toast({
         title: "Match Result Saved",
-        description: "Match result has been recorded successfully",
+        description: "Match result and standings updated successfully",
       });
     } catch (error) {
       console.error('Error processing match result:', error);
@@ -287,6 +339,57 @@ export function SeasonProvider({ children }: { children: React.ReactNode }) {
         variant: "destructive",
       });
     }
+  };
+
+  const updateStandingsAfterMatch = (
+    standings: any[],
+    homeTeamId: string,
+    awayTeamId: string,
+    homeScore: number,
+    awayScore: number
+  ) => {
+    const updated = standings.map(team => {
+      if (team.team_id === homeTeamId) {
+        return updateTeamStats(team, homeScore, awayScore);
+      } else if (team.team_id === awayTeamId) {
+        return updateTeamStats(team, awayScore, homeScore);
+      }
+      return team;
+    });
+
+    return recalculatePositions(updated);
+  };
+
+  const updateTeamStats = (team: any, goalsFor: number, goalsAgainst: number) => {
+    const result = goalsFor > goalsAgainst ? 'W' : goalsFor < goalsAgainst ? 'L' : 'D';
+    const points = result === 'W' ? 3 : result === 'D' ? 1 : 0;
+    const newForm = [result, ...(team.form || []).slice(0, 4)];
+
+    return {
+      ...team,
+      played: (team.played || 0) + 1,
+      won: (team.won || 0) + (result === 'W' ? 1 : 0),
+      drawn: (team.drawn || 0) + (result === 'D' ? 1 : 0),
+      lost: (team.lost || 0) + (result === 'L' ? 1 : 0),
+      goals_for: (team.goals_for || 0) + goalsFor,
+      goals_against: (team.goals_against || 0) + goalsAgainst,
+      goal_difference: ((team.goals_for || 0) + goalsFor) - ((team.goals_against || 0) + goalsAgainst),
+      points: (team.points || 0) + points,
+      form: newForm
+    };
+  };
+
+  const recalculatePositions = (standings: any[]) => {
+    const sorted = [...standings].sort((a, b) => {
+      if (b.points !== a.points) return b.points - a.points;
+      if (b.goal_difference !== a.goal_difference) return b.goal_difference - a.goal_difference;
+      return b.goals_for - a.goals_for;
+    });
+
+    return sorted.map((team, index) => ({
+      ...team,
+      position: index + 1
+    }));
   };
 
   return (

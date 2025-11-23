@@ -140,10 +140,10 @@ export class AIMatchSimulator {
       })
       .eq('id', fixture.id);
 
-    // Update fixtures_state
+    // Update fixtures_state and standings
     const { data: season } = await supabase
       .from('save_seasons')
-      .select('fixtures_state')
+      .select('fixtures_state, standings_state')
       .eq('id', seasonId)
       .single();
 
@@ -161,9 +161,23 @@ export class AIMatchSimulator {
         return f;
       });
 
+      // Update standings
+      const standings = (season.standings_state as any[]) || [];
+      const updatedStandings = this.updateStandingsAfterMatch(
+        standings,
+        fixture.homeTeamId,
+        fixture.awayTeamId,
+        result.homeScore,
+        result.awayScore
+      );
+
       await supabase
         .from('save_seasons')
-        .update({ fixtures_state: updatedFixtures })
+        .update({ 
+          fixtures_state: updatedFixtures,
+          standings_state: updatedStandings,
+          updated_at: new Date().toISOString()
+        })
         .eq('id', seasonId);
     }
 
@@ -171,6 +185,57 @@ export class AIMatchSimulator {
     await this.updatePlayerStats(result, saveId);
 
     console.log(`Simulated: ${fixture.homeTeam} ${result.homeScore}-${result.awayScore} ${fixture.awayTeam}`);
+  }
+
+  private static updateStandingsAfterMatch(
+    standings: any[],
+    homeTeamId: string,
+    awayTeamId: string,
+    homeScore: number,
+    awayScore: number
+  ) {
+    const updated = standings.map(team => {
+      if (team.team_id === homeTeamId) {
+        return this.updateTeamStats(team, homeScore, awayScore);
+      } else if (team.team_id === awayTeamId) {
+        return this.updateTeamStats(team, awayScore, homeScore);
+      }
+      return team;
+    });
+
+    return this.recalculatePositions(updated);
+  }
+
+  private static updateTeamStats(team: any, goalsFor: number, goalsAgainst: number) {
+    const result = goalsFor > goalsAgainst ? 'W' : goalsFor < goalsAgainst ? 'L' : 'D';
+    const points = result === 'W' ? 3 : result === 'D' ? 1 : 0;
+    const newForm = [result, ...(team.form || []).slice(0, 4)];
+
+    return {
+      ...team,
+      played: (team.played || 0) + 1,
+      won: (team.won || 0) + (result === 'W' ? 1 : 0),
+      drawn: (team.drawn || 0) + (result === 'D' ? 1 : 0),
+      lost: (team.lost || 0) + (result === 'L' ? 1 : 0),
+      goals_for: (team.goals_for || 0) + goalsFor,
+      goals_against: (team.goals_against || 0) + goalsAgainst,
+      goal_difference: ((team.goals_for || 0) + goalsFor) - ((team.goals_against || 0) + goalsAgainst),
+      points: (team.points || 0) + points,
+      form: newForm
+    };
+  }
+
+  private static recalculatePositions(standings: any[]) {
+    const sorted = [...standings].sort((a, b) => {
+      if (b.points !== a.points) return b.points - a.points;
+      if (b.goal_difference !== a.goal_difference) return b.goal_difference - a.goal_difference;
+      return b.goals_for - a.goals_for;
+    });
+
+    return sorted.map((team, index) => ({
+      ...team,
+      position: index + 1
+    }));
   }
 
   private static async updatePlayerStats(result: any, saveId: string): Promise<void> {
