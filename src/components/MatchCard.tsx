@@ -2,8 +2,11 @@ import { Match } from "@/types/game";
 import { Card } from "./ui/card";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
+import { TeamLogo } from "./TeamLogo";
 import { Calendar, Play } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { useEffect, useState } from "react";
 
 interface MatchCardProps {
   match: Match;
@@ -11,6 +14,29 @@ interface MatchCardProps {
 
 const MatchCard = ({ match }: MatchCardProps) => {
   const navigate = useNavigate();
+  const [teamColors, setTeamColors] = useState<Record<string, { primary: string; secondary: string }>>({});
+
+  useEffect(() => {
+    const fetchTeamColors = async () => {
+      const { data: teams } = await supabase
+        .from('teams')
+        .select('name, primary_color, secondary_color')
+        .in('name', [match.homeTeam, match.awayTeam]);
+
+      if (teams) {
+        const colorsMap: Record<string, { primary: string; secondary: string }> = {};
+        teams.forEach(team => {
+          colorsMap[team.name] = {
+            primary: team.primary_color,
+            secondary: team.secondary_color
+          };
+        });
+        setTeamColors(colorsMap);
+      }
+    };
+
+    fetchTeamColors();
+  }, [match.homeTeam, match.awayTeam]);
 
   const getStatusBadge = () => {
     switch (match.status) {
@@ -38,8 +64,14 @@ const MatchCard = ({ match }: MatchCardProps) => {
       </div>
 
       <div className="flex items-center justify-between mb-4">
-        <div className="flex-1 text-right">
-          <p className="font-bold text-lg">{match.homeTeam}</p>
+        <div className="flex-1 flex flex-col items-end gap-2">
+          <TeamLogo
+            teamName={match.homeTeam}
+            primaryColor={teamColors[match.homeTeam]?.primary}
+            secondaryColor={teamColors[match.homeTeam]?.secondary}
+            size="sm"
+          />
+          <p className="font-bold text-sm">{match.homeTeam}</p>
         </div>
 
         <div className="px-6">
@@ -56,8 +88,14 @@ const MatchCard = ({ match }: MatchCardProps) => {
           )}
         </div>
 
-        <div className="flex-1 text-left">
-          <p className="font-bold text-lg">{match.awayTeam}</p>
+        <div className="flex-1 flex flex-col items-start gap-2">
+          <TeamLogo
+            teamName={match.awayTeam}
+            primaryColor={teamColors[match.awayTeam]?.primary}
+            secondaryColor={teamColors[match.awayTeam]?.secondary}
+            size="sm"
+          />
+          <p className="font-bold text-sm">{match.awayTeam}</p>
         </div>
       </div>
 
