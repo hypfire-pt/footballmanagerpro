@@ -3,9 +3,10 @@ import { NextMatchWidget } from "@/components/widgets/NextMatchWidget";
 import { SquadStatusWidget } from "@/components/widgets/SquadStatusWidget";
 import { LeaguePositionWidget } from "@/components/widgets/LeaguePositionWidget";
 import { RecentResultsWidget } from "@/components/widgets/RecentResultsWidget";
+import { FinancialSummaryWidget } from "@/components/widgets/FinancialSummaryWidget";
+import { TopScorersWidget } from "@/components/widgets/TopScorersWidget";
 import { useSeason } from "@/contexts/SeasonContext";
 import { useSave } from "@/contexts/SaveContext";
-import { useAutoSave } from "@/hooks/useAutoSave";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Calendar, Users, TrendingUp } from "lucide-react";
@@ -105,6 +106,12 @@ const Dashboard = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <LeaguePositionWidget />
           <SquadStatusWidget />
+          <FinancialSummaryWidget />
+        </div>
+
+        {/* Performance Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <TopScorersWidget />
           <RecentResultsWidget />
         </div>
       </div>
