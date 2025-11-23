@@ -1,4 +1,4 @@
-import { Home, Users, Zap, ArrowLeftRight, Building, DollarSign, Trophy, Calendar, Globe, Inbox, Search, Settings, Briefcase, ChevronDown } from "lucide-react";
+import { Home, Users, Zap, ArrowLeftRight, Building, DollarSign, Trophy, Calendar, Globe, Inbox, Search, Settings, Briefcase, ChevronDown, FolderOpen } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
 import {
@@ -32,6 +32,7 @@ const otherMenuItems = [
   { title: "World", url: "/world", icon: Globe },
   { title: "Inbox", url: "/inbox", icon: Inbox },
   { title: "Search", url: "/search", icon: Search },
+  { title: "Manage Careers", url: "/careers", icon: FolderOpen },
   { title: "Options", url: "/options", icon: Settings },
 ];
 
