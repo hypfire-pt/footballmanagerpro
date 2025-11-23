@@ -28,6 +28,8 @@ import OptionsPage from "./pages/OptionsPage";
 import League from "./pages/League";
 import PlayMatch from "./pages/PlayMatch";
 import MatchHistoryPage from "./pages/MatchHistoryPage";
+import PlayerStatsPage from "./pages/PlayerStatsPage";
+import LeagueStandingsPage from "./pages/LeagueStandingsPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -68,6 +70,8 @@ const App = () => {
                 <Route path="/league" element={<ProtectedRoute><League /></ProtectedRoute>} />
                 <Route path="/match" element={<ProtectedRoute><PlayMatch /></ProtectedRoute>} />
                 <Route path="/match-history" element={<ProtectedRoute><MatchHistoryPage /></ProtectedRoute>} />
+                <Route path="/player-stats" element={<ProtectedRoute><PlayerStatsPage /></ProtectedRoute>} />
+                <Route path="/standings" element={<ProtectedRoute><LeagueStandingsPage /></ProtectedRoute>} />
                   {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                   <Route path="*" element={<NotFound />} />
                 </Routes>
