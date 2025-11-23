@@ -642,6 +642,7 @@ export type Database = {
           secondary_color: string
           short_name: string | null
           stadium: string
+          stadium_image_url: string | null
         }
         Insert: {
           balance?: number
@@ -658,6 +659,7 @@ export type Database = {
           secondary_color: string
           short_name?: string | null
           stadium: string
+          stadium_image_url?: string | null
         }
         Update: {
           balance?: number
@@ -674,6 +676,7 @@ export type Database = {
           secondary_color?: string
           short_name?: string | null
           stadium?: string
+          stadium_image_url?: string | null
         }
         Relationships: [
           {

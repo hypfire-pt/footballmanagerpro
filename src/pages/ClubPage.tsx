@@ -17,17 +17,55 @@ import {
   Target,
   Shield
 } from "lucide-react";
-import { europeanTeams } from "@/data/teams";
+import { useCurrentSave } from "@/hooks/useCurrentSave";
+import { supabase } from "@/integrations/supabase/client";
+import { useEffect, useState } from "react";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const ClubPage = () => {
-  // Get Manchester City as user's club
-  const userClub = europeanTeams.find(team => team.id === "man-city")!;
+  const { currentSave } = useCurrentSave();
+  const [clubData, setClubData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
-  const formatCurrency = (value: number) => {
-    if (value >= 1000000) return `€${(value / 1000000).toFixed(0)}M`;
-    if (value >= 1000) return `€${(value / 1000).toFixed(0)}K`;
-    return `€${value}`;
-  };
+  useEffect(() => {
+    const fetchClubData = async () => {
+      if (!currentSave?.team_id) return;
+
+      const { data, error } = await supabase
+        .from('teams')
+        .select('*')
+        .eq('id', currentSave.team_id)
+        .single();
+
+      if (data) {
+        setClubData(data);
+      }
+      setLoading(false);
+    };
+
+    fetchClubData();
+  }, [currentSave?.team_id]);
+
+  if (loading) {
+    return (
+      <DashboardLayout>
+        <div className="container mx-auto p-6 space-y-6">
+          <Skeleton className="h-48 w-full" />
+          <Skeleton className="h-96 w-full" />
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  if (!clubData) {
+    return (
+      <DashboardLayout>
+        <div className="container mx-auto p-6">
+          <p className="text-muted-foreground">No club data available</p>
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   const getReputationLabel = (reputation: number) => {
     if (reputation >= 95) return "World Class";
@@ -65,48 +103,71 @@ const ClubPage = () => {
   return (
     <DashboardLayout>
       <div className="container mx-auto p-6 space-y-6">
-        {/* Club Header */}
-        <div className="relative overflow-hidden rounded-xl bg-gradient-to-r from-primary/20 via-primary/10 to-background border">
-          <div className="absolute inset-0 bg-grid-white/10" />
+        {/* Club Header with Stadium Background */}
+        <div className="relative overflow-hidden rounded-xl border">
+          {/* Stadium Background Image */}
+          {clubData.stadium_image_url && (
+            <div className="absolute inset-0">
+              <div 
+                className="absolute inset-0 bg-cover bg-center"
+                style={{ backgroundImage: `url(${clubData.stadium_image_url})` }}
+              />
+              <div className="absolute inset-0 bg-gradient-to-b from-background/85 via-background/90 to-background/95" />
+            </div>
+          )}
+          
+          {/* Content */}
           <div className="relative p-8">
             <div className="flex flex-col md:flex-row items-start md:items-center gap-6">
               {/* Club Badge */}
-              <div 
-                className="w-24 h-24 rounded-full flex items-center justify-center text-4xl font-bold shadow-lg"
-                style={{
-                  background: `linear-gradient(135deg, ${userClub.colors.primary}, ${userClub.colors.secondary})`
-                }}
-              >
-                <span className="text-white">{userClub.shortName.substring(0, 3).toUpperCase()}</span>
-              </div>
+              {clubData.logo_url ? (
+                <div className="w-24 h-24 rounded-full bg-background/80 backdrop-blur-sm p-2 shadow-lg border-2 border-border">
+                  <img 
+                    src={clubData.logo_url} 
+                    alt={`${clubData.name} logo`}
+                    className="w-full h-full object-contain"
+                  />
+                </div>
+              ) : (
+                <div 
+                  className="w-24 h-24 rounded-full flex items-center justify-center text-4xl font-bold shadow-lg"
+                  style={{
+                    background: `linear-gradient(135deg, ${clubData.primary_color}, ${clubData.secondary_color})`
+                  }}
+                >
+                  <span className="text-white">{clubData.short_name?.substring(0, 3).toUpperCase() || clubData.name.substring(0, 3).toUpperCase()}</span>
+                </div>
+              )}
 
               {/* Club Info */}
               <div className="flex-1">
-                <h1 className="text-4xl font-bold mb-2">{userClub.name}</h1>
+                <h1 className="text-4xl font-bold mb-2">{clubData.name}</h1>
                 <div className="flex flex-wrap items-center gap-4 text-muted-foreground">
                   <div className="flex items-center gap-2">
                     <MapPin className="h-4 w-4" />
-                    <span>{userClub.country}</span>
+                    <span>{clubData.country}</span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Calendar className="h-4 w-4" />
-                    <span>Founded {userClub.founded}</span>
-                  </div>
+                  {clubData.founded && (
+                    <div className="flex items-center gap-2">
+                      <Calendar className="h-4 w-4" />
+                      <span>Founded {clubData.founded}</span>
+                    </div>
+                  )}
                   <div className="flex items-center gap-2">
                     <Building className="h-4 w-4" />
-                    <span>{userClub.stadium}</span>
+                    <span>{clubData.stadium}</span>
                   </div>
                 </div>
                 <div className="flex flex-wrap gap-3 mt-4">
                   <Badge variant="secondary" className="text-sm px-3 py-1">
                     <Trophy className="h-3 w-3 mr-1" />
-                    {getReputationLabel(userClub.reputation)}
+                    {getReputationLabel(clubData.reputation)}
                   </Badge>
                   <Badge variant="outline" className="text-sm px-3 py-1">
-                    Reputation: {userClub.reputation}/100
+                    Reputation: {clubData.reputation}/100
                   </Badge>
                   <Badge variant="outline" className="text-sm px-3 py-1">
-                    Budget: {formatCurrency(userClub.finances)}
+                    Balance: €{(clubData.balance / 1000000).toFixed(0)}M
                   </Badge>
                 </div>
               </div>
@@ -138,15 +199,15 @@ const ClubPage = () => {
                   <div>
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-sm text-muted-foreground">Stadium Name</span>
-                      <span className="font-semibold">{userClub.stadium}</span>
+                      <span className="font-semibold">{clubData.stadium}</span>
                     </div>
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-sm text-muted-foreground">Capacity</span>
-                      <span className="font-semibold">{userClub.capacity.toLocaleString()}</span>
+                      <span className="font-semibold">{clubData.capacity.toLocaleString()}</span>
                     </div>
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-sm text-muted-foreground">Average Attendance</span>
-                      <span className="font-semibold">{Math.floor(userClub.capacity * 0.96).toLocaleString()}</span>
+                      <span className="font-semibold">{Math.floor(clubData.capacity * 0.96).toLocaleString()}</span>
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-sm text-muted-foreground">Attendance Rate</span>
@@ -154,6 +215,17 @@ const ClubPage = () => {
                     </div>
                   </div>
                   <Progress value={96} className="h-2" />
+                  
+                  {/* Stadium Image */}
+                  {clubData.stadium_image_url && (
+                    <div className="mt-4 rounded-lg overflow-hidden border">
+                      <img 
+                        src={clubData.stadium_image_url} 
+                        alt={`${clubData.stadium}`}
+                        className="w-full h-48 object-cover"
+                      />
+                    </div>
+                  )}
                 </CardContent>
               </Card>
 
@@ -169,9 +241,9 @@ const ClubPage = () => {
                   <div>
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-sm text-muted-foreground">Global Reputation</span>
-                      <span className="font-semibold">{userClub.reputation}/100</span>
+                      <span className="font-semibold">{clubData.reputation}/100</span>
                     </div>
-                    <Progress value={userClub.reputation} className="h-2 mb-4" />
+                    <Progress value={clubData.reputation} className="h-2 mb-4" />
                   </div>
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
@@ -202,16 +274,16 @@ const ClubPage = () => {
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                   <div>
-                    <p className="text-sm text-muted-foreground mb-1">Total Budget</p>
-                    <p className="text-2xl font-bold">{formatCurrency(userClub.finances)}</p>
+                    <p className="text-sm text-muted-foreground mb-1">Total Balance</p>
+                    <p className="text-2xl font-bold">€{(clubData.balance / 1000000).toFixed(0)}M</p>
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground mb-1">Transfer Budget</p>
-                    <p className="text-2xl font-bold">{formatCurrency(userClub.finances * 0.6)}</p>
+                    <p className="text-2xl font-bold">€{(clubData.balance * 0.6 / 1000000).toFixed(0)}M</p>
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground mb-1">Wage Budget</p>
-                    <p className="text-2xl font-bold">{formatCurrency(userClub.finances * 0.3)}/week</p>
+                    <p className="text-2xl font-bold">€{(clubData.balance * 0.3 / 1000000).toFixed(0)}M/year</p>
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground mb-1">Financial Health</p>
