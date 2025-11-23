@@ -20,7 +20,6 @@ import TransfersPage from "./pages/TransfersPage";
 import ClubPage from "./pages/ClubPage";
 import FinancesPage from "./pages/FinancesPage";
 import CompetitionsPage from "./pages/CompetitionsPage";
-import CalendarPage from "./pages/CalendarPage";
 import WorldPage from "./pages/WorldPage";
 import InboxPage from "./pages/InboxPage";
 import SearchPage from "./pages/SearchPage";
@@ -60,10 +59,9 @@ const App = () => {
                 <Route path="/squad" element={<ProtectedRoute><SquadPage /></ProtectedRoute>} />
                 <Route path="/tactics" element={<ProtectedRoute><TacticsPage /></ProtectedRoute>} />
                 <Route path="/transfers" element={<ProtectedRoute><TransfersPage /></ProtectedRoute>} />
-                <Route path="/club" element={<ProtectedRoute><ClubPage /></ProtectedRoute>} />
+                  <Route path="/club" element={<ProtectedRoute><ClubPage /></ProtectedRoute>} />
                 <Route path="/finances" element={<ProtectedRoute><FinancesPage /></ProtectedRoute>} />
                 <Route path="/competitions" element={<ProtectedRoute><CompetitionsPage /></ProtectedRoute>} />
-                <Route path="/calendar" element={<ProtectedRoute><CalendarPage /></ProtectedRoute>} />
                 <Route path="/world" element={<ProtectedRoute><WorldPage /></ProtectedRoute>} />
                 <Route path="/inbox" element={<ProtectedRoute><InboxPage /></ProtectedRoute>} />
                 <Route path="/search" element={<ProtectedRoute><SearchPage /></ProtectedRoute>} />
