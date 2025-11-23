@@ -154,9 +154,9 @@ export const HalfTimeModal = ({
               <h3 className="text-sm font-semibold mb-3">First Half Statistics</h3>
               <div className="space-y-2">
                 <div className="flex items-center justify-between text-sm">
-                  <span className="font-medium">{partialResult.stats.possession.home}%</span>
+                  <span className="font-medium">{Math.round(partialResult.stats.possession.home)}%</span>
                   <span className="text-muted-foreground">Possession</span>
-                  <span className="font-medium">{partialResult.stats.possession.away}%</span>
+                  <span className="font-medium">{Math.round(partialResult.stats.possession.away)}%</span>
                 </div>
                 <div className="flex items-center justify-between text-sm">
                   <span className="font-medium">{homeShots}</span>

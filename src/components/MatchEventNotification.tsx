@@ -6,9 +6,10 @@ import { getRandomEventDescription } from "@/services/matchEventLibrary";
 
 export interface MatchEventNotificationsProps {
   events: MatchEvent[];
+  onDismiss?: (index: number) => void;
 }
 
-export function MatchEventNotifications({ events }: MatchEventNotificationsProps) {
+export function MatchEventNotifications({ events, onDismiss }: MatchEventNotificationsProps) {
   const getEventColor = (type: string) => {
     switch (type) {
       case 'goal':
@@ -76,7 +77,8 @@ export function MatchEventNotifications({ events }: MatchEventNotificationsProps
                 duration: isHighEmphasis ? 0.6 : 0.3,
                 scale: { duration: 0.6, times: [0, 0.5, 1] }
               }}
-              className={`flex items-center gap-2 px-3 py-2 rounded-lg border backdrop-blur-sm ${getEventColor(event.type)} ${
+              onClick={() => onDismiss?.(index)}
+              className={`flex items-center gap-2 px-3 py-2 rounded-lg border backdrop-blur-sm cursor-pointer hover:scale-105 transition-transform ${getEventColor(event.type)} ${
                 isHighEmphasis ? 'shadow-lg ring-2 ring-white/20' : ''
               }`}
             >
