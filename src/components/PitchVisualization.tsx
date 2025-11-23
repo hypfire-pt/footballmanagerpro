@@ -10,6 +10,8 @@ interface PitchVisualizationProps {
   isPlaying: boolean;
   showHeatMap?: boolean;
   attackMomentum?: { home: number; away: number };
+  homeColor?: string;
+  awayColor?: string;
 }
 
 interface PlayerPosition {
@@ -50,7 +52,9 @@ const PitchVisualization = ({
   currentMinute,
   isPlaying,
   showHeatMap = false,
-  attackMomentum = { home: 50, away: 50 }
+  attackMomentum = { home: 50, away: 50 },
+  homeColor = '#22c55e',
+  awayColor = '#3b82f6'
 }: PitchVisualizationProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [ballPosition, setBallPosition] = useState<BallPosition>({ x: 50, y: 50, visible: true });
@@ -200,7 +204,7 @@ const PitchVisualization = ({
     if (isMoving && isPlaying) {
       ctx.beginPath();
       ctx.arc(pixelX, pixelY, 16, 0, Math.PI * 2);
-      ctx.fillStyle = team === 'home' ? 'rgba(34, 197, 94, 0.2)' : 'rgba(59, 130, 246, 0.2)';
+      ctx.fillStyle = team === 'home' ? `${homeColor}33` : `${awayColor}33`; // 33 = 20% opacity
       ctx.fill();
     }
 
@@ -210,11 +214,11 @@ const PitchVisualization = ({
     
     if (isActive) {
       // Glow effect for active player
-      ctx.shadowColor = team === 'home' ? '#22c55e' : '#3b82f6';
+      ctx.shadowColor = team === 'home' ? homeColor : awayColor;
       ctx.shadowBlur = 15;
     }
 
-    ctx.fillStyle = team === 'home' ? '#22c55e' : '#3b82f6';
+    ctx.fillStyle = team === 'home' ? homeColor : awayColor;
     ctx.fill();
     ctx.shadowBlur = 0;
 

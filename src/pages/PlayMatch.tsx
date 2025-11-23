@@ -66,14 +66,12 @@ const PlayMatch = () => {
   const [benchPlayers, setBenchPlayers] = useState<any[]>([]);
   const [goalCelebration, setGoalCelebration] = useState<{ team: 'home' | 'away'; playerName: string } | null>(null);
   const [tenseMoment, setTenseMoment] = useState<'close_call' | 'final_minutes' | 'dangerous_attack' | null>(null);
+  const [teamColors, setTeamColors] = useState<{ home: { primary: string; secondary: string }; away: { primary: string; secondary: string } }>({
+    home: { primary: '#22c55e', secondary: '#ffffff' },
+    away: { primary: '#3b82f6', secondary: '#ffffff' }
+  });
   const matchEngineRef = useRef<ProbabilisticMatchEngine | null>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
-  
-  // Match colors for consistency with pitch visualization
-  const matchColors = {
-    home: { primary: '#22c55e', secondary: '#ffffff' }, // Green - matches player circles
-    away: { primary: '#3b82f6', secondary: '#ffffff' }  // Blue - matches player circles
-  };
 
   // Fetch real players from database
   useEffect(() => {
@@ -107,8 +105,14 @@ const PlayMatch = () => {
         // Fetch team info
         const { data: homeTeamData } = await supabase
           .from("teams")
-          .select("capacity, reputation")
+          .select("capacity, reputation, primary_color, secondary_color")
           .eq("id", homeTeamId)
+          .single();
+
+        const { data: awayTeamData } = await supabase
+          .from("teams")
+          .select("primary_color, secondary_color")
+          .eq("id", awayTeamId)
           .single();
 
         if (homeError || awayError) throw homeError || awayError;
@@ -116,6 +120,23 @@ const PlayMatch = () => {
         if (homeTeamData) {
           setStadiumCapacity(homeTeamData.capacity);
           setHomeReputation(homeTeamData.reputation);
+          setTeamColors(prev => ({
+            ...prev,
+            home: {
+              primary: homeTeamData.primary_color,
+              secondary: homeTeamData.secondary_color
+            }
+          }));
+        }
+
+        if (awayTeamData) {
+          setTeamColors(prev => ({
+            ...prev,
+            away: {
+              primary: awayTeamData.primary_color,
+              secondary: awayTeamData.secondary_color
+            }
+          }));
         }
 
         // Map to TeamLineup format
@@ -558,8 +579,8 @@ const PlayMatch = () => {
             <div className="flex flex-col items-center mb-1">
               <TeamLogo
                 teamName={homeTeamName}
-                primaryColor={matchColors.home.primary}
-                secondaryColor={matchColors.home.secondary}
+                primaryColor={teamColors.home.primary}
+                secondaryColor={teamColors.home.secondary}
                 size="sm"
                 className="mb-1"
               />
@@ -581,8 +602,8 @@ const PlayMatch = () => {
             <div className="flex flex-col items-center mt-1">
               <TeamLogo
                 teamName={awayTeamName}
-                primaryColor={matchColors.away.primary}
-                secondaryColor={matchColors.away.secondary}
+                primaryColor={teamColors.away.primary}
+                secondaryColor={teamColors.away.secondary}
                 size="sm"
                 className="mb-1"
               />
@@ -658,6 +679,8 @@ const PlayMatch = () => {
                 isPlaying={isSimulating && !isPaused}
                 currentEvent={result?.events[currentEventIndex]}
                 attackMomentum={momentum}
+                homeColor={teamColors.home.primary}
+                awayColor={teamColors.away.primary}
               />
               )}
             </Card>
@@ -704,6 +727,8 @@ const PlayMatch = () => {
                 homeAttack={isHome ? momentum.home : momentum.away}
                 awayAttack={isHome ? momentum.away : momentum.home}
                 currentMinute={currentMinute}
+                homeColor={isHome ? teamColors.home.primary : teamColors.away.primary}
+                awayColor={isHome ? teamColors.away.primary : teamColors.home.primary}
               />
             </Card>
 
