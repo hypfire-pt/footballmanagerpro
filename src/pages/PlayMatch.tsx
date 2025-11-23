@@ -12,12 +12,10 @@ import { MomentumVisualizer } from "@/components/MomentumVisualizer";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { ProbabilisticMatchEngine } from "@/services/probabilisticMatchEngine";
 import { TeamLineup, SimulationResult, MatchEvent } from "@/types/match";
-import { Play, Pause, ArrowLeft, Gauge, CheckCircle } from "lucide-react";
+import { Play, Pause, FastForward, Zap, Activity, Clock, CheckCircle, ArrowRight } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { useSeason } from "@/contexts/SeasonContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -46,7 +44,6 @@ const PlayMatch = () => {
   const [currentEventIndex, setCurrentEventIndex] = useState(0);
   const [homeLineupState, setHomeLineupState] = useState<TeamLineup | null>(null);
   const [awayLineupState, setAwayLineupState] = useState<TeamLineup | null>(null);
-  const [showHeatMap, setShowHeatMap] = useState(false);
   const [momentum, setMomentum] = useState({ home: 50, away: 50 });
   const [stadiumCapacity, setStadiumCapacity] = useState(60000);
   const [homeReputation, setHomeReputation] = useState(85);
@@ -147,10 +144,6 @@ const PlayMatch = () => {
 
         setHomeLineupState(homeLineup);
         setAwayLineupState(awayLineup);
-        console.log('Lineups loaded:', {
-          home: homeLineup.players.length,
-          away: awayLineup.players.length
-        });
       } catch (error) {
         console.error("Error fetching match data:", error);
         toast({
@@ -167,14 +160,7 @@ const PlayMatch = () => {
   }, [currentSave, homeTeamId, awayTeamId]);
 
   const startSimulation = () => {
-    console.log('Start simulation called');
-    console.log('Home lineup state:', homeLineupState);
-    console.log('Away lineup state:', awayLineupState);
-    console.log('Home players count:', homeLineupState?.players.length);
-    console.log('Away players count:', awayLineupState?.players.length);
-    
     if (!homeLineupState || !awayLineupState) {
-      console.error('Lineups not loaded!');
       toast({
         title: "Error",
         description: "Match data not loaded",
@@ -183,32 +169,18 @@ const PlayMatch = () => {
       return;
     }
     
-    if (homeLineupState.players.length < 11) {
-      console.error('Not enough home players:', homeLineupState.players.length);
+    if (homeLineupState.players.length < 11 || awayLineupState.players.length < 11) {
       toast({
         title: "Error",
-        description: `Not enough home players (${homeLineupState.players.length}/11)`,
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    if (awayLineupState.players.length < 11) {
-      console.error('Not enough away players:', awayLineupState.players.length);
-      toast({
-        title: "Error",
-        description: `Not enough away players (${awayLineupState.players.length}/11)`,
+        description: `Not enough players`,
         variant: "destructive",
       });
       return;
     }
 
-    console.log('Starting match simulation...');
     setIsSimulating(true);
     setIsPaused(false);
-    toast({
-      title: "⚽ Match Started",
-    });
+    toast({ title: "⚽ Match Started" });
 
     if (speed === 'instant') {
       const engine = new ProbabilisticMatchEngine(
@@ -216,7 +188,7 @@ const PlayMatch = () => {
         awayLineupState,
         stadiumCapacity,
         homeReputation,
-        false // isDerby
+        false
       );
       matchEngineRef.current = engine;
       const simResult = engine.simulate();
@@ -226,23 +198,20 @@ const PlayMatch = () => {
       setIsSimulating(false);
       setMatchEnded(true);
       
-      // Process match result to update standings and fixtures
       processMatchResult(matchId, homeTeamName, awayTeamName, simResult);
-      
-      // Advance calendar by 1 day
       advanceDate(1);
       
       toast({
         title: "⏱️ Full Time",
         description: `Final Score: ${homeTeamName} ${simResult.homeScore} - ${simResult.awayScore} ${awayTeamName}`,
-        });
+      });
     } else {
       const engine = new ProbabilisticMatchEngine(
         homeLineupState,
         awayLineupState,
         stadiumCapacity,
         homeReputation,
-        false // isDerby
+        false
       );
       matchEngineRef.current = engine;
       const simResult = engine.simulate();
@@ -274,7 +243,6 @@ const PlayMatch = () => {
           const event = simResult.events[eventIndex];
           setCurrentEventIndex(eventIndex);
           
-          // Show animated notification for important events
           if (['goal', 'yellow_card', 'red_card', 'shot_on_target', 'substitution'].includes(event.type)) {
             setActiveEventNotifications(prev => [...prev, event]);
           }
@@ -287,10 +255,7 @@ const PlayMatch = () => {
           setIsSimulating(false);
           setMatchEnded(true);
           
-          // Process match result to update standings and fixtures
           processMatchResult(matchId, homeTeamName, awayTeamName, simResult);
-          
-          // Advance calendar by 1 day
           advanceDate(1);
           
           toast({
@@ -309,60 +274,7 @@ const PlayMatch = () => {
     });
   };
 
-  const changeSpeed = (newSpeed: 'normal' | 'fast') => {
-    if (!isSimulating || !intervalRef.current) return;
-    
-    setSpeed(newSpeed);
-    clearInterval(intervalRef.current);
-    
-    const engine = matchEngineRef.current;
-    if (!engine || !result) return;
-
-    let minute = currentMinute;
-    let eventIndex = currentEventIndex;
-    const intervalTime = newSpeed === 'fast' ? 200 : 1000;
-
-    intervalRef.current = setInterval(() => {
-      if (isPaused) return;
-      
-      minute += newSpeed === 'fast' ? 2 : 1;
-      setCurrentMinute(minute);
-
-        while (eventIndex < result.events.length && result.events[eventIndex].minute <= minute) {
-          const event = result.events[eventIndex];
-          setCurrentEventIndex(eventIndex);
-          
-          // Show animated notification for important events
-          if (['goal', 'yellow_card', 'red_card', 'shot_on_target', 'substitution'].includes(event.type)) {
-            setActiveEventNotifications(prev => [...prev, event]);
-          }
-          
-          eventIndex++;
-        }
-
-      if (minute >= 90) {
-        clearInterval(intervalRef.current!);
-        setIsSimulating(false);
-        setMatchEnded(true);
-        
-        // Process match result to update standings and fixtures
-        processMatchResult(matchId, homeTeamName, awayTeamName, result);
-        
-        // Advance calendar by 1 day
-        advanceDate(1);
-        
-        toast({
-          title: "⏱️ Full Time",
-          description: `Final Score: ${homeTeamName} ${result.homeScore} - ${result.awayScore} ${awayTeamName}`,
-        });
-      }
-    }, intervalTime);
-  };
-
   const handleSubstitution = (playerOut: any, playerIn: any, team: 'home' | 'away') => {
-    // Note: ProbabilisticMatchEngine doesn't support live substitutions yet
-    // This updates the UI state only
-    
     if (team === 'home' && homeLineupState) {
       const updatedPlayers = homeLineupState.players.map(p =>
         p.id === playerOut.id ? { ...playerIn, ...p } : p
@@ -381,47 +293,22 @@ const PlayMatch = () => {
     });
   };
 
-  const handleTacticsChange = (team: 'home' | 'away', newTactics: any) => {
-    // Note: ProbabilisticMatchEngine doesn't support live tactics changes yet
-    // This updates the UI state only
-    
-    if (team === 'home' && homeLineupState) {
+  const handleTacticalAdjustment = (adjustment: any) => {
+    if (homeLineupState) {
       setHomeLineupState({
         ...homeLineupState,
-        formation: newTactics.formation || homeLineupState.formation,
-        tactics: { ...homeLineupState.tactics, ...newTactics }
-      });
-    } else if (team === 'away' && awayLineupState) {
-      setAwayLineupState({
-        ...awayLineupState,
-        formation: newTactics.formation || awayLineupState.formation,
-        tactics: { ...awayLineupState.tactics, ...newTactics }
+        tactics: { ...homeLineupState.tactics, ...adjustment }
       });
     }
     
     toast({
       title: "Tactics Updated",
-      description: `${team === 'home' ? homeTeamName : awayTeamName} tactics adjusted`,
+      description: `Tactical adjustment applied`,
     });
   };
 
   const eventsUpToCurrentMinute = result?.events.filter(e => e.minute <= currentMinute) || [];
-  const currentEvent = result?.events[currentEventIndex];
-
-  const getEventIcon = (type: string) => {
-    switch (type) {
-      case 'goal':
-        return '⚽';
-      case 'yellow_card':
-        return '⚠️';
-      case 'red_card':
-        return '🟥';
-      case 'substitution':
-        return '🔄';
-      default:
-        return '•';
-    }
-  };
+  const events = result?.events || [];
 
   const currentHomeScore = eventsUpToCurrentMinute.filter(
     e => e.type === 'goal' && e.team === 'home'
@@ -431,8 +318,6 @@ const PlayMatch = () => {
     e => e.type === 'goal' && e.team === 'away'
   ).length;
 
-  const matchweek = fixture?.matchweek || 29;
-
   const handleEventNotificationComplete = (event: MatchEvent) => {
     setActiveEventNotifications(prev => prev.filter(e => e.id !== event.id));
   };
@@ -440,8 +325,8 @@ const PlayMatch = () => {
   if (loading) {
     return (
       <DashboardLayout>
-        <div className="container mx-auto px-4 py-8">
-          <div className="text-center text-muted-foreground">Loading match data...</div>
+        <div className="h-screen flex items-center justify-center">
+          <div className="text-sm text-muted-foreground">Loading match data...</div>
         </div>
       </DashboardLayout>
     );
@@ -449,10 +334,10 @@ const PlayMatch = () => {
 
   return (
     <DashboardLayout>
-      <div className="container mx-auto px-4 py-8 animate-fade-in-up">
+      <div className="h-screen overflow-hidden p-2 flex flex-col">
         {/* Event Notifications */}
         {activeEventNotifications.map((event, index) => (
-          <div key={event.id} style={{ top: `${6 + index * 5}rem` }}>
+          <div key={event.id} style={{ top: `${4 + index * 4}rem` }}>
             <MatchEventNotification
               event={event}
               homeTeam={homeTeamName}
@@ -462,293 +347,169 @@ const PlayMatch = () => {
           </div>
         ))}
 
-        <div className="mb-6 flex items-center justify-between">
-          <Button
-            variant="ghost"
-            onClick={() => navigate('/calendar')}
-            className="gap-2 btn-glow"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back to Calendar
-          </Button>
+        <div className="flex justify-between items-center mb-2">
+          <h1 className="text-lg font-heading font-bold gradient-text">Play Match</h1>
+          <Badge variant="outline" className="text-xs">{competition}</Badge>
         </div>
 
-        <Card className="glass gaming-card p-6 mb-6 border-border/50">
-          <div className="text-center mb-4">
-            <Badge variant="outline" className="mb-2">{competition}</Badge>
-            <p className="text-sm text-muted-foreground font-medium">Matchweek {matchweek}</p>
-          </div>
-
-          <div className="flex items-center justify-between max-w-2xl mx-auto">
-            <div className="flex-1 text-right">
-              <h2 className="text-3xl font-heading font-bold mb-2 gradient-text">{homeTeamName}</h2>
-              <p className="text-sm text-muted-foreground">4-2-3-1 • Balanced</p>
+        {/* Top Section: Score, Pitch, Events - All visible without scrolling */}
+        <div className="grid grid-cols-3 gap-2 mb-2 flex-shrink-0">
+          {/* Left: Match Header */}
+          <Card className="glass p-2 border-border/50">
+            <div className="text-center mb-1">
+              <h3 className="text-sm font-heading font-bold">{homeTeamName}</h3>
+              <p className="text-xs text-muted-foreground">Home</p>
             </div>
-
-            <div className="px-8">
-              {result ? (
-                <div className="text-center">
-                  <p className="score-display">
-                    {currentHomeScore} - {currentAwayScore}
-                  </p>
-                  <p className="text-sm text-muted-foreground mt-2 font-semibold">
-                    {currentMinute < 90 ? `${currentMinute}'` : "FT"}
-                  </p>
-                </div>
-              ) : (
-                <div className="text-center">
-                  <p className="text-4xl font-heading font-bold text-muted-foreground">vs</p>
-                </div>
-              )}
+            <div className="text-center py-2">
+              <div className="flex items-center justify-center gap-2">
+                <span className="text-2xl font-heading font-bold gradient-text">{currentHomeScore}</span>
+                <span className="text-lg text-muted-foreground">-</span>
+                <span className="text-2xl font-heading font-bold gradient-text">{currentAwayScore}</span>
+              </div>
+              <div className="flex items-center justify-center gap-1 mt-1">
+                <Clock className="h-3 w-3 text-accent" />
+                <p className="text-xs font-medium text-accent">{currentMinute}'</p>
+              </div>
+              {result && <Badge variant="secondary" className="mt-1 text-xs">Full Time</Badge>}
             </div>
-
-            <div className="flex-1 text-left">
-              <h2 className="text-3xl font-heading font-bold mb-2 gradient-text">{awayTeamName}</h2>
-              <p className="text-sm text-muted-foreground">4-4-2 • Defensive</p>
+            <div className="text-center mt-1">
+              <h3 className="text-sm font-heading font-bold">{awayTeamName}</h3>
+              <p className="text-xs text-muted-foreground">Away</p>
             </div>
-          </div>
+          </Card>
 
-          {result && (
-            <div className="mt-6">
-              <Progress value={(currentMinute / 90) * 100} className="h-3 bg-muted/30" />
-            </div>
-          )}
-        </Card>
+          {/* Center: Pitch Visualization */}
+          <Card className="glass p-2 border-border/50">
+            {homeLineupState && awayLineupState && (
+              <PitchVisualization
+                homeLineup={homeLineupState}
+                awayLineup={awayLineupState}
+                currentMinute={currentMinute}
+                isPlaying={isSimulating && !isPaused}
+              />
+            )}
+          </Card>
 
-        <Card className="glass gaming-card p-4 mb-6 border-border/50" style={{ position: 'relative', zIndex: 50 }}>
-          <div className="flex items-center justify-between gap-4 flex-wrap">
-            <div className="flex items-center gap-3 flex-wrap">
+          {/* Right: Match Events */}
+          <Card className="glass p-2 border-border/50">
+            <h3 className="text-xs font-heading font-semibold mb-1 flex items-center gap-1">
+              <Activity className="h-3 w-3 text-accent" />
+              Match Events
+            </h3>
+            <ScrollArea className="h-[240px]">
+              <MatchCommentary 
+                events={events} 
+                currentMinute={currentMinute}
+                homeTeam={homeTeamName}
+                awayTeam={awayTeamName}
+                momentum={momentum}
+              />
+            </ScrollArea>
+          </Card>
+        </div>
+
+        {/* Bottom Section: Controls and Details */}
+        <div className="grid grid-cols-4 gap-2 flex-1 min-h-0">
+          {/* Controls */}
+          <Card className="glass p-2 border-border/50 overflow-auto">
+            <h3 className="text-xs font-heading font-semibold mb-2">Controls</h3>
+            <div className="space-y-1.5">
               {!result && (
                 <>
-                  <div className="text-sm text-muted-foreground mb-2">
-                    Debug: Loading={loading ? 'true' : 'false'}, 
-                    HomeLineup={homeLineupState ? `${homeLineupState.players.length} players` : 'null'}, 
-                    AwayLineup={awayLineupState ? `${awayLineupState.players.length} players` : 'null'}
-                  </div>
-                  <div className="flex gap-2">
-                    <Button
-                      variant={speed === 'normal' ? 'default' : 'outline'}
-                      onClick={() => setSpeed('normal')}
-                      size="sm"
-                      className="font-heading"
-                    >
-                      Normal
+                  <div className="flex gap-1">
+                    <Button variant={speed === 'normal' ? 'default' : 'outline'} size="sm" onClick={() => setSpeed('normal')} className="flex-1 text-xs h-7">
+                      <Play className="h-3 w-3" />
                     </Button>
-                    <Button
-                      variant={speed === 'fast' ? 'default' : 'outline'}
-                      onClick={() => setSpeed('fast')}
-                      size="sm"
-                      className="font-heading"
-                    >
-                      Fast
+                    <Button variant={speed === 'fast' ? 'default' : 'outline'} size="sm" onClick={() => setSpeed('fast')} className="flex-1 text-xs h-7">
+                      <FastForward className="h-3 w-3" />
                     </Button>
-                    <Button
-                      variant={speed === 'instant' ? 'default' : 'outline'}
-                      onClick={() => setSpeed('instant')}
-                      size="sm"
-                      className="font-heading"
-                    >
-                      Instant
+                    <Button variant={speed === 'instant' ? 'default' : 'outline'} size="sm" onClick={() => setSpeed('instant')} className="flex-1 text-xs h-7">
+                      <Zap className="h-3 w-3" />
                     </Button>
                   </div>
-
-                  <Button
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      console.log('Button clicked!');
-                      startSimulation();
-                    }}
-                    disabled={isSimulating || loading || !homeLineupState || !awayLineupState}
-                    className="gap-2 btn-glow font-heading"
-                    type="button"
-                    style={{ position: 'relative', zIndex: 100, pointerEvents: 'auto' }}
-                  >
-                    <Play className="h-4 w-4" />
-                    {loading ? 'Loading...' : 'Play Match'}
+                  <Button onClick={togglePause} variant="outline" size="sm" className="w-full gap-1 text-xs h-7">
+                    {isPaused ? <><Play className="h-3 w-3" />Resume</> : <><Pause className="h-3 w-3" />Pause</>}
                   </Button>
                 </>
               )}
-
-              {result && isSimulating && currentMinute < 90 && (
-                <>
-                  <Button
-                    onClick={togglePause}
-                    size="sm"
-                    variant="outline"
-                    className="gap-2"
-                  >
-                    {isPaused ? (
-                      <>
-                        <Play className="h-4 w-4" />
-                        Resume
-                      </>
-                    ) : (
-                      <>
-                        <Pause className="h-4 w-4" />
-                        Pause
-                      </>
-                    )}
-                  </Button>
-
-                  <div className="flex items-center gap-2 border-l pl-3">
-                    <Gauge className="h-4 w-4 text-muted-foreground" />
-                    <Button
-                      variant={speed === 'normal' ? 'default' : 'outline'}
-                      onClick={() => changeSpeed('normal')}
-                      size="sm"
-                    >
-                      1x
-                    </Button>
-                    <Button
-                      variant={speed === 'fast' ? 'default' : 'outline'}
-                      onClick={() => changeSpeed('fast')}
-                      size="sm"
-                    >
-                      2x
-                    </Button>
-                  </div>
-                </>
-              )}
-              
-              {result && matchEnded && (
-                <Button
-                  onClick={() => navigate('/calendar')}
-                  className="gap-2"
-                  variant="default"
-                >
-                  <CheckCircle className="h-4 w-4" />
-                  Continue to Calendar
+              <Button onClick={startSimulation} disabled={isSimulating || loading || !homeLineupState || !awayLineupState} className="w-full gap-1 btn-glow text-xs h-7">
+                <Play className="h-3 w-3" />
+                {loading ? 'Loading...' : 'Play Match'}
+              </Button>
+              {result && (
+                <Button onClick={() => navigate('/calendar')} className="w-full gap-1 text-xs h-7">
+                  <ArrowRight className="h-3 w-3" />
+                  Next Match
                 </Button>
               )}
             </div>
-
-            {result && (
-              <div className="flex items-center gap-3">
-                <Label htmlFor="heat-map" className="text-sm">Heat Map</Label>
-                <Switch
-                  id="heat-map"
-                  checked={showHeatMap}
-                  onCheckedChange={setShowHeatMap}
-                />
-              </div>
-            )}
-          </div>
-        </Card>
-
-        {result && eventsUpToCurrentMinute.length > 0 && (
-          <Card className="p-4 mb-6">
-            <h3 className="text-lg font-bold mb-3">Latest Events</h3>
-            <div className="flex gap-3 overflow-x-auto pb-2">
-              {eventsUpToCurrentMinute.slice(-5).reverse().map((event, idx) => (
-                <div
-                  key={idx}
-                  className="min-w-[200px] p-3 bg-muted rounded-lg"
-                >
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-xl">{getEventIcon(event.type)}</span>
-                    <Badge variant="secondary" className="text-xs">
-                      {event.minute}'
-                    </Badge>
-                  </div>
-                  <p className="text-sm">{event.description}</p>
-                </div>
-              ))}
-            </div>
           </Card>
-        )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 space-y-6">
-            <Card className="p-6">
-              {homeLineupState && awayLineupState && (
-                <PitchVisualization
-                  homeLineup={homeLineupState}
-                  awayLineup={awayLineupState}
-                  currentEvent={currentEvent}
-                  currentMinute={currentMinute}
-                  isPlaying={isSimulating && !isPaused}
-                  showHeatMap={showHeatMap}
-                />
-              )}
+          {/* Tactics */}
+          {homeLineupState && (
+            <Card className="glass p-2 border-border/50 overflow-auto">
+              <h3 className="text-xs font-heading font-semibold mb-2">Tactics</h3>
+              <TacticalAdjustmentPanel 
+                team="home"
+                teamName={homeTeamName}
+                currentTactics={{
+                  formation: homeLineupState.formation,
+                  mentality: homeLineupState.tactics.mentality as any,
+                  tempo: homeLineupState.tactics.tempo as any,
+                  width: homeLineupState.tactics.width as any,
+                  pressing: homeLineupState.tactics.pressing as any,
+                }}
+                onTacticsChange={handleTacticalAdjustment}
+                isMatchRunning={isSimulating}
+              />
             </Card>
+          )}
 
-            <CrowdAtmosphere
+          {/* Substitutions */}
+          {homeLineupState && (
+            <Card className="glass p-2 border-border/50 overflow-auto">
+              <h3 className="text-xs font-heading font-semibold mb-2">Substitutions</h3>
+              <SubstitutionPanel 
+                team="home"
+                teamName={homeTeamName}
+                players={homeLineupState.players}
+                onSubstitute={(playerOutId, playerInId) => {
+                  const playerOut = homeLineupState.players.find(p => p.id === playerOutId);
+                  const playerIn = homeLineupState.players.find(p => p.id === playerInId);
+                  if (playerOut && playerIn) {
+                    handleSubstitution(playerOut, playerIn, 'home');
+                  }
+                }}
+                substitutionsRemaining={3}
+                isMatchRunning={isSimulating}
+              />
+            </Card>
+          )}
+
+          {/* Crowd & Momentum */}
+          <Card className="glass p-2 border-border/50 overflow-auto">
+            <h3 className="text-xs font-heading font-semibold mb-2">Atmosphere</h3>
+            <CrowdAtmosphere 
               homeTeam={homeTeamName}
               awayTeam={awayTeamName}
-              currentEvent={currentEvent}
               currentMinute={currentMinute}
               homeScore={currentHomeScore}
               awayScore={currentAwayScore}
               stadiumCapacity={stadiumCapacity}
               homeReputation={homeReputation}
             />
-          </div>
-
-          <div className="space-y-6">
-            {/* Momentum Visualizer */}
-            {result && isSimulating && (
-              <MomentumVisualizer
+            <div className="mt-2">
+              <h4 className="text-xs font-semibold mb-1">Momentum</h4>
+              <MomentumVisualizer 
                 homeTeam={homeTeamName}
                 awayTeam={awayTeamName}
                 homeMomentum={momentum.home}
                 awayMomentum={momentum.away}
                 currentMinute={currentMinute}
               />
-            )}
-
-            <PlayerPerformanceTracker
-              homeTeam={homeTeamName}
-              awayTeam={awayTeamName}
-              homePlayers={result?.playerPerformance.home || []}
-              awayPlayers={result?.playerPerformance.away || []}
-            />
-
-            {isSimulating && (
-              <>
-                <TacticalAdjustmentPanel
-                  team="home"
-                  teamName={homeTeamName}
-                  currentTactics={homeLineupState ? {
-                    formation: homeLineupState.formation,
-                    ...homeLineupState.tactics
-                  } : undefined}
-                  onTacticsChange={(tactics) => handleTacticsChange('home', tactics)}
-                  isMatchRunning={isSimulating}
-                />
-
-                {homeLineupState && (
-                  <SubstitutionPanel
-                    team="home"
-                    teamName={homeTeamName}
-                    players={homeLineupState.players}
-                    onSubstitute={(playerOutId, playerInId) => {
-                      const playerOut = homeLineupState.players.find(p => p.id === playerOutId);
-                      const playerIn = homeLineupState.players.find(p => p.id === playerInId);
-                      if (playerOut && playerIn) {
-                        handleSubstitution(playerOut, playerIn, 'home');
-                      }
-                    }}
-                    substitutionsRemaining={3}
-                    isMatchRunning={isSimulating}
-                  />
-                )}
-              </>
-            )}
-          </div>
-        </div>
-
-        {result && (
-          <Card className="mt-6 p-6">
-            <MatchCommentary 
-              events={eventsUpToCurrentMinute}
-              currentMinute={currentMinute}
-              homeTeam={homeTeamName}
-              awayTeam={awayTeamName}
-              momentum={momentum}
-            />
+            </div>
           </Card>
-        )}
+        </div>
       </div>
     </DashboardLayout>
   );
