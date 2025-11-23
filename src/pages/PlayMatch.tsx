@@ -711,7 +711,7 @@ const PlayMatch = () => {
         {/* Match Progress - Upper Left Corner */}
         <div className="absolute top-4 left-4 z-10">
           <Card className="glass p-3 border-border/50 w-80">
-            <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
                 <TeamLogo
                   teamName={homeTeamName}
@@ -738,18 +738,39 @@ const PlayMatch = () => {
               </div>
             </div>
             
-            {/* Field Progression Bar */}
-            <div className="relative h-2 bg-muted/20 rounded-full overflow-hidden">
-              <div 
-                className="absolute inset-0 flex"
-                style={{
-                  background: `linear-gradient(to right, ${teamColors.home.primary} 0%, ${teamColors.home.primary} ${momentum.home}%, ${teamColors.away.primary} ${momentum.home}%, ${teamColors.away.primary} 100%)`
-                }}
-              />
-            </div>
-            <div className="flex justify-between text-xs text-muted-foreground mt-1">
-              <span>{Math.round(momentum.home)}%</span>
-              <span>{Math.round(momentum.away)}%</span>
+            {/* Field Position Progression - Shows attacking direction */}
+            <div className="space-y-1">
+              <div className="flex justify-between text-xs font-medium text-muted-foreground">
+                <span>Defense</span>
+                <span className="text-accent">Field Position</span>
+                <span>Defense</span>
+              </div>
+              <div className="relative h-3 bg-gradient-to-r from-green-950 via-green-900 to-green-950 rounded-full overflow-hidden border border-green-800/50">
+                {/* Ball position indicator */}
+                <div 
+                  className="absolute top-0 bottom-0 w-3 h-3 rounded-full bg-white shadow-lg shadow-white/50 transition-all duration-500"
+                  style={{
+                    left: `calc(${momentum.home}% - 6px)`,
+                  }}
+                />
+                {/* Attack direction overlay */}
+                <div 
+                  className="absolute inset-0 opacity-30"
+                  style={{
+                    background: momentum.home > 50 
+                      ? `linear-gradient(to right, transparent ${momentum.home - 20}%, ${teamColors.away.primary} ${momentum.home}%, transparent ${momentum.home + 20}%)`
+                      : `linear-gradient(to right, transparent ${momentum.home - 20}%, ${teamColors.home.primary} ${momentum.home}%, transparent ${momentum.home + 20}%)`
+                  }}
+                />
+              </div>
+              <div className="flex justify-between text-xs text-muted-foreground">
+                <span className={momentum.home < 30 ? 'text-red-500 font-semibold' : ''}>
+                  {momentum.home < 30 && '← Under Pressure'}
+                </span>
+                <span className={momentum.home > 70 ? 'text-red-500 font-semibold' : ''}>
+                  {momentum.home > 70 && 'Under Pressure →'}
+                </span>
+              </div>
             </div>
           </Card>
         </div>

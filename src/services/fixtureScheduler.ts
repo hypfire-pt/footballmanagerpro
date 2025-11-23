@@ -85,7 +85,7 @@ export class FixtureScheduler {
         const awayIdx = roundMatches[i + 1];
         
         matchdayFixtures.push({
-          id: `match-${currentMatchday}-${i/2}`,
+          id: crypto.randomUUID(),
           homeTeamId: teams[homeIdx].id,
           awayTeamId: teams[awayIdx].id,
           homeTeam: teams[homeIdx].name,
@@ -127,7 +127,7 @@ export class FixtureScheduler {
         
         // Swap home and away for return fixture
         matchdayFixtures.push({
-          id: `match-${currentMatchday}-${i/2}`,
+          id: crypto.randomUUID(),
           homeTeamId: teams[awayIdx].id,
           awayTeamId: teams[homeIdx].id,
           homeTeam: teams[awayIdx].name,
