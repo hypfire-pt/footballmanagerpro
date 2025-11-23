@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import PitchVisualization from "@/components/PitchVisualization";
@@ -15,21 +15,25 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { MatchEngine } from "@/services/matchEngine";
+import { ProbabilisticMatchEngine } from "@/services/probabilisticMatchEngine";
 import { TeamLineup, SimulationResult, MatchEvent } from "@/types/match";
-import { mockPlayers } from "@/data/mockData";
 import { Play, Pause, ArrowLeft, Gauge, CheckCircle } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { useSeason } from "@/contexts/SeasonContext";
+import { supabase } from "@/integrations/supabase/client";
+import { useCurrentSave } from "@/hooks/useCurrentSave";
 
 const PlayMatch = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { advanceDate, processMatchResult } = useSeason();
+  const { currentSave } = useCurrentSave();
   const fixture = location.state?.fixture;
   
   const homeTeamName = fixture?.homeTeam || "Manchester City";
   const awayTeamName = fixture?.awayTeam || "Liverpool";
+  const homeTeamId = fixture?.homeTeamId;
+  const awayTeamId = fixture?.awayTeamId;
   const matchId = fixture?.id || "1";
   const competition = fixture?.competition || "Premier League";
   const [matchEnded, setMatchEnded] = useState(false);
@@ -44,70 +48,144 @@ const PlayMatch = () => {
   const [awayLineupState, setAwayLineupState] = useState<TeamLineup | null>(null);
   const [showHeatMap, setShowHeatMap] = useState(false);
   const [momentum, setMomentum] = useState({ home: 50, away: 50 });
-  const [stadiumCapacity] = useState(60000);
-  const [homeReputation] = useState(85);
+  const [stadiumCapacity, setStadiumCapacity] = useState(60000);
+  const [homeReputation, setHomeReputation] = useState(85);
   const [activeEventNotifications, setActiveEventNotifications] = useState<MatchEvent[]>([]);
-  const matchEngineRef = useRef<MatchEngine | null>(null);
+  const [loading, setLoading] = useState(true);
+  const matchEngineRef = useRef<ProbabilisticMatchEngine | null>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Create sample lineups
-  const homeLineup: TeamLineup = {
-    formation: "4-2-3-1",
-    players: mockPlayers.map(p => ({
-      id: p.id,
-      name: p.name,
-      position: p.position,
-      overall: p.overall,
-      pace: p.pace,
-      shooting: p.shooting,
-      passing: p.passing,
-      defending: p.defending,
-      physical: p.physical,
-      fitness: p.fitness,
-      morale: p.morale,
-    })),
-    tactics: {
-      mentality: 'balanced',
-      tempo: 'standard',
-      width: 'standard',
-      pressing: 'medium',
-    },
-  };
+  // Fetch real players from database
+  useEffect(() => {
+    const fetchMatchData = async () => {
+      if (!currentSave || !homeTeamId || !awayTeamId) {
+        setLoading(false);
+        return;
+      }
 
-  const awayLineup: TeamLineup = {
-    formation: "4-4-2",
-    players: mockPlayers.map(p => ({
-      id: `away_${p.id}`,
-      name: `${p.name} (Away)`,
-      position: p.position,
-      overall: p.overall - 2,
-      pace: p.pace - 2,
-      shooting: p.shooting - 2,
-      passing: p.passing - 2,
-      defending: p.defending - 2,
-      physical: p.physical - 2,
-      fitness: p.fitness - 5,
-      morale: p.morale - 5,
-    })),
-    tactics: {
-      mentality: 'defensive',
-      tempo: 'slow',
-      width: 'narrow',
-      pressing: 'low',
-    },
-  };
+      try {
+        // Fetch home team players
+        const { data: homePlayers, error: homeError } = await supabase
+          .from("save_players")
+          .select(`
+            *,
+            players:player_id (*)
+          `)
+          .eq("save_id", currentSave.id)
+          .eq("team_id", homeTeamId);
+
+        // Fetch away team players
+        const { data: awayPlayers, error: awayError } = await supabase
+          .from("save_players")
+          .select(`
+            *,
+            players:player_id (*)
+          `)
+          .eq("save_id", currentSave.id)
+          .eq("team_id", awayTeamId);
+
+        // Fetch team info
+        const { data: homeTeamData } = await supabase
+          .from("teams")
+          .select("capacity, reputation")
+          .eq("id", homeTeamId)
+          .single();
+
+        if (homeError || awayError) throw homeError || awayError;
+
+        if (homeTeamData) {
+          setStadiumCapacity(homeTeamData.capacity);
+          setHomeReputation(homeTeamData.reputation);
+        }
+
+        // Map to TeamLineup format
+        const homeLineup: TeamLineup = {
+          formation: "4-2-3-1",
+          players: (homePlayers || []).slice(0, 11).map((sp: any) => ({
+            id: sp.player_id,
+            name: sp.players.name,
+            position: sp.players.position,
+            overall: sp.players.overall,
+            pace: sp.players.pace,
+            shooting: sp.players.shooting,
+            passing: sp.players.passing,
+            defending: sp.players.defending,
+            physical: sp.players.physical,
+            fitness: sp.fitness,
+            morale: sp.morale,
+          })),
+          tactics: {
+            mentality: 'balanced',
+            tempo: 'standard',
+            width: 'standard',
+            pressing: 'medium',
+          },
+        };
+
+        const awayLineup: TeamLineup = {
+          formation: "4-4-2",
+          players: (awayPlayers || []).slice(0, 11).map((sp: any) => ({
+            id: sp.player_id,
+            name: sp.players.name,
+            position: sp.players.position,
+            overall: sp.players.overall,
+            pace: sp.players.pace,
+            shooting: sp.players.shooting,
+            passing: sp.players.passing,
+            defending: sp.players.defending,
+            physical: sp.players.physical,
+            fitness: sp.fitness,
+            morale: sp.morale,
+          })),
+          tactics: {
+            mentality: 'defensive',
+            tempo: 'slow',
+            width: 'narrow',
+            pressing: 'low',
+          },
+        };
+
+        setHomeLineupState(homeLineup);
+        setAwayLineupState(awayLineup);
+      } catch (error) {
+        console.error("Error fetching match data:", error);
+        toast({
+          title: "Error",
+          description: "Failed to load match data",
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchMatchData();
+  }, [currentSave, homeTeamId, awayTeamId]);
 
   const startSimulation = () => {
+    if (!homeLineupState || !awayLineupState) {
+      toast({
+        title: "Error",
+        description: "Match data not loaded",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsSimulating(true);
     setIsPaused(false);
-    setHomeLineupState(homeLineup);
-    setAwayLineupState(awayLineup);
     toast({
       title: "⚽ Match Started",
     });
 
     if (speed === 'instant') {
-      const engine = new MatchEngine(homeLineup, awayLineup, stadiumCapacity, homeReputation);
+      const engine = new ProbabilisticMatchEngine(
+        homeLineupState,
+        awayLineupState,
+        stadiumCapacity,
+        homeReputation,
+        false // isDerby
+      );
       matchEngineRef.current = engine;
       const simResult = engine.simulate();
       setResult(simResult);
@@ -125,9 +203,15 @@ const PlayMatch = () => {
       toast({
         title: "⏱️ Full Time",
         description: `Final Score: ${homeTeamName} ${simResult.homeScore} - ${simResult.awayScore} ${awayTeamName}`,
-      });
+        });
     } else {
-      const engine = new MatchEngine(homeLineup, awayLineup, stadiumCapacity, homeReputation);
+      const engine = new ProbabilisticMatchEngine(
+        homeLineupState,
+        awayLineupState,
+        stadiumCapacity,
+        homeReputation,
+        false // isDerby
+      );
       matchEngineRef.current = engine;
       const simResult = engine.simulate();
       setResult(simResult);
@@ -244,9 +328,8 @@ const PlayMatch = () => {
   };
 
   const handleSubstitution = (playerOut: any, playerIn: any, team: 'home' | 'away') => {
-    if (!matchEngineRef.current) return;
-
-    matchEngineRef.current.makeSubstitution(team, playerOut.id, playerIn.id, currentMinute);
+    // Note: ProbabilisticMatchEngine doesn't support live substitutions yet
+    // This updates the UI state only
     
     if (team === 'home' && homeLineupState) {
       const updatedPlayers = homeLineupState.players.map(p =>
@@ -259,12 +342,16 @@ const PlayMatch = () => {
       );
       setAwayLineupState({ ...awayLineupState, players: updatedPlayers });
     }
+    
+    toast({
+      title: "Substitution Made",
+      description: `${playerIn.name} replaces ${playerOut.name}`,
+    });
   };
 
   const handleTacticsChange = (team: 'home' | 'away', newTactics: any) => {
-    if (!matchEngineRef.current) return;
-
-    matchEngineRef.current.updateTactics(team, newTactics);
+    // Note: ProbabilisticMatchEngine doesn't support live tactics changes yet
+    // This updates the UI state only
     
     if (team === 'home' && homeLineupState) {
       setHomeLineupState({
@@ -279,6 +366,11 @@ const PlayMatch = () => {
         tactics: { ...awayLineupState.tactics, ...newTactics }
       });
     }
+    
+    toast({
+      title: "Tactics Updated",
+      description: `${team === 'home' ? homeTeamName : awayTeamName} tactics adjusted`,
+    });
   };
 
   const eventsUpToCurrentMinute = result?.events.filter(e => e.minute <= currentMinute) || [];
@@ -312,6 +404,16 @@ const PlayMatch = () => {
   const handleEventNotificationComplete = (event: MatchEvent) => {
     setActiveEventNotifications(prev => prev.filter(e => e.id !== event.id));
   };
+
+  if (loading) {
+    return (
+      <DashboardLayout>
+        <div className="container mx-auto px-4 py-8">
+          <div className="text-center text-muted-foreground">Loading match data...</div>
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout>
@@ -515,14 +617,16 @@ const PlayMatch = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-6">
             <Card className="p-6">
-              <PitchVisualization
-                homeLineup={homeLineupState || homeLineup}
-                awayLineup={awayLineupState || awayLineup}
-                currentEvent={currentEvent}
-                currentMinute={currentMinute}
-                isPlaying={isSimulating && !isPaused}
-                showHeatMap={showHeatMap}
-              />
+              {homeLineupState && awayLineupState && (
+                <PitchVisualization
+                  homeLineup={homeLineupState}
+                  awayLineup={awayLineupState}
+                  currentEvent={currentEvent}
+                  currentMinute={currentMinute}
+                  isPlaying={isSimulating && !isPaused}
+                  showHeatMap={showHeatMap}
+                />
+              )}
             </Card>
 
             <CrowdAtmosphere
@@ -561,28 +665,30 @@ const PlayMatch = () => {
                 <TacticalAdjustmentPanel
                   team="home"
                   teamName={homeTeamName}
-                  currentTactics={{
-                    formation: homeLineupState?.formation || homeLineup.formation,
-                    ...(homeLineupState?.tactics || homeLineup.tactics)
-                  }}
+                  currentTactics={homeLineupState ? {
+                    formation: homeLineupState.formation,
+                    ...homeLineupState.tactics
+                  } : undefined}
                   onTacticsChange={(tactics) => handleTacticsChange('home', tactics)}
                   isMatchRunning={isSimulating}
                 />
 
-                <SubstitutionPanel
-                  team="home"
-                  teamName={homeTeamName}
-                  players={(homeLineupState || homeLineup).players}
-                  onSubstitute={(playerOutId, playerInId) => {
-                    const playerOut = (homeLineupState || homeLineup).players.find(p => p.id === playerOutId);
-                    const playerIn = (homeLineupState || homeLineup).players.find(p => p.id === playerInId);
-                    if (playerOut && playerIn) {
-                      handleSubstitution(playerOut, playerIn, 'home');
-                    }
-                  }}
-                  substitutionsRemaining={3}
-                  isMatchRunning={isSimulating}
-                />
+                {homeLineupState && (
+                  <SubstitutionPanel
+                    team="home"
+                    teamName={homeTeamName}
+                    players={homeLineupState.players}
+                    onSubstitute={(playerOutId, playerInId) => {
+                      const playerOut = homeLineupState.players.find(p => p.id === playerOutId);
+                      const playerIn = homeLineupState.players.find(p => p.id === playerInId);
+                      if (playerOut && playerIn) {
+                        handleSubstitution(playerOut, playerIn, 'home');
+                      }
+                    }}
+                    substitutionsRemaining={3}
+                    isMatchRunning={isSimulating}
+                  />
+                )}
               </>
             )}
           </div>
