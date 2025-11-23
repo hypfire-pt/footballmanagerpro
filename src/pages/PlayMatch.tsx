@@ -651,7 +651,7 @@ const PlayMatch = () => {
               <Activity className="h-3 w-3 text-accent" />
               Match Events
             </h3>
-            <ScrollArea className="h-[240px]">
+            <div className="h-[240px]">
               <MatchCommentary 
                 events={events} 
                 currentMinute={currentMinute}
@@ -659,7 +659,7 @@ const PlayMatch = () => {
                 awayTeam={awayTeamName}
                 momentum={momentum}
                 />
-              </ScrollArea>
+              </div>
             </Card>
 
             {/* Attack/Defense */}
