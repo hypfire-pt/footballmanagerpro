@@ -594,18 +594,18 @@ const PlayMatch = () => {
             </Card>
 
             {/* Tactics */}
-            {homeLineupState && (
+            {(isHome ? homeLineupState : awayLineupState) && (
               <Card className="glass p-2 border-border/50">
-                <h3 className="text-xs font-heading font-semibold mb-2">Tactics</h3>
+                <h3 className="text-xs font-heading font-semibold mb-2">Tactics - {userTeamName}</h3>
                 <TacticalAdjustmentPanel 
-                  team="home"
-                  teamName={homeTeamName}
+                  team={isHome ? "home" : "away"}
+                  teamName={userTeamName}
                   currentTactics={{
-                    formation: homeLineupState.formation,
-                    mentality: homeLineupState.tactics.mentality as any,
-                    tempo: homeLineupState.tactics.tempo as any,
-                    width: homeLineupState.tactics.width as any,
-                    pressing: homeLineupState.tactics.pressing as any,
+                    formation: (isHome ? homeLineupState : awayLineupState)!.formation,
+                    mentality: (isHome ? homeLineupState : awayLineupState)!.tactics.mentality as any,
+                    tempo: (isHome ? homeLineupState : awayLineupState)!.tactics.tempo as any,
+                    width: (isHome ? homeLineupState : awayLineupState)!.tactics.width as any,
+                    pressing: (isHome ? homeLineupState : awayLineupState)!.tactics.pressing as any,
                   }}
                   onTacticsChange={handleTacticalAdjustment}
                   isMatchRunning={isSimulating}
@@ -666,25 +666,26 @@ const PlayMatch = () => {
             <Card className="glass p-2 border-border/50 flex-shrink-0">
               <h3 className="text-xs font-heading font-semibold mb-2">Attack/Defense</h3>
               <AttackDefenseBar 
-                homeTeam={homeTeamName}
-                awayTeam={awayTeamName}
-                homeAttack={momentum.home}
-                awayAttack={momentum.away}
+                homeTeam={isHome ? userTeamName : opponentTeamName}
+                awayTeam={isHome ? opponentTeamName : userTeamName}
+                homeAttack={isHome ? momentum.home : momentum.away}
+                awayAttack={isHome ? momentum.away : momentum.home}
                 currentMinute={currentMinute}
               />
             </Card>
 
             {/* Substitutions */}
-            {homeLineupState && (
+            {(isHome ? homeLineupState : awayLineupState) && (
               <Card className="glass p-2 border-border/50">
-                <h3 className="text-xs font-heading font-semibold mb-2">Substitutions</h3>
+                <h3 className="text-xs font-heading font-semibold mb-2">Substitutions - {userTeamName}</h3>
                 <SubstitutionPanel 
-                  team="home"
-                  teamName={homeTeamName}
-                  players={homeLineupState.players}
+                  team={isHome ? "home" : "away"}
+                  teamName={userTeamName}
+                  players={(isHome ? homeLineupState : awayLineupState)!.players}
                   onSubstitute={(playerOutId, playerInId) => {
-                    const playerOut = homeLineupState.players.find(p => p.id === playerOutId);
-                    const playerIn = homeLineupState.players.find(p => p.id === playerInId);
+                    const userLineup = isHome ? homeLineupState : awayLineupState;
+                    const playerOut = userLineup!.players.find(p => p.id === playerOutId);
+                    const playerIn = userLineup!.players.find(p => p.id === playerInId);
                     if (playerOut && playerIn) {
                       handleSubstitution(playerOut, playerIn);
                     }
