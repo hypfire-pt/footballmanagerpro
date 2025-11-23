@@ -45,7 +45,7 @@ const CalendarPage = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  // Load season and fixtures from database
+  // Load season and fixtures from database with real-time updates
   useEffect(() => {
     const loadSeasonData = async () => {
       if (!currentSave) return;
@@ -95,6 +95,31 @@ const CalendarPage = () => {
     };
 
     loadSeasonData();
+
+    // Set up real-time subscription for fixture updates
+    const channel = supabase
+      .channel('season-updates')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'save_seasons',
+          filter: `save_id=eq.${currentSave?.id}`
+        },
+        (payload) => {
+          console.log('Season updated:', payload);
+          const updatedSeason = payload.new as any;
+          setSeason(updatedSeason);
+          const updatedFixtures = (updatedSeason.fixtures_state as any[]) || [];
+          setFixtures(updatedFixtures);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [currentSave]);
 
   const currentDate = season?.season_current_date ? new Date(season.season_current_date) : new Date();

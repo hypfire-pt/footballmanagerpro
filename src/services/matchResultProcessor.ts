@@ -131,7 +131,7 @@ export class MatchResultProcessor {
   /**
    * Extract player statistics from match result
    */
-  private static extractPlayerStats(result: SimulationResult) {
+  static extractPlayerStats(result: SimulationResult) {
     const stats: {
       playerId: string;
       goals: number;

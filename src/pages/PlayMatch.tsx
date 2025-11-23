@@ -320,32 +320,13 @@ const PlayMatch = () => {
     advanceDate(1);
     setShowResultSummary(false);
     
-    // Fetch next match
-    const { data: nextSeason } = await supabase
-      .from("save_seasons")
-      .select("fixtures_state, season_current_date")
-      .eq("save_id", currentSave?.id)
-      .eq("is_current", true)
-      .single();
-
-    if (nextSeason?.fixtures_state) {
-      const fixtures = nextSeason.fixtures_state as any[];
-      const nextMatch = fixtures.find(
-        (f: any) => f.status === "scheduled" && new Date(f.date) >= new Date(nextSeason.season_current_date)
-      );
-      
-      if (nextMatch) {
-        navigate("/calendar");
-      } else {
-        toast({
-          title: "No upcoming matches",
-          description: "Season complete or no more scheduled fixtures",
-        });
-        navigate("/dashboard");
-      }
-    } else {
-      navigate("/calendar");
-    }
+    // Navigate to calendar to show next match
+    navigate("/calendar");
+    
+    toast({
+      title: "✅ Match Complete",
+      description: "Next match is now available to play",
+    });
   };
 
   if (loading) {

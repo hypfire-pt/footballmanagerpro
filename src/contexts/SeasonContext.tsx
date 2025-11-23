@@ -28,6 +28,7 @@ interface SeasonContextType {
 const SeasonContext = createContext<SeasonContextType | undefined>(undefined);
 
 export function SeasonProvider({ children }: { children: React.ReactNode }) {
+  const { currentSave } = useCurrentSave();
   // Initialize season to start of current calendar year's football season (August)
   const getCurrentSeasonStart = () => {
     const now = new Date();
@@ -184,23 +185,108 @@ export function SeasonProvider({ children }: { children: React.ReactNode }) {
     localStorage.removeItem('playerStats');
   };
 
-  const processMatchResult = (
+  const processMatchResult = async (
     matchId: string,
     homeTeam: string,
     awayTeam: string,
     result: SimulationResult
   ) => {
-    const processed = MatchResultProcessor.processMatchResult(
-      matchId,
-      homeTeam,
-      awayTeam,
-      result,
-      leagueStandings,
-      fixtures
-    );
+    if (!currentSave) return;
 
-    setLeagueStandings(processed.updatedStandings);
-    setFixtures(processed.updatedFixtures);
+    try {
+      // Get current season
+      const { data: season, error: seasonError } = await supabase
+        .from('save_seasons')
+        .select('*')
+        .eq('save_id', currentSave.id)
+        .eq('is_current', true)
+        .single();
+
+      if (seasonError) throw seasonError;
+
+      // Update match status to finished in save_matches
+      const { error: matchError } = await supabase
+        .from('save_matches')
+        .update({
+          status: 'finished',
+          home_score: result.homeScore,
+          away_score: result.awayScore,
+          match_data: result as any
+        })
+        .eq('id', matchId);
+
+      if (matchError) {
+        console.error('Error updating match:', matchError);
+      }
+
+      // Update fixtures_state in season
+      const fixtures = (season.fixtures_state as any[]) || [];
+      const updatedFixtures = fixtures.map((f: any) => {
+        if (f.id === matchId) {
+          return {
+            ...f,
+            status: 'finished',
+            homeScore: result.homeScore,
+            awayScore: result.awayScore
+          };
+        }
+        return f;
+      });
+
+      await supabase
+        .from('save_seasons')
+        .update({ fixtures_state: updatedFixtures })
+        .eq('id', season.id);
+
+      // Update player stats
+      const playerStats = MatchResultProcessor.extractPlayerStats(result);
+      
+      for (const stat of playerStats) {
+        const { data: existingPlayer } = await supabase
+          .from('save_players')
+          .select('*')
+          .eq('save_id', currentSave.id)
+          .eq('player_id', stat.playerId)
+          .single();
+
+        if (existingPlayer) {
+          await supabase
+            .from('save_players')
+            .update({
+              goals: existingPlayer.goals + stat.goals,
+              assists: existingPlayer.assists + stat.assists,
+              appearances: existingPlayer.appearances + stat.appearances,
+              average_rating: ((existingPlayer.average_rating || 0) * existingPlayer.appearances + stat.rating) / (existingPlayer.appearances + 1)
+            })
+            .eq('id', existingPlayer.id);
+        }
+      }
+
+      // Update local state
+      const processed = MatchResultProcessor.processMatchResult(
+        matchId,
+        homeTeam,
+        awayTeam,
+        result,
+        leagueStandings,
+        fixtures
+      );
+
+      setLeagueStandings(processed.updatedStandings);
+      setFixtures(processed.updatedFixtures);
+
+      toast({
+        title: "Match Result Saved",
+        description: "Match result has been recorded successfully",
+      });
+    } catch (error) {
+      console.error('Error processing match result:', error);
+      toast({
+        title: "Error",
+        description: "Failed to save match result",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
