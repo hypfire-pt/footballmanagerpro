@@ -235,6 +235,52 @@ export class ProbabilisticMatchEngine {
     return 1.0;
   }
 
+  private selectWeightedScorer(lineup: TeamLineup): any {
+    // Create weighted pool based on position and shooting ability
+    const weightedPlayers: { player: any; weight: number }[] = [];
+    
+    lineup.players.forEach(player => {
+      let positionWeight = 1;
+      
+      // Position weights
+      if (['ST', 'CF'].includes(player.position)) {
+        positionWeight = 50; // Strikers most likely
+      } else if (['LW', 'RW'].includes(player.position)) {
+        positionWeight = 35; // Wingers quite likely
+      } else if (player.position === 'CAM') {
+        positionWeight = 25; // Attacking mids regularly
+      } else if (['CM', 'LM', 'RM'].includes(player.position)) {
+        positionWeight = 12; // Central/wide mids occasionally
+      } else if (['CDM', 'LWB', 'RWB'].includes(player.position)) {
+        positionWeight = 5; // Defensive mids/wing-backs rarely
+      } else if (['CB', 'LB', 'RB'].includes(player.position)) {
+        positionWeight = 2; // Defenders very rarely
+      } else {
+        positionWeight = 0.1; // Goalkeeper almost never
+      }
+      
+      // Multiply by shooting attribute (normalized)
+      const shootingFactor = (player.shooting || 50) / 75; // Normalize around 75
+      const finalWeight = positionWeight * shootingFactor * (player.fitness / 100);
+      
+      weightedPlayers.push({ player, weight: finalWeight });
+    });
+    
+    // Select based on cumulative weights
+    const totalWeight = weightedPlayers.reduce((sum, wp) => sum + wp.weight, 0);
+    let random = Math.random() * totalWeight;
+    
+    for (const wp of weightedPlayers) {
+      random -= wp.weight;
+      if (random <= 0) {
+        return wp.player;
+      }
+    }
+    
+    // Fallback
+    return lineup.players[0];
+  }
+
   private simulateAttack(attackingTeam: 'home' | 'away', minute: number): void {
     const context: MatchContext = {
       minute,
@@ -327,10 +373,8 @@ export class ProbabilisticMatchEngine {
     const lineup = team === 'home' ? this.homeLineup : this.awayLineup;
     const opposingLineup = team === 'home' ? this.awayLineup : this.homeLineup;
     
-    const attackers = lineup.players.filter(p => 
-      ['ST', 'CF', 'LW', 'RW', 'CAM'].includes(p.position)
-    );
-    const shooter = attackers[Math.floor(Math.random() * attackers.length)] || lineup.players[0];
+    // Weighted player selection based on position and shooting ability
+    const shooter = this.selectWeightedScorer(lineup);
     const goalkeeper = opposingLineup.players.find(p => p.position === 'GK');
 
     // Calculate shot quality based on multiple factors
