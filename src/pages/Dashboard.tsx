@@ -15,7 +15,7 @@ import { useSeasonData } from "@/hooks/useSeasonData";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Users, TrendingUp, ArrowRight, Loader2 } from "lucide-react";
+import { Users, TrendingUp, ArrowRight, Loader2, FastForward } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
@@ -31,6 +31,7 @@ const Dashboard = () => {
   const [continuing, setContinuing] = useState(false);
   const [showSummary, setShowSummary] = useState(false);
   const [summaryData, setSummaryData] = useState<any>(null);
+  const [fastForwarding, setFastForwarding] = useState(false);
 
   const standings = (seasonData?.standings_state as any[]) || [];
   const fixtures = (seasonData?.fixtures_state as any[]) || [];
@@ -250,6 +251,86 @@ const Dashboard = () => {
     }
   };
 
+  const handleFastForward = async () => {
+    if (!currentSave || !seasonData) return;
+
+    try {
+      setFastForwarding(true);
+
+      // Find the next user team match
+      const nextUserMatch = fixtures.find(f => 
+        (f.homeTeamId === currentSave.team_id || f.awayTeamId === currentSave.team_id) &&
+        f.status === 'scheduled'
+      );
+
+      if (!nextUserMatch) {
+        toast({
+          title: "No Upcoming Matches",
+          description: "No more matches scheduled for your team",
+          variant: "destructive"
+        });
+        setFastForwarding(false);
+        return;
+      }
+
+      const currentDateObj = new Date(seasonData.season_current_date || new Date());
+      const matchDate = new Date(nextUserMatch.date);
+      const daysToAdvance = Math.ceil(
+        (matchDate.getTime() - currentDateObj.getTime()) / (1000 * 60 * 60 * 24)
+      );
+
+      console.log(`[FAST FORWARD] Advancing ${daysToAdvance} days to next user match`);
+
+      // Update season date
+      const newDate = new Date(currentDateObj);
+      newDate.setDate(newDate.getDate() + daysToAdvance);
+
+      await supabase
+        .from('save_seasons')
+        .update({
+          season_current_date: newDate.toISOString().split('T')[0]
+        })
+        .eq('id', seasonData.id);
+
+      await supabase
+        .from('game_saves')
+        .update({
+          game_date: newDate.toISOString().split('T')[0]
+        })
+        .eq('id', currentSave.id);
+
+      // Simulate all AI matches up to this date
+      const { AIMatchSimulator } = await import('@/services/aiMatchSimulator');
+      const simulated = await AIMatchSimulator.simulateAIMatches(
+        seasonData.id,
+        currentSave.id,
+        newDate.toISOString().split('T')[0],
+        currentSave.team_id
+      );
+
+      console.log(`[FAST FORWARD] ${simulated} AI matches simulated`);
+
+      // Refresh data
+      await refetch();
+
+      toast({
+        title: "⏩ Fast Forward Complete",
+        description: `Advanced ${daysToAdvance} days. ${simulated} AI matches simulated.`,
+      });
+
+      setFastForwarding(false);
+
+    } catch (error) {
+      console.error('[FAST FORWARD] Error:', error);
+      toast({
+        title: "Error",
+        description: "Failed to fast forward",
+        variant: "destructive"
+      });
+      setFastForwarding(false);
+    }
+  };
+
   return (
     <DashboardLayout>
       <MatchweekSummaryModal
@@ -279,7 +360,7 @@ const Dashboard = () => {
         {/* Continue Button */}
         {canContinue && (
           <Card className="p-4 bg-primary/5 border-primary/20">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between gap-3">
               <div>
                 <h3 className="font-semibold text-sm mb-1">Ready to Continue</h3>
                 <p className="text-xs text-muted-foreground">
@@ -289,23 +370,41 @@ const Dashboard = () => {
                   }
                 </p>
               </div>
-              <Button 
-                onClick={handleContinue}
-                disabled={continuing}
-                className="shrink-0"
-              >
-                {continuing ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Processing...
-                  </>
-                ) : (
-                  <>
-                    Continue
-                    <ArrowRight className="h-4 w-4 ml-2" />
-                  </>
-                )}
-              </Button>
+              <div className="flex gap-2 shrink-0">
+                <Button 
+                  onClick={handleFastForward}
+                  disabled={fastForwarding || continuing}
+                  variant="outline"
+                >
+                  {fastForwarding ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Fast Forward...
+                    </>
+                  ) : (
+                    <>
+                      <FastForward className="h-4 w-4 mr-2" />
+                      Fast Forward
+                    </>
+                  )}
+                </Button>
+                <Button 
+                  onClick={handleContinue}
+                  disabled={continuing || fastForwarding}
+                >
+                  {continuing ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Processing...
+                    </>
+                  ) : (
+                    <>
+                      Continue
+                      <ArrowRight className="h-4 w-4 ml-2" />
+                    </>
+                  )}
+                </Button>
+              </div>
             </div>
           </Card>
         )}

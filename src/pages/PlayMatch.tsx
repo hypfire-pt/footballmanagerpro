@@ -573,15 +573,14 @@ const PlayMatch = () => {
   ).length;
 
   const handleContinueToNextMatch = async () => {
-    advanceDate(1);
     setShowResultSummary(false);
     
-    // Navigate to dashboard after match completion
+    // Navigate to dashboard after match completion - do NOT auto-advance date
     navigate("/dashboard");
     
     toast({
       title: "✅ Match Complete",
-      description: "Returning to dashboard",
+      description: "Returning to dashboard. Use Continue to advance to next matchweek.",
     });
   };
 
