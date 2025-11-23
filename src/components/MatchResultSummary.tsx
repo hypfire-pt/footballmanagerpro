@@ -1,4 +1,3 @@
-import { useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -24,24 +23,6 @@ export const MatchResultSummary = ({
   open,
   onContinue,
 }: MatchResultSummaryProps) => {
-  const [countdown, setCountdown] = useState(10);
-
-  useEffect(() => {
-    if (!open) return;
-    
-    const interval = setInterval(() => {
-      setCountdown((prev) => {
-        if (prev <= 1) {
-          clearInterval(interval);
-          onContinue();
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, [open, onContinue]);
 
   const homeGoals = result.events.filter(e => e.type === 'goal' && e.team === 'home');
   const awayGoals = result.events.filter(e => e.type === 'goal' && e.team === 'away');
@@ -151,11 +132,8 @@ export const MatchResultSummary = ({
             </Card>
           )}
 
-          {/* Auto-advance notice */}
-          <div className="flex items-center justify-between pt-2">
-            <p className="text-xs text-muted-foreground">
-              Auto-advancing in {countdown} seconds...
-            </p>
+          {/* Continue Button */}
+          <div className="flex justify-end pt-2">
             <Button onClick={onContinue} size="sm" className="gap-2">
               Continue <ArrowRight className="h-4 w-4" />
             </Button>
