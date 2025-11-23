@@ -203,56 +203,41 @@ const MatchCommentary = ({
   const getCommentaryIcon = (type: string) => {
     switch (type) {
       case 'tactical':
-        return <TrendingUp className="h-4 w-4 text-blue-500" />;
+        return <TrendingUp className="h-3 w-3 text-blue-500" />;
       case 'momentum':
-        return <TrendingDown className="h-4 w-4 text-orange-500" />;
+        return <TrendingDown className="h-3 w-3 text-orange-500" />;
       default:
-        return <MessageSquare className="h-4 w-4 text-green-500" />;
+        return <MessageSquare className="h-3 w-3 text-green-500" />;
     }
   };
 
   return (
-    <Card className="p-4">
-      <div className="flex items-center gap-2 mb-3">
-        <MessageSquare className="h-5 w-5" />
-        <h3 className="font-bold">Live Commentary</h3>
-      </div>
-      <ScrollArea className="h-[400px]" ref={scrollRef}>
-        <div className="space-y-3">
-          {commentary.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-8">
-              Match commentary will appear here...
-            </p>
-          ) : (
-            commentary.map((line, idx) => (
-              <div key={idx} className="flex gap-2 p-2 rounded-lg bg-muted/30">
-                <div className="flex-shrink-0 pt-1">
-                  {getCommentaryIcon(line.type)}
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1">
-                    <Badge variant="outline" className="text-xs">
-                      {line.minute}'
-                    </Badge>
-                    <Badge 
-                      variant={
-                        line.type === 'tactical' ? 'default' : 
-                        line.type === 'momentum' ? 'secondary' : 
-                        'outline'
-                      }
-                      className="text-xs"
-                    >
-                      {line.type}
-                    </Badge>
-                  </div>
-                  <p className="text-sm leading-relaxed">{line.text}</p>
-                </div>
+    <div 
+      ref={scrollRef}
+      className="h-full overflow-y-auto space-y-2 pr-1"
+    >
+      {commentary.length === 0 ? (
+        <p className="text-xs text-muted-foreground text-center py-4">
+          Match commentary will appear here...
+        </p>
+      ) : (
+        commentary.map((line, idx) => (
+          <div key={idx} className="flex gap-1.5 p-1.5 rounded bg-muted/30 text-xs">
+            <div className="flex-shrink-0 pt-0.5">
+              {getCommentaryIcon(line.type)}
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-1 mb-0.5">
+                <Badge variant="outline" className="text-[10px] px-1 py-0">
+                  {line.minute}'
+                </Badge>
               </div>
-            ))
-          )}
-        </div>
-      </ScrollArea>
-    </Card>
+              <p className="text-xs leading-snug">{line.text}</p>
+            </div>
+          </div>
+        ))
+      )}
+    </div>
   );
 };
 
