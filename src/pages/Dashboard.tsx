@@ -13,9 +13,11 @@ import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { FastForward, Save, Calendar } from "lucide-react";
+import { FastForward, Save } from "lucide-react";
 import { europeanTeams } from "@/data/teams";
 import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/hooks/use-toast";
 
 const Dashboard = () => {
   const { currentDate, seasonStartDate, currentMatchweek } = useSeason();
@@ -26,8 +28,41 @@ const Dashboard = () => {
   
   const nextMatch = getNextMatchPrompt();
 
-  const handleContinue = () => {
-    if (nextMatch) {
+  const handleContinue = async () => {
+    if (!currentSave) return;
+    
+    try {
+      // Get current season
+      const { data: season } = await supabase
+        .from('save_seasons')
+        .select('fixtures_state, season_current_date')
+        .eq('save_id', currentSave.id)
+        .eq('is_current', true)
+        .single();
+        
+      if (!season) {
+        navigate('/calendar');
+        return;
+      }
+      
+      const fixtures = (season.fixtures_state as any[]) || [];
+      const currentDate = season.season_current_date || new Date().toISOString().split('T')[0];
+      
+      // Find next match
+      const nextMatch = fixtures
+        .filter(f => f.date >= currentDate && f.status === 'scheduled')
+        .sort((a, b) => a.date.localeCompare(b.date))[0];
+        
+      if (nextMatch) {
+        navigate('/calendar');
+      } else {
+        toast({
+          title: "No Upcoming Matches",
+          description: "No scheduled matches found",
+        });
+      }
+    } catch (error) {
+      console.error('Error getting next match:', error);
       navigate('/calendar');
     }
   };
