@@ -2,3 +2,6 @@ project_id = "tjukbsdfuuqnvbcxetph"
 
 [functions.seed-game-data]
 verify_jwt = false
+
+[functions.ai-match-simulator]
+verify_jwt = false
