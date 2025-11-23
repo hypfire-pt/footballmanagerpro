@@ -211,24 +211,24 @@ export const DashboardCalendar = () => {
   }
 
   return (
-    <Card className="p-6">
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-xl font-bold">Fixtures & Calendar</h2>
-        <Badge variant="outline" className="text-xs">
-          Matchweek {currentMatchweek}
+    <Card className="p-4">
+      <div className="flex items-center justify-between mb-3">
+        <h2 className="text-sm font-bold">Fixtures & Calendar</h2>
+        <Badge variant="outline" className="text-xs px-2 py-0">
+          MW {currentMatchweek}
         </Badge>
       </div>
 
       {/* Matchweek Status */}
       {!matchweekStatus.isComplete && (
-        <div className="mb-4 p-3 bg-muted/50 rounded-lg border border-border">
+        <div className="mb-3 p-2 bg-muted/50 rounded border border-border">
           <div className="flex items-center justify-between text-xs mb-1">
-            <span className="font-medium">Matchweek {currentMatchweek} Progress</span>
+            <span className="font-medium">MW {currentMatchweek} Progress</span>
             <span className="text-muted-foreground">
-              {matchweekStatus.finished} / {matchweekStatus.total} Complete
+              {matchweekStatus.finished} / {matchweekStatus.total}
             </span>
           </div>
-          <div className="h-1.5 bg-background rounded-full overflow-hidden">
+          <div className="h-1 bg-background rounded-full overflow-hidden">
             <div 
               className="h-full bg-primary transition-all duration-300"
               style={{ width: `${(matchweekStatus.finished / matchweekStatus.total) * 100}%` }}
@@ -238,10 +238,10 @@ export const DashboardCalendar = () => {
       )}
 
       {matchweekStatus.isComplete && nextUserMatch && (
-        <div className="mb-4 p-3 bg-green-500/10 border border-green-500/20 rounded-lg flex items-center gap-2">
-          <CheckCircle className="h-4 w-4 text-green-500" />
+        <div className="mb-3 p-2 bg-green-500/10 border border-green-500/20 rounded flex items-center gap-1.5">
+          <CheckCircle className="h-3 w-3 text-green-500" />
           <span className="text-xs text-green-500 font-medium">
-            Matchweek {currentMatchweek} Complete - Ready for next match
+            MW {currentMatchweek} Complete
           </span>
         </div>
       )}
@@ -260,23 +260,23 @@ export const DashboardCalendar = () => {
             return (
               <div
                 key={fixture.id}
-                className={`p-3 rounded-lg border transition-colors ${
+                className={`p-2 rounded border transition-colors ${
                   isUserMatch 
                     ? 'bg-primary/5 border-primary/20 hover:bg-primary/10' 
                     : 'bg-card border-border hover:bg-muted/50'
                 }`}
               >
-                <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center justify-between gap-2">
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <Badge variant="outline" className="text-xs">
+                    <div className="flex items-center gap-1.5 mb-0.5">
+                      <Badge variant="outline" className="text-xs px-1.5 py-0">
                         MW{fixture.matchweek || fixture.matchday}
                       </Badge>
                       <span className="text-xs text-muted-foreground">
-                        {format(new Date(fixture.date), "MMM d, yyyy")}
+                        {format(new Date(fixture.date), "MMM d")}
                       </span>
                     </div>
-                    <div className="grid grid-cols-[1fr_auto_1fr] gap-2 items-center text-sm">
+                    <div className="grid grid-cols-[1fr_auto_1fr] gap-1.5 items-center text-xs">
                       <span className={`truncate text-right ${isUserMatch ? 'font-semibold' : ''}`}>
                         {fixture.homeTeam}
                       </span>
@@ -291,7 +291,7 @@ export const DashboardCalendar = () => {
                     variant={buttonState.variant}
                     disabled={buttonState.disabled}
                     onClick={() => handlePlayMatch(fixture)}
-                    className="shrink-0"
+                    className="shrink-0 h-7 text-xs"
                   >
                     <Icon className="h-3 w-3 mr-1" />
                     {buttonState.text}

@@ -59,38 +59,38 @@ export function LeaguePositionWidget() {
 
   return (
     <Card>
-      <CardHeader className="pb-3">
-        <CardTitle className="flex items-center gap-2 text-base">
-          <Trophy className="h-4 w-4 text-primary" />
+      <CardHeader className="pb-2">
+        <CardTitle className="flex items-center gap-2 text-sm">
+          <Trophy className="h-3 w-3 text-primary" />
           League Position
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-3">
         <div className="flex items-start justify-between">
-          <div className="space-y-1">
-            <div className="flex items-baseline gap-2">
-              <span className="text-5xl font-bold gradient-text">{myTeam.position}</span>
-              <span className="text-lg text-muted-foreground">
+          <div className="space-y-0.5">
+            <div className="flex items-baseline gap-1.5">
+              <span className="text-4xl font-bold gradient-text">{myTeam.position}</span>
+              <span className="text-sm text-muted-foreground">
                 {myTeam.position === 1 ? 'st' : myTeam.position === 2 ? 'nd' : myTeam.position === 3 ? 'rd' : 'th'}
               </span>
             </div>
-            <p className="text-sm text-muted-foreground">
-              {myTeam.points} pts • {myTeam.played} games
+            <p className="text-xs text-muted-foreground">
+              {myTeam.points} pts • {myTeam.played} played
             </p>
           </div>
           {myTeam.position <= 4 && (
-            <Badge variant="default" className="text-xs">UCL</Badge>
+            <Badge variant="default" className="text-xs px-2 py-0">UCL</Badge>
           )}
         </div>
 
         {myTeam.form && Array.isArray(myTeam.form) && myTeam.form.length > 0 && (
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             <p className="text-xs font-semibold text-muted-foreground">Form</p>
-            <div className="flex gap-1.5">
+            <div className="flex gap-1">
               {myTeam.form.slice(-5).map((result: string, idx: number) => (
                 <div 
                   key={idx}
-                  className={`w-7 h-7 rounded-md flex items-center justify-center text-white text-xs font-bold ${getResultColor(result)}`}
+                  className={`w-6 h-6 rounded flex items-center justify-center text-white text-xs font-bold ${getResultColor(result)}`}
                 >
                   {result}
                 </div>
@@ -102,7 +102,7 @@ export function LeaguePositionWidget() {
         <Button 
           variant="outline" 
           size="sm"
-          className="w-full"
+          className="w-full text-xs h-8"
           onClick={() => navigate('/competitions')}
         >
           Full Table
