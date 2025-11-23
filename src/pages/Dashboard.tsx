@@ -8,6 +8,7 @@ import { NextActionPrompt } from "@/components/NextActionPrompt";
 import { useSeason } from "@/contexts/SeasonContext";
 import { useGameFlow } from "@/contexts/GameFlowContext";
 import { useSave } from "@/contexts/SaveContext";
+import { useAutoSave } from "@/hooks/useAutoSave";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -21,6 +22,7 @@ const Dashboard = () => {
   const { getNextMatchPrompt } = useGameFlow();
   const { currentSave } = useSave();
   const navigate = useNavigate();
+  const { manualSave, isSaving } = useAutoSave({ interval: 120000, enabled: true });
   
   const nextMatch = getNextMatchPrompt();
 
@@ -42,6 +44,16 @@ const Dashboard = () => {
             </p>
           </div>
           <div className="flex gap-3">
+            <Button 
+              onClick={manualSave}
+              size="sm" 
+              variant="outline"
+              disabled={isSaving}
+              className="font-heading font-semibold"
+            >
+              <Save className="h-4 w-4 mr-2" />
+              {isSaving ? 'Saving...' : 'Quick Save'}
+            </Button>
             <Button 
               onClick={handleContinue}
               size="sm" 
