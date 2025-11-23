@@ -635,6 +635,7 @@ export type Database = {
           founded: number | null
           id: string
           league_id: string
+          logo_url: string | null
           name: string
           primary_color: string
           reputation: number
@@ -650,6 +651,7 @@ export type Database = {
           founded?: number | null
           id: string
           league_id: string
+          logo_url?: string | null
           name: string
           primary_color: string
           reputation: number
@@ -665,6 +667,7 @@ export type Database = {
           founded?: number | null
           id?: string
           league_id?: string
+          logo_url?: string | null
           name?: string
           primary_color?: string
           reputation?: number

@@ -14,21 +14,22 @@ interface MatchCardProps {
 
 const MatchCard = ({ match }: MatchCardProps) => {
   const navigate = useNavigate();
-  const [teamColors, setTeamColors] = useState<Record<string, { primary: string; secondary: string }>>({});
+  const [teamColors, setTeamColors] = useState<Record<string, { primary: string; secondary: string; logoUrl?: string }>>({});
 
   useEffect(() => {
     const fetchTeamColors = async () => {
       const { data: teams } = await supabase
         .from('teams')
-        .select('name, primary_color, secondary_color')
+        .select('name, primary_color, secondary_color, logo_url')
         .in('name', [match.homeTeam, match.awayTeam]);
 
       if (teams) {
-        const colorsMap: Record<string, { primary: string; secondary: string }> = {};
+        const colorsMap: Record<string, { primary: string; secondary: string; logoUrl?: string }> = {};
         teams.forEach(team => {
           colorsMap[team.name] = {
             primary: team.primary_color,
-            secondary: team.secondary_color
+            secondary: team.secondary_color,
+            logoUrl: team.logo_url || undefined
           };
         });
         setTeamColors(colorsMap);
@@ -69,6 +70,7 @@ const MatchCard = ({ match }: MatchCardProps) => {
             teamName={match.homeTeam}
             primaryColor={teamColors[match.homeTeam]?.primary}
             secondaryColor={teamColors[match.homeTeam]?.secondary}
+            logoUrl={teamColors[match.homeTeam]?.logoUrl}
             size="sm"
           />
           <p className="font-bold text-sm">{match.homeTeam}</p>
@@ -93,6 +95,7 @@ const MatchCard = ({ match }: MatchCardProps) => {
             teamName={match.awayTeam}
             primaryColor={teamColors[match.awayTeam]?.primary}
             secondaryColor={teamColors[match.awayTeam]?.secondary}
+            logoUrl={teamColors[match.awayTeam]?.logoUrl}
             size="sm"
           />
           <p className="font-bold text-sm">{match.awayTeam}</p>

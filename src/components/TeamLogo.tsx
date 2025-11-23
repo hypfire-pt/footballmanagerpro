@@ -5,6 +5,7 @@ interface TeamLogoProps {
   teamName: string;
   primaryColor?: string;
   secondaryColor?: string;
+  logoUrl?: string;
   size?: "sm" | "md" | "lg" | "xl";
   className?: string;
 }
@@ -13,6 +14,7 @@ export function TeamLogo({
   teamName, 
   primaryColor = "#3b82f6", 
   secondaryColor = "#ffffff",
+  logoUrl,
   size = "md",
   className 
 }: TeamLogoProps) {
@@ -37,6 +39,41 @@ export function TeamLogo({
     xl: 96
   };
 
+  // If logo URL is provided, display the image
+  if (logoUrl) {
+    return (
+      <div className={cn("relative flex items-center justify-center", sizeClasses[size], className)}>
+        <img 
+          src={logoUrl} 
+          alt={`${teamName} logo`}
+          className="w-full h-full object-contain"
+          onError={(e) => {
+            // Fallback to shield if image fails to load
+            e.currentTarget.style.display = 'none';
+            e.currentTarget.parentElement?.classList.add('show-fallback');
+          }}
+        />
+        {/* Fallback shield that shows if image fails */}
+        <div className="hidden absolute inset-0 items-center justify-center [.show-fallback_&]:flex">
+          <Shield 
+            size={iconSizes[size]} 
+            fill={primaryColor}
+            stroke={secondaryColor}
+            strokeWidth={1.5}
+            className="absolute"
+          />
+          <span 
+            className="relative z-10 font-heading font-bold"
+            style={{ color: secondaryColor }}
+          >
+            {initials}
+          </span>
+        </div>
+      </div>
+    );
+  }
+
+  // Default shield design
   return (
     <div className={cn("relative flex items-center justify-center", sizeClasses[size], className)}>
       <Shield 
