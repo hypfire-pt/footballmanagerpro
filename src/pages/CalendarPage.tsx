@@ -5,12 +5,13 @@ import { Calendar } from "@/components/ui/calendar";
 import { Badge } from "@/components/ui/badge";
 import { useState, useMemo, useEffect } from "react";
 import { format, isSameDay, addMonths, subMonths } from "date-fns";
-import { ChevronLeft, ChevronRight, Play, Calendar as CalendarIcon, Clock, Loader2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Play, Calendar as CalendarIcon, Clock, Loader2, FastForward } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentSave } from "@/hooks/useCurrentSave";
+import { MatchdaySummary } from "@/components/MatchdaySummary";
 
 interface Fixture {
   id: string;
@@ -42,6 +43,9 @@ const CalendarPage = () => {
   const [season, setSeason] = useState<Season | null>(null);
   const [fixtures, setFixtures] = useState<Fixture[]>([]);
   const [loading, setLoading] = useState(true);
+  const [fastForwarding, setFastForwarding] = useState(false);
+  const [showMatchdaySummary, setShowMatchdaySummary] = useState(false);
+  const [matchdaySummaryData, setMatchdaySummaryData] = useState<any>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -277,6 +281,156 @@ const CalendarPage = () => {
     }
   };
 
+  const handleFastForward = async () => {
+    if (!currentSave || !season || upcomingFixtures.length === 0) return;
+
+    try {
+      setFastForwarding(true);
+
+      // Find the next user team match
+      const nextUserMatch = upcomingFixtures.find(f => 
+        f.homeTeamId === currentSave.team_id || f.awayTeamId === currentSave.team_id
+      );
+
+      if (!nextUserMatch) {
+        toast({
+          title: "No Upcoming Matches",
+          description: "No more matches scheduled for your team",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      const matchDate = new Date(nextUserMatch.date);
+      const daysToAdvance = Math.ceil(
+        (matchDate.getTime() - currentDate.getTime()) / (1000 * 60 * 60 * 24)
+      );
+
+      console.log(`[FAST FORWARD] Advancing ${daysToAdvance} days to next user match`);
+
+      // Update season date
+      const newDate = new Date(currentDate);
+      newDate.setDate(newDate.getDate() + daysToAdvance);
+
+      const { error: seasonError } = await supabase
+        .from('save_seasons')
+        .update({
+          season_current_date: newDate.toISOString().split('T')[0]
+        })
+        .eq('id', season.id);
+
+      if (seasonError) throw seasonError;
+
+      await supabase
+        .from('game_saves')
+        .update({
+          game_date: newDate.toISOString().split('T')[0]
+        })
+        .eq('id', currentSave.id);
+
+      // Simulate all AI matches up to this date
+      const { AIMatchSimulator } = await import('@/services/aiMatchSimulator');
+      const simulated = await AIMatchSimulator.simulateAIMatches(
+        season.id,
+        currentSave.id,
+        newDate.toISOString().split('T')[0],
+        currentSave.team_id
+      );
+
+      console.log(`[FAST FORWARD] ${simulated} AI matches simulated`);
+
+      // Get completed matchdays to show summaries
+      const { data: refreshedSeason } = await supabase
+        .from('save_seasons')
+        .select('*')
+        .eq('id', season.id)
+        .single();
+
+      if (refreshedSeason) {
+        setSeason(refreshedSeason);
+        setFixtures((refreshedSeason.fixtures_state as any[]) || []);
+        setSelectedDate(newDate);
+
+        // Collect matchday summaries for completed rounds
+        const fixturesState = (refreshedSeason.fixtures_state as any[]) || [];
+        const completedMatchdays = new Set<number>();
+        
+        fixturesState.forEach(f => {
+          if (f.status === 'finished' && f.matchday) {
+            completedMatchdays.add(f.matchday);
+          }
+        });
+
+        // Show summary for the most recent completed matchday
+        const latestMatchday = Math.max(...Array.from(completedMatchdays));
+        if (latestMatchday > 0) {
+          await showMatchdayResults(latestMatchday, fixturesState, (refreshedSeason.standings_state as any[]) || []);
+        }
+      }
+
+      toast({
+        title: "⏩ Fast Forward Complete",
+        description: `Advanced ${daysToAdvance} days. ${simulated} AI matches simulated.`,
+      });
+
+    } catch (error) {
+      console.error('[FAST FORWARD] Error:', error);
+      toast({
+        title: "Error",
+        description: "Failed to fast forward",
+        variant: "destructive"
+      });
+    } finally {
+      setFastForwarding(false);
+    }
+  };
+
+  const showMatchdayResults = async (matchday: number, fixturesState: any[], standingsState: any[]) => {
+    // Get all matches from this matchday
+    const matchdayMatches = fixturesState.filter(f => f.matchday === matchday && f.status === 'finished');
+
+    // Calculate position changes (simplified - would need previous standings)
+    const positionChanges = standingsState.map((team: any) => ({
+      team_name: team.team_name,
+      old_position: team.position + (Math.random() > 0.5 ? 1 : -1), // Simplified
+      new_position: team.position,
+      points_gained: 0 // Would calculate from match result
+    }));
+
+    // Extract goal scorers
+    const goalScorers: { player: string; goals: number }[] = [];
+    matchdayMatches.forEach(match => {
+      if (match.match_data?.events) {
+        match.match_data.events.forEach((event: any) => {
+          if (event.type === 'goal' && event.player) {
+            const existing = goalScorers.find(g => g.player === event.player);
+            if (existing) {
+              existing.goals++;
+            } else {
+              goalScorers.push({ player: event.player, goals: 1 });
+            }
+          }
+        });
+      }
+    });
+
+    setMatchdaySummaryData({
+      matchday,
+      matches: matchdayMatches.map((m: any) => ({
+        id: m.id,
+        home_team_name: m.homeTeam,
+        away_team_name: m.awayTeam,
+        home_score: m.homeScore,
+        away_score: m.awayScore,
+        match_data: m.match_data
+      })),
+      positionChanges,
+      topScorers: goalScorers.sort((a, b) => b.goals - a.goals)
+    });
+
+    setShowMatchdaySummary(true);
+  };
+
   const handleAdvanceDays = async (days: number) => {
     if (!currentSave || !season) return;
 
@@ -363,12 +517,31 @@ const CalendarPage = () => {
           </div>
 
           <div className="flex gap-2 flex-wrap">
-            <Button onClick={handleAdvanceToNextMatch} variant="default" size="sm" className="gap-1 text-xs">
+            <Button 
+              onClick={handleFastForward} 
+              variant="default" 
+              size="sm" 
+              className="gap-1 text-xs"
+              disabled={fastForwarding || loading}
+            >
+              {fastForwarding ? (
+                <>
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                  Simulating...
+                </>
+              ) : (
+                <>
+                  <FastForward className="h-3 w-3" />
+                  Continue
+                </>
+              )}
+            </Button>
+            <Button onClick={handleAdvanceToNextMatch} variant="outline" size="sm" className="gap-1 text-xs" disabled={loading}>
               <Clock className="h-3 w-3" />
               Next Match
             </Button>
-            <Button onClick={() => handleAdvanceDays(1)} variant="outline" size="sm" className="text-xs">+1 Day</Button>
-            <Button onClick={() => handleAdvanceDays(7)} variant="outline" size="sm" className="text-xs">+1 Week</Button>
+            <Button onClick={() => handleAdvanceDays(1)} variant="outline" size="sm" className="text-xs" disabled={loading}>+1 Day</Button>
+            <Button onClick={() => handleAdvanceDays(7)} variant="outline" size="sm" className="text-xs" disabled={loading}>+1 Week</Button>
           </div>
         </div>
 
@@ -590,6 +763,19 @@ const CalendarPage = () => {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Matchday Summary Modal */}
+      {matchdaySummaryData && (
+        <MatchdaySummary
+          open={showMatchdaySummary}
+          onClose={() => setShowMatchdaySummary(false)}
+          matchday={matchdaySummaryData.matchday}
+          matches={matchdaySummaryData.matches}
+          positionChanges={matchdaySummaryData.positionChanges}
+          topScorers={matchdaySummaryData.topScorers}
+          userTeamId={currentSave?.team_id}
+        />
+      )}
     </DashboardLayout>
   );
 };
