@@ -352,12 +352,12 @@ const PlayMatch = () => {
           <Badge variant="outline" className="text-xs">{competition}</Badge>
         </div>
 
-        {/* Top Section: Score, Pitch, Events - All visible without scrolling */}
-        <div className="grid grid-cols-[1fr_2fr_1fr] gap-2 mb-2 flex-shrink-0">
-          {/* Left Column: Match Result + Controls */}
-          <div className="space-y-2">
+        {/* Main Layout: 3 Columns */}
+        <div className="grid grid-cols-[1fr_2fr_1fr] gap-2 flex-1 min-h-0">
+          {/* Left Column: Match Result + Controls + Tactics */}
+          <div className="space-y-2 overflow-auto">
             {/* Match Header */}
-            <Card className="glass p-2 border-border/50">
+            <Card className="glass p-2 border-border/50 flex-shrink-0">
             <div className="text-center mb-1">
               <h3 className="text-sm font-heading font-bold">{homeTeamName}</h3>
               <p className="text-xs text-muted-foreground">Home</p>
@@ -380,44 +380,65 @@ const PlayMatch = () => {
             </div>
           </Card>
 
-          {/* Controls */}
-          <Card className="glass p-2 border-border/50">
-            <h3 className="text-xs font-heading font-semibold mb-2">Controls</h3>
-            <div className="space-y-1.5">
-              {!result && (
-                <>
-                  <div className="flex gap-1">
-                    <Button variant={speed === 'normal' ? 'default' : 'outline'} size="sm" onClick={() => setSpeed('normal')} className="flex-1 text-xs h-7">
-                      <Play className="h-3 w-3" />
+            {/* Controls */}
+            <Card className="glass p-2 border-border/50 flex-shrink-0">
+              <h3 className="text-xs font-heading font-semibold mb-2">Controls</h3>
+              <div className="space-y-1.5">
+                {!result && (
+                  <>
+                    <div className="flex gap-1">
+                      <Button variant={speed === 'normal' ? 'default' : 'outline'} size="sm" onClick={() => setSpeed('normal')} className="flex-1 text-xs h-7">
+                        <Play className="h-3 w-3" />
+                      </Button>
+                      <Button variant={speed === 'fast' ? 'default' : 'outline'} size="sm" onClick={() => setSpeed('fast')} className="flex-1 text-xs h-7">
+                        <FastForward className="h-3 w-3" />
+                      </Button>
+                      <Button variant={speed === 'instant' ? 'default' : 'outline'} size="sm" onClick={() => setSpeed('instant')} className="flex-1 text-xs h-7">
+                        <Zap className="h-3 w-3" />
+                      </Button>
+                    </div>
+                    <Button onClick={togglePause} variant="outline" size="sm" className="w-full gap-1 text-xs h-7">
+                      {isPaused ? <><Play className="h-3 w-3" />Resume</> : <><Pause className="h-3 w-3" />Pause</>}
                     </Button>
-                    <Button variant={speed === 'fast' ? 'default' : 'outline'} size="sm" onClick={() => setSpeed('fast')} className="flex-1 text-xs h-7">
-                      <FastForward className="h-3 w-3" />
-                    </Button>
-                    <Button variant={speed === 'instant' ? 'default' : 'outline'} size="sm" onClick={() => setSpeed('instant')} className="flex-1 text-xs h-7">
-                      <Zap className="h-3 w-3" />
-                    </Button>
-                  </div>
-                  <Button onClick={togglePause} variant="outline" size="sm" className="w-full gap-1 text-xs h-7">
-                    {isPaused ? <><Play className="h-3 w-3" />Resume</> : <><Pause className="h-3 w-3" />Pause</>}
-                  </Button>
-                </>
-              )}
-              <Button onClick={startSimulation} disabled={isSimulating || loading || !homeLineupState || !awayLineupState} className="w-full gap-1 btn-glow text-xs h-7">
-                <Play className="h-3 w-3" />
-                {loading ? 'Loading...' : 'Play Match'}
-              </Button>
-              {result && (
-                <Button onClick={() => navigate('/calendar')} className="w-full gap-1 text-xs h-7">
-                  <ArrowRight className="h-3 w-3" />
-                  Next Match
+                  </>
+                )}
+                <Button onClick={startSimulation} disabled={isSimulating || loading || !homeLineupState || !awayLineupState} className="w-full gap-1 btn-glow text-xs h-7">
+                  <Play className="h-3 w-3" />
+                  {loading ? 'Loading...' : 'Play Match'}
                 </Button>
-              )}
-            </div>
-          </Card>
-        </div>
+                {result && (
+                  <Button onClick={() => navigate('/calendar')} className="w-full gap-1 text-xs h-7">
+                    <ArrowRight className="h-3 w-3" />
+                    Next Match
+                  </Button>
+                )}
+              </div>
+            </Card>
 
-          {/* Center: Pitch Visualization */}
-          <Card className="glass p-2 border-border/50">
+            {/* Tactics */}
+            {homeLineupState && (
+              <Card className="glass p-2 border-border/50">
+                <h3 className="text-xs font-heading font-semibold mb-2">Tactics</h3>
+                <TacticalAdjustmentPanel 
+                  team="home"
+                  teamName={homeTeamName}
+                  currentTactics={{
+                    formation: homeLineupState.formation,
+                    mentality: homeLineupState.tactics.mentality as any,
+                    tempo: homeLineupState.tactics.tempo as any,
+                    width: homeLineupState.tactics.width as any,
+                    pressing: homeLineupState.tactics.pressing as any,
+                  }}
+                  onTacticsChange={handleTacticalAdjustment}
+                  isMatchRunning={isSimulating}
+                />
+              </Card>
+            )}
+          </div>
+
+          {/* Center Column: Pitch + Atmosphere */}
+          <div className="space-y-2 overflow-auto">
+            <Card className="glass p-2 border-border/50 flex-shrink-0">
             {homeLineupState && awayLineupState && (
               <PitchVisualization
                 homeLineup={homeLineupState}
@@ -425,11 +446,37 @@ const PlayMatch = () => {
                 currentMinute={currentMinute}
                 isPlaying={isSimulating && !isPaused}
               />
-            )}
-          </Card>
+              )}
+            </Card>
 
-          {/* Right: Match Events */}
-          <Card className="glass p-2 border-border/50">
+            {/* Atmosphere */}
+            <Card className="glass p-2 border-border/50">
+              <h3 className="text-xs font-heading font-semibold mb-2">Atmosphere</h3>
+              <CrowdAtmosphere 
+                homeTeam={homeTeamName}
+                awayTeam={awayTeamName}
+                currentMinute={currentMinute}
+                homeScore={currentHomeScore}
+                awayScore={currentAwayScore}
+                stadiumCapacity={stadiumCapacity}
+                homeReputation={homeReputation}
+              />
+              <div className="mt-2">
+                <h4 className="text-xs font-semibold mb-1">Momentum</h4>
+                <MomentumVisualizer 
+                  homeTeam={homeTeamName}
+                  awayTeam={awayTeamName}
+                  homeMomentum={momentum.home}
+                  awayMomentum={momentum.away}
+                  currentMinute={currentMinute}
+                />
+              </div>
+            </Card>
+          </div>
+
+          {/* Right Column: Match Events + Substitutions */}
+          <div className="space-y-2 overflow-auto">
+            <Card className="glass p-2 border-border/50 flex-shrink-0">
             <h3 className="text-xs font-heading font-semibold mb-1 flex items-center gap-1">
               <Activity className="h-3 w-3 text-accent" />
               Match Events
@@ -441,77 +488,31 @@ const PlayMatch = () => {
                 homeTeam={homeTeamName}
                 awayTeam={awayTeamName}
                 momentum={momentum}
-              />
-            </ScrollArea>
-          </Card>
-        </div>
-
-        {/* Bottom Section: Tactics, Substitutions, Atmosphere */}
-        <div className="grid grid-cols-3 gap-2 flex-1 min-h-0">
-          {/* Tactics */}
-          {homeLineupState && (
-            <Card className="glass p-2 border-border/50 overflow-auto">
-              <h3 className="text-xs font-heading font-semibold mb-2">Tactics</h3>
-              <TacticalAdjustmentPanel 
-                team="home"
-                teamName={homeTeamName}
-                currentTactics={{
-                  formation: homeLineupState.formation,
-                  mentality: homeLineupState.tactics.mentality as any,
-                  tempo: homeLineupState.tactics.tempo as any,
-                  width: homeLineupState.tactics.width as any,
-                  pressing: homeLineupState.tactics.pressing as any,
-                }}
-                onTacticsChange={handleTacticalAdjustment}
-                isMatchRunning={isSimulating}
-              />
+                />
+              </ScrollArea>
             </Card>
-          )}
 
-          {/* Substitutions */}
-          {homeLineupState && (
-            <Card className="glass p-2 border-border/50 overflow-auto">
-              <h3 className="text-xs font-heading font-semibold mb-2">Substitutions</h3>
-              <SubstitutionPanel 
-                team="home"
-                teamName={homeTeamName}
-                players={homeLineupState.players}
-                onSubstitute={(playerOutId, playerInId) => {
-                  const playerOut = homeLineupState.players.find(p => p.id === playerOutId);
-                  const playerIn = homeLineupState.players.find(p => p.id === playerInId);
-                  if (playerOut && playerIn) {
-                    handleSubstitution(playerOut, playerIn, 'home');
-                  }
-                }}
-                substitutionsRemaining={3}
-                isMatchRunning={isSimulating}
-              />
-            </Card>
-          )}
-
-          {/* Crowd & Momentum */}
-          <Card className="glass p-2 border-border/50 overflow-auto">
-            <h3 className="text-xs font-heading font-semibold mb-2">Atmosphere</h3>
-            <CrowdAtmosphere 
-              homeTeam={homeTeamName}
-              awayTeam={awayTeamName}
-              currentMinute={currentMinute}
-              homeScore={currentHomeScore}
-              awayScore={currentAwayScore}
-              stadiumCapacity={stadiumCapacity}
-              homeReputation={homeReputation}
-            />
-            <div className="mt-2">
-              <h4 className="text-xs font-semibold mb-1">Momentum</h4>
-              <MomentumVisualizer 
-                homeTeam={homeTeamName}
-                awayTeam={awayTeamName}
-                homeMomentum={momentum.home}
-                awayMomentum={momentum.away}
-                currentMinute={currentMinute}
-              />
-            </div>
-          </Card>
+            {/* Substitutions */}
+            {homeLineupState && (
+              <Card className="glass p-2 border-border/50">
+                <h3 className="text-xs font-heading font-semibold mb-2">Substitutions</h3>
+                <SubstitutionPanel 
+                  team="home"
+                  teamName={homeTeamName}
+                  players={homeLineupState.players}
+                  onSubstitute={(playerOutId, playerInId) => {
+                    const playerOut = homeLineupState.players.find(p => p.id === playerOutId);
+                    const playerIn = homeLineupState.players.find(p => p.id === playerInId);
+                    if (playerOut && playerIn) {
+                      handleSubstitution(playerOut, playerIn, 'home');
+                    }
+                  }}
+                  substitutionsRemaining={3}
+                  isMatchRunning={isSimulating}
+                />
+              </Card>
+              )}
+          </div>
         </div>
       </div>
     </DashboardLayout>
