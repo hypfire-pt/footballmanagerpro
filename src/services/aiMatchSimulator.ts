@@ -19,7 +19,7 @@ export class AIMatchSimulator {
       // Get current season data
       const { data: season, error: seasonError } = await supabase
         .from('save_seasons')
-        .select('fixtures_state')
+        .select('fixtures_state, current_matchday')
         .eq('id', seasonId)
         .single();
 
@@ -35,22 +35,92 @@ export class AIMatchSimulator {
         fixture.awayTeamId !== userTeamId
       );
 
-      console.log(`Found ${aiMatchesToSimulate.length} AI matches to simulate`);
+      console.log(`[AI SIMULATOR] Found ${aiMatchesToSimulate.length} AI matches to simulate up to ${currentDate}`);
 
       let simulatedCount = 0;
 
-      for (const fixture of aiMatchesToSimulate) {
+      // Group matches by matchday
+      const matchesByMatchday = new Map<number, any[]>();
+      aiMatchesToSimulate.forEach(fixture => {
+        const matchday = fixture.matchday || 1;
+        if (!matchesByMatchday.has(matchday)) {
+          matchesByMatchday.set(matchday, []);
+        }
+        matchesByMatchday.get(matchday)!.push(fixture);
+      });
+
+      // Simulate matches matchday by matchday to ensure complete rounds
+      const sortedMatchdays = Array.from(matchesByMatchday.keys()).sort((a, b) => a - b);
+      
+      for (const matchday of sortedMatchdays) {
+        const matchdayFixtures = matchesByMatchday.get(matchday)!;
+        console.log(`[AI SIMULATOR] Simulating Matchday ${matchday}: ${matchdayFixtures.length} AI matches`);
+
+        for (const fixture of matchdayFixtures) {
+          try {
+            await this.simulateSingleMatch(fixture, seasonId, saveId);
+            simulatedCount++;
+          } catch (error) {
+            console.error(`[AI SIMULATOR] Error simulating match ${fixture.id}:`, error);
+          }
+        }
+
+        console.log(`[AI SIMULATOR] Matchday ${matchday} complete - league table updated`);
+      }
+
+      console.log(`[AI SIMULATOR] Total AI matches simulated: ${simulatedCount}`);
+      return simulatedCount;
+    } catch (error) {
+      console.error('[AI SIMULATOR] Error in simulateAIMatches:', error);
+      return 0;
+    }
+  }
+
+  /**
+   * Simulate ALL AI matches for a specific matchday (ensures complete round)
+   */
+  static async simulateMatchdayAIMatches(
+    seasonId: string,
+    saveId: string,
+    matchday: number,
+    userTeamId: string
+  ): Promise<number> {
+    try {
+      const { data: season } = await supabase
+        .from('save_seasons')
+        .select('fixtures_state')
+        .eq('id', seasonId)
+        .single();
+
+      if (!season) return 0;
+
+      const fixtures = (season.fixtures_state as any[]) || [];
+      
+      // Find ALL AI matches for this specific matchday
+      const matchdayAIMatches = fixtures.filter((fixture: any) => 
+        fixture.matchday === matchday &&
+        fixture.status === 'scheduled' &&
+        fixture.homeTeamId !== userTeamId &&
+        fixture.awayTeamId !== userTeamId
+      );
+
+      console.log(`[AI SIMULATOR] Simulating ALL ${matchdayAIMatches.length} AI matches for Matchday ${matchday}`);
+
+      let simulatedCount = 0;
+
+      for (const fixture of matchdayAIMatches) {
         try {
           await this.simulateSingleMatch(fixture, seasonId, saveId);
           simulatedCount++;
         } catch (error) {
-          console.error(`Error simulating match ${fixture.id}:`, error);
+          console.error(`[AI SIMULATOR] Error simulating match ${fixture.id}:`, error);
         }
       }
 
+      console.log(`[AI SIMULATOR] Matchday ${matchday} complete - ${simulatedCount} AI matches simulated, league table updated`);
       return simulatedCount;
     } catch (error) {
-      console.error('Error in simulateAIMatches:', error);
+      console.error(`[AI SIMULATOR] Error simulating matchday ${matchday}:`, error);
       return 0;
     }
   }

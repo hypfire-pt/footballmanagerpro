@@ -278,8 +278,12 @@ export function SeasonProvider({ children }: { children: React.ReactNode }) {
         setLeagueStandings(updatedStandings);
       }
 
-      // Update fixtures_state in season
+      // Get matchday from the completed fixture
       const fixtures = (season.fixtures_state as any[]) || [];
+      const completedMatch = fixtures.find((f: any) => f.id === matchId);
+      const matchday = completedMatch?.matchday;
+
+      // Update fixtures_state in season
       const updatedFixtures = fixtures.map((f: any) => {
         if (f.id === matchId) {
           return {
@@ -327,10 +331,42 @@ export function SeasonProvider({ children }: { children: React.ReactNode }) {
         }
       }
 
-      toast({
-        title: "Match Result Saved",
-        description: "Match result and standings updated successfully",
-      });
+      // CRITICAL: Simulate ALL remaining AI matches for this matchday to complete the round
+      if (matchday && season.id) {
+        console.log(`[SEASON] User match complete for Matchday ${matchday}. Simulating ALL remaining AI matches...`);
+        
+        const { AIMatchSimulator } = await import('@/services/aiMatchSimulator');
+        const aiMatchesSimulated = await AIMatchSimulator.simulateMatchdayAIMatches(
+          season.id,
+          currentSave.id,
+          matchday,
+          currentSave.team_id
+        );
+
+        console.log(`[SEASON] Matchday ${matchday} complete! ${aiMatchesSimulated} AI matches simulated.`);
+
+        // Refresh standings after all AI matches complete
+        const { data: refreshedSeason } = await supabase
+          .from('save_seasons')
+          .select('standings_state, fixtures_state')
+          .eq('id', season.id)
+          .single();
+
+        if (refreshedSeason) {
+          setLeagueStandings(refreshedSeason.standings_state as any[]);
+          setFixtures(refreshedSeason.fixtures_state as any[]);
+        }
+
+        toast({
+          title: "✅ Matchday Complete!",
+          description: `All ${aiMatchesSimulated + 1} matches completed. League table updated.`,
+        });
+      } else {
+        toast({
+          title: "Match Result Saved",
+          description: "Match result and standings updated successfully",
+        });
+      }
     } catch (error) {
       console.error('Error processing match result:', error);
       toast({
