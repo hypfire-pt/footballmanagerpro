@@ -9,6 +9,7 @@ interface PitchVisualizationProps {
   currentMinute: number;
   isPlaying: boolean;
   showHeatMap?: boolean;
+  attackMomentum?: { home: number; away: number };
 }
 
 interface PlayerPosition {
@@ -26,6 +27,8 @@ interface DynamicPlayerPosition extends PlayerPosition {
   baseY: number;
   currentX: number;
   currentY: number;
+  vx: number;
+  vy: number;
 }
 
 interface HeatMapPoint {
@@ -46,7 +49,8 @@ const PitchVisualization = ({
   currentEvent,
   currentMinute,
   isPlaying,
-  showHeatMap = false
+  showHeatMap = false,
+  attackMomentum = { home: 50, away: 50 }
 }: PitchVisualizationProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [ballPosition, setBallPosition] = useState<BallPosition>({ x: 50, y: 50, visible: true });
@@ -314,6 +318,34 @@ const PitchVisualization = ({
     animate();
   };
 
+  // Continuous ball movement simulation based on attack/defense flow
+  useEffect(() => {
+    if (!isPlaying) return;
+
+    const moveBall = () => {
+      // Calculate attack direction based on momentum
+      const homeAttacking = attackMomentum.home > attackMomentum.away;
+      const attackDirection = homeAttacking ? -1 : 1; // -1 up (home attacks), 1 down (away attacks)
+      
+      // Move ball gradually towards attacking third
+      const targetY = homeAttacking ? 25 : 75;
+      const targetX = 50 + (Math.random() - 0.5) * 20; // Some horizontal variation
+      
+      setBallPosition(prev => ({
+        x: prev.x + (targetX - prev.x) * 0.02,
+        y: prev.y + (targetY - prev.y) * 0.03,
+        visible: true,
+      }));
+      
+      if (isPlaying) {
+        setTimeout(moveBall, 100);
+      }
+    };
+
+    const timer = setTimeout(moveBall, 100);
+    return () => clearTimeout(timer);
+  }, [isPlaying, attackMomentum]);
+
   // Handle match events and animate accordingly
   useEffect(() => {
     if (!currentEvent) return;
@@ -330,17 +362,34 @@ const PitchVisualization = ({
 
     switch (currentEvent.type) {
       case 'goal':
-        // Animate to goal
+        // Animate to goal with trail effect
         targetY = currentEvent.team === 'home' ? 5 : 95;
         targetX = 50;
         setActivePlayer(currentEvent.player || null);
-        setTimeout(() => setActivePlayer(null), 2000);
+        
+        // Flash effect for goal
+        const canvas = canvasRef.current;
+        if (canvas) {
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+            ctx.fillRect(0, 0, width, height);
+          }
+        }
+        
+        setTimeout(() => setActivePlayer(null), 3000);
         break;
       case 'shot':
+        // Missed shot - ball goes wide
+        targetY = currentEvent.team === 'home' ? 8 : 92;
+        targetX = Math.random() < 0.5 ? 25 : 75;
+        setActivePlayer(currentEvent.player || null);
+        setTimeout(() => setActivePlayer(null), 1500);
+        break;
       case 'shot_on_target':
       case 'save':
-        // Animate towards goal
-        targetY = currentEvent.team === 'home' ? 15 : 85;
+        // Animate towards goal with tension
+        targetY = currentEvent.team === 'home' ? 10 : 90;
         targetX = 45 + Math.random() * 10;
         setActivePlayer(currentEvent.player || null);
         setTimeout(() => setActivePlayer(null), 1500);
@@ -396,6 +445,8 @@ const PitchVisualization = ({
           y: existing?.currentY || pos.y,
           name: player.name,
           team: 'home',
+          vx: 0,
+          vy: 0,
         });
       }
     });
@@ -414,12 +465,16 @@ const PitchVisualization = ({
           y: existing?.currentY || pos.y,
           name: player.name,
           team: 'away',
+          vx: 0,
+          vy: 0,
         });
       }
     });
 
-    // Animate player movement based on tactics
+    // Animate player movement based on ball position and match flow
     const animateMovement = () => {
+      if (!isPlaying) return;
+
       newPositions.forEach((playerPos, playerId) => {
         const player = [...homeLineup.players, ...awayLineup.players].find(p => p.id === playerId);
         if (!player) return;
@@ -428,38 +483,63 @@ const PitchVisualization = ({
         const lineup = playerPos.team === 'home' ? homeLineup : awayLineup;
         const tactics = lineup.tactics;
         
-        // Determine target position based on tactics
+        // Determine target position based on ball and tactics
         let targetX = playerPos.baseX;
         let targetY = playerPos.baseY;
 
-        // Pressing movement
-        if (tactics.pressing === 'high') {
-          const ballDistance = Math.sqrt(
-            Math.pow(ballPosition.x - playerPos.baseX, 2) + 
-            Math.pow(ballPosition.y - playerPos.baseY, 2)
-          );
-          
-          if (ballDistance < 30) {
-            // Move towards ball
-            const angle = Math.atan2(ballPosition.y - playerPos.baseY, ballPosition.x - playerPos.baseX);
-            targetX = playerPos.baseX + Math.cos(angle) * 5;
-            targetY = playerPos.baseY + Math.sin(angle) * 5;
+        // Calculate distance to ball
+        const ballDistance = Math.sqrt(
+          Math.pow(ballPosition.x - playerPos.currentX, 2) + 
+          Math.pow(ballPosition.y - playerPos.currentY, 2)
+        );
+
+        // Move based on ball possession (simulated)
+        const isAttacking = (playerPos.team === 'home' && ballPosition.y < 50) || 
+                           (playerPos.team === 'away' && ballPosition.y > 50);
+
+        if (isAttacking) {
+          // Push forward when attacking
+          if (playerPos.team === 'home') {
+            targetY = playerPos.baseY - 8;
+          } else {
+            targetY = playerPos.baseY + 8;
           }
+        } else {
+          // Drop back when defending
+          if (playerPos.team === 'home') {
+            targetY = playerPos.baseY + 5;
+          } else {
+            targetY = playerPos.baseY - 5;
+          }
+        }
+
+        // Pressing movement towards ball
+        if (tactics.pressing === 'high' && ballDistance < 30) {
+          const angle = Math.atan2(ballPosition.y - playerPos.currentY, ballPosition.x - playerPos.currentX);
+          targetX = playerPos.currentX + Math.cos(angle) * 8;
+          targetY = playerPos.currentY + Math.sin(angle) * 8;
+        } else if (tactics.pressing === 'medium' && ballDistance < 20) {
+          const angle = Math.atan2(ballPosition.y - playerPos.currentY, ballPosition.x - playerPos.currentX);
+          targetX = playerPos.currentX + Math.cos(angle) * 4;
+          targetY = playerPos.currentY + Math.sin(angle) * 4;
         }
 
         // Width adjustment
         if (tactics.width === 'wide') {
-          if (targetX < 50) targetX -= 5;
-          if (targetX > 50) targetX += 5;
+          if (targetX < 50) targetX = Math.max(targetX - 5, 15);
+          if (targetX > 50) targetX = Math.min(targetX + 5, 85);
         } else if (tactics.width === 'narrow') {
-          if (targetX < 50) targetX += 3;
-          if (targetX > 50) targetX -= 3;
+          if (targetX < 50) targetX = Math.min(targetX + 3, 45);
+          if (targetX > 50) targetX = Math.max(targetX - 3, 55);
         }
 
-        // Smooth movement
-        const speed = 0.1;
-        playerPos.currentX += (targetX - playerPos.currentX) * speed;
-        playerPos.currentY += (targetY - playerPos.currentY) * speed;
+        // Smooth movement with velocity
+        const speed = tactics.tempo === 'fast' ? 0.15 : tactics.tempo === 'slow' ? 0.05 : 0.1;
+        playerPos.vx = (targetX - playerPos.currentX) * speed;
+        playerPos.vy = (targetY - playerPos.currentY) * speed;
+        
+        playerPos.currentX += playerPos.vx;
+        playerPos.currentY += playerPos.vy;
         playerPos.x = playerPos.currentX;
         playerPos.y = playerPos.currentY;
 
@@ -480,10 +560,15 @@ const PitchVisualization = ({
 
       setDynamicPositions(new Map(newPositions));
       setHeatMapData(new Map(heatMapData));
-      movementAnimationRef.current = requestAnimationFrame(animateMovement);
+      
+      if (isPlaying) {
+        movementAnimationRef.current = requestAnimationFrame(animateMovement);
+      }
     };
 
-    movementAnimationRef.current = requestAnimationFrame(animateMovement);
+    if (isPlaying) {
+      movementAnimationRef.current = requestAnimationFrame(animateMovement);
+    }
 
     return () => {
       if (movementAnimationRef.current) {
@@ -492,7 +577,7 @@ const PitchVisualization = ({
     };
   }, [isPlaying, homeLineup, awayLineup, ballPosition]);
 
-  // Render pitch and players
+  // Render pitch and players continuously
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -503,84 +588,87 @@ const PitchVisualization = ({
     const width = canvas.width;
     const height = canvas.height;
 
-    // Draw pitch
-    drawPitch(ctx, width, height);
+    const render = () => {
+      // Draw pitch
+      drawPitch(ctx, width, height);
 
-    // Draw heat map first (behind players)
-    if (showHeatMap) {
-      drawHeatMap(ctx, width, height);
-    }
+      // Draw heat map first (behind players)
+      if (showHeatMap) {
+        drawHeatMap(ctx, width, height);
+      }
 
-    // Draw players using dynamic positions
-    if (dynamicPositions.size > 0 && isPlaying) {
-      dynamicPositions.forEach((playerPos) => {
-        const isMoving = Math.abs(playerPos.currentX - playerPos.baseX) > 1 || 
-                        Math.abs(playerPos.currentY - playerPos.baseY) > 1;
-        drawPlayer(
-          ctx,
-          playerPos.x,
-          playerPos.y,
-          playerPos.team,
-          playerPos.name,
-          activePlayer === playerPos.name,
-          width,
-          height,
-          isMoving
-        );
-      });
-    } else {
-      // Draw static positions
-      const homePositions = getFormationPositions(homeLineup.formation, true);
-      const awayPositions = getFormationPositions(awayLineup.formation, false);
+      // Draw ball
+      drawBall(ctx, ballPosition.x, ballPosition.y, width, height);
 
-      homeLineup.players.slice(0, 11).forEach((player, idx) => {
-        const posKey = Object.keys(homePositions)[idx];
-        const pos = homePositions[posKey];
-        if (pos) {
+      // Draw players using dynamic positions
+      if (dynamicPositions.size > 0 && isPlaying) {
+        dynamicPositions.forEach((playerPos) => {
+          const isMoving = Math.abs(playerPos.currentX - playerPos.baseX) > 1 || 
+                          Math.abs(playerPos.currentY - playerPos.baseY) > 1;
           drawPlayer(
             ctx,
-            pos.x,
-            pos.y,
-            'home',
-            player.name,
-            activePlayer === player.name,
+            playerPos.x,
+            playerPos.y,
+            playerPos.team,
+            playerPos.name,
+            activePlayer === playerPos.name,
             width,
-            height
+            height,
+            isMoving
           );
-        }
-      });
+        });
+      } else {
+        // Draw static positions
+        const homePositions = getFormationPositions(homeLineup.formation, true);
+        const awayPositions = getFormationPositions(awayLineup.formation, false);
 
-      awayLineup.players.slice(0, 11).forEach((player, idx) => {
-        const posKey = Object.keys(awayPositions)[idx];
-        const pos = awayPositions[posKey];
-        if (pos) {
-          drawPlayer(
-            ctx,
-            pos.x,
-            pos.y,
-            'away',
-            player.name,
-            activePlayer === player.name,
-            width,
-            height
-          );
-        }
-      });
-    }
+        homeLineup.players.slice(0, 11).forEach((player, idx) => {
+          const posKey = Object.keys(homePositions)[idx];
+          const pos = homePositions[posKey];
+          if (pos) {
+            drawPlayer(
+              ctx,
+              pos.x,
+              pos.y,
+              'home',
+              player.name,
+              activePlayer === player.name,
+              width,
+              height
+            );
+          }
+        });
 
-    // Draw ball
-    drawBall(ctx, ballPosition.x, ballPosition.y, width, height);
+        awayLineup.players.slice(0, 11).forEach((player, idx) => {
+          const posKey = Object.keys(awayPositions)[idx];
+          const pos = awayPositions[posKey];
+          if (pos) {
+            drawPlayer(
+              ctx,
+              pos.x,
+              pos.y,
+              'away',
+              player.name,
+              activePlayer === player.name,
+              width,
+              height
+            );
+          }
+        });
+      }
 
-    // Draw match info overlay
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-    ctx.fillRect(10, 10, 120, 40);
-    ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 14px Arial';
-    ctx.textAlign = 'left';
-    ctx.fillText(`${currentMinute}'`, 20, 30);
-    ctx.font = '12px Arial';
-    ctx.fillText(isPlaying ? '⚽ LIVE' : '⏸ PAUSED', 20, 45);
-  }, [homeLineup, awayLineup, ballPosition, activePlayer, currentMinute, isPlaying, dynamicPositions, showHeatMap, heatMapData]);
+      // Continue animation loop
+      if (isPlaying) {
+        requestAnimationFrame(render);
+      }
+    };
+
+    const animId = requestAnimationFrame(render);
+
+    return () => {
+      cancelAnimationFrame(animId);
+    };
+  }, [isPlaying, ballPosition, dynamicPositions, activePlayer, showHeatMap, homeLineup, awayLineup]);
 
   return (
     <Card className="p-4 overflow-hidden">

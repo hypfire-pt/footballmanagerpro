@@ -8,9 +8,11 @@ import PlayerPerformanceTracker from "@/components/PlayerPerformanceTracker";
 import TacticalAdjustmentPanel from "@/components/TacticalAdjustmentPanel";
 import CrowdAtmosphere from "@/components/CrowdAtmosphere";
 import { MatchEventNotification } from "@/components/MatchEventNotification";
-import { MomentumVisualizer } from "@/components/MomentumVisualizer";
+import { AttackDefenseBar } from "@/components/AttackDefenseBar";
 import { MatchResultSummary } from "@/components/MatchResultSummary";
 import { HalfTimeModal } from "@/components/HalfTimeModal";
+import { GoalCelebration } from "@/components/GoalCelebration";
+import { TenseMomentEffect } from "@/components/TenseMomentEffect";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -22,6 +24,7 @@ import { toast } from "@/hooks/use-toast";
 import { useSeason } from "@/contexts/SeasonContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentSave } from "@/hooks/useCurrentSave";
+import { matchSounds } from "@/services/matchSoundEffects";
 
 const PlayMatch = () => {
   const navigate = useNavigate();
@@ -55,6 +58,8 @@ const PlayMatch = () => {
   const [showHalfTime, setShowHalfTime] = useState(false);
   const [plannedSubstitutions, setPlannedSubstitutions] = useState<any[]>([]);
   const [benchPlayers, setBenchPlayers] = useState<any[]>([]);
+  const [goalCelebration, setGoalCelebration] = useState<{ team: 'home' | 'away'; playerName: string } | null>(null);
+  const [tenseMoment, setTenseMoment] = useState<'close_call' | 'final_minutes' | 'dangerous_attack' | null>(null);
   const matchEngineRef = useRef<ProbabilisticMatchEngine | null>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -273,6 +278,36 @@ const PlayMatch = () => {
           const event = simResult.events[eventIndex];
           setCurrentEventIndex(eventIndex);
           
+          // Play sound effects and visual effects
+          if (event.type === 'goal') {
+            matchSounds.goal();
+            setGoalCelebration({
+              team: event.team,
+              playerName: event.player || 'Unknown'
+            });
+          } else if (event.type === 'shot_on_target') {
+            matchSounds.shotOnTarget();
+            if (Math.random() < 0.3) { // 30% chance for tense moment
+              setTenseMoment('close_call');
+            }
+          } else if (event.type === 'shot') {
+            matchSounds.missedShot();
+          } else if (event.type === 'yellow_card') {
+            matchSounds.yellowCard();
+          } else if (event.type === 'red_card') {
+            matchSounds.redCard();
+          } else if (event.type === 'save') {
+            matchSounds.save();
+            setTenseMoment('dangerous_attack');
+          } else if (event.type === 'corner') {
+            matchSounds.corner();
+          }
+
+          // Final minutes tension
+          if (minute >= 85 && minute <= 90 && event.type === 'shot_on_target') {
+            setTenseMoment('final_minutes');
+          }
+          
           if (['goal', 'yellow_card', 'red_card', 'shot_on_target', 'substitution'].includes(event.type)) {
             setActiveEventNotifications(prev => [...prev, event]);
           }
@@ -429,6 +464,27 @@ const PlayMatch = () => {
           const event = result.events[eventIndex];
           setCurrentEventIndex(eventIndex);
           
+          // Play sound effects
+          if (event.type === 'goal') {
+            matchSounds.goal();
+            setGoalCelebration({
+              team: event.team,
+              playerName: event.player || 'Unknown'
+            });
+          } else if (event.type === 'shot_on_target') {
+            matchSounds.shotOnTarget();
+          } else if (event.type === 'shot') {
+            matchSounds.missedShot();
+          } else if (event.type === 'yellow_card') {
+            matchSounds.yellowCard();
+          } else if (event.type === 'red_card') {
+            matchSounds.redCard();
+          } else if (event.type === 'save') {
+            matchSounds.save();
+          } else if (event.type === 'corner') {
+            matchSounds.corner();
+          }
+          
           if (['goal', 'yellow_card', 'red_card', 'shot_on_target', 'substitution'].includes(event.type)) {
             setActiveEventNotifications(prev => [...prev, event]);
           }
@@ -467,6 +523,23 @@ const PlayMatch = () => {
   return (
     <DashboardLayout>
       <div className="h-screen overflow-hidden p-2 flex flex-col">
+        {/* Tense Moment Effects */}
+        {tenseMoment && (
+          <TenseMomentEffect
+            type={tenseMoment}
+            onComplete={() => setTenseMoment(null)}
+          />
+        )}
+
+        {/* Goal Celebration */}
+        {goalCelebration && (
+          <GoalCelebration
+            team={goalCelebration.team}
+            playerName={goalCelebration.playerName}
+            onComplete={() => setGoalCelebration(null)}
+          />
+        )}
+
         {/* Half Time Modal */}
         {result && showHalfTime && homeLineupState && (
           <HalfTimeModal
@@ -621,6 +694,8 @@ const PlayMatch = () => {
                 awayLineup={awayLineupState}
                 currentMinute={currentMinute}
                 isPlaying={isSimulating && !isPaused}
+                currentEvent={result?.events[currentEventIndex]}
+                attackMomentum={momentum}
               />
               )}
             </Card>
@@ -658,14 +733,14 @@ const PlayMatch = () => {
               </ScrollArea>
             </Card>
 
-            {/* Momentum */}
+            {/* Attack/Defense */}
             <Card className="glass p-2 border-border/50 flex-shrink-0">
-              <h3 className="text-xs font-heading font-semibold mb-2">Momentum</h3>
-              <MomentumVisualizer 
+              <h3 className="text-xs font-heading font-semibold mb-2">Attack/Defense</h3>
+              <AttackDefenseBar 
                 homeTeam={homeTeamName}
                 awayTeam={awayTeamName}
-                homeMomentum={momentum.home}
-                awayMomentum={momentum.away}
+                homeAttack={momentum.home}
+                awayAttack={momentum.away}
                 currentMinute={currentMinute}
               />
             </Card>
