@@ -13,7 +13,7 @@ export const GoalCelebration = ({ team, playerName, onComplete }: GoalCelebratio
 
   useEffect(() => {
     // Trigger confetti
-    const duration = 3000;
+    const duration = 1500; // Reduced from 3000
     const animationEnd = Date.now() + duration;
     const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 9999 };
 
@@ -36,8 +36,8 @@ export const GoalCelebration = ({ team, playerName, onComplete }: GoalCelebratio
 
     const timer = setTimeout(() => {
       setIsVisible(false);
-      setTimeout(onComplete, 500);
-    }, 3000);
+      setTimeout(onComplete, 300); // Reduced from 500
+    }, 1500); // Reduced from 3000
 
     return () => {
       clearTimeout(timer);
@@ -60,14 +60,14 @@ export const GoalCelebration = ({ team, playerName, onComplete }: GoalCelebratio
           rotate: [0, 5, -5, 0],
         }}
         transition={{
-          duration: 0.5,
-          repeat: 3,
+          duration: 0.4, // Reduced from 0.5
+          repeat: 2, // Reduced from 3
           repeatType: "reverse"
         }}
         className="text-center"
       >
         <motion.div
-          className="text-8xl font-bold gradient-text mb-4"
+          className="text-7xl font-bold gradient-text mb-4" // Reduced from text-8xl
           animate={{
             textShadow: [
               "0 0 20px rgba(255,255,255,0.5)",
@@ -75,15 +75,15 @@ export const GoalCelebration = ({ team, playerName, onComplete }: GoalCelebratio
               "0 0 20px rgba(255,255,255,0.5)",
             ]
           }}
-          transition={{ duration: 1, repeat: Infinity }}
+          transition={{ duration: 0.8, repeat: 2 }} // Reduced repeat
         >
           GOAL! ⚽
         </motion.div>
         <motion.div
-          className="text-3xl font-semibold text-white"
+          className="text-2xl font-semibold text-white" // Reduced from text-3xl
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.3 }}
+          transition={{ delay: 0.2 }} // Reduced from 0.3
         >
           {playerName}
         </motion.div>

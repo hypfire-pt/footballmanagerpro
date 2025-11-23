@@ -410,6 +410,33 @@ const PlayMatch = () => {
           const event = simResult.events[eventIndex];
           setCurrentEventIndex(eventIndex);
           
+          // Update momentum dynamically based on events
+          if (event.type === 'goal' || event.type === 'shot_on_target') {
+            setMomentum(prev => {
+              if (event.team === 'home') {
+                return { home: Math.min(85, prev.home + 12), away: Math.max(15, prev.away - 12) };
+              } else {
+                return { home: Math.max(15, prev.home - 12), away: Math.min(85, prev.away + 12) };
+              }
+            });
+          } else if (event.type === 'save') {
+            setMomentum(prev => {
+              if (event.team === 'home') {
+                return { home: Math.max(20, prev.home - 8), away: Math.min(80, prev.away + 8) };
+              } else {
+                return { home: Math.min(80, prev.home + 8), away: Math.max(20, prev.away - 8) };
+              }
+            });
+          } else if (event.type === 'corner') {
+            setMomentum(prev => {
+              if (event.team === 'home') {
+                return { home: Math.min(75, prev.home + 5), away: Math.max(25, prev.away - 5) };
+              } else {
+                return { home: Math.max(25, prev.home - 5), away: Math.min(75, prev.away + 5) };
+              }
+            });
+          }
+          
           // Play sound effects and visual effects
           if (event.type === 'goal') {
             matchSounds.goal();
@@ -706,7 +733,12 @@ const PlayMatch = () => {
         )}
 
         {/* Event Notifications */}
-        <MatchEventNotifications events={activeEventNotifications} />
+        <MatchEventNotifications 
+          events={activeEventNotifications}
+          onDismiss={(index) => {
+            setActiveEventNotifications(prev => prev.filter((_, i) => i !== index));
+          }}
+        />
 
         <div className="flex justify-between items-center mb-2">
           <h1 className="text-lg font-heading font-bold gradient-text">Play Match</h1>
