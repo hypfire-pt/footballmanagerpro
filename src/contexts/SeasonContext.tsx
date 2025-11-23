@@ -339,6 +339,13 @@ export function SeasonProvider({ children }: { children: React.ReactNode }) {
         console.log(`[SEASON] User match complete for Matchday ${matchday}. Simulating ALL remaining AI matches...`);
         
         const { AIMatchSimulator } = await import('@/services/aiMatchSimulator');
+        const { FixtureScheduler } = await import('@/services/fixtureScheduler');
+        
+        // Get matchday status before simulating
+        const fixtures = (season.fixtures_state as any[]) || [];
+        const beforeStatus = FixtureScheduler.getMatchdayStatus(fixtures, matchday);
+        console.log(`[SEASON] Matchday ${matchday} status before AI simulation:`, beforeStatus);
+        
         const aiMatchesSimulated = await AIMatchSimulator.simulateMatchdayAIMatches(
           season.id,
           currentSave.id,
@@ -346,9 +353,9 @@ export function SeasonProvider({ children }: { children: React.ReactNode }) {
           currentSave.team_id
         );
 
-        console.log(`[SEASON] Matchday ${matchday} complete! ${aiMatchesSimulated} AI matches simulated.`);
+        console.log(`[SEASON] Matchday ${matchday} AI simulation complete! ${aiMatchesSimulated} AI matches simulated.`);
 
-        // Refresh standings after all AI matches complete
+        // Refresh standings and fixtures after all AI matches complete
         const { data: refreshedSeason } = await supabase
           .from('save_seasons')
           .select('standings_state, fixtures_state')
@@ -356,14 +363,29 @@ export function SeasonProvider({ children }: { children: React.ReactNode }) {
           .maybeSingle();
 
         if (refreshedSeason) {
+          const updatedFixtures = refreshedSeason.fixtures_state as any[];
+          const afterStatus = FixtureScheduler.getMatchdayStatus(updatedFixtures, matchday);
+          
+          console.log(`[SEASON] Matchday ${matchday} status after AI simulation:`, afterStatus);
+          
           setLeagueStandings(refreshedSeason.standings_state as any[]);
-          setFixtures(refreshedSeason.fixtures_state as any[]);
+          setFixtures(updatedFixtures);
+          
+          // Validate matchday is fully complete
+          if (afterStatus.isComplete) {
+            toast({
+              title: "✅ Matchday Complete!",
+              description: `All ${afterStatus.total} matches completed. League table fully updated.`,
+            });
+          } else {
+            console.warn(`[SEASON] Matchday ${matchday} incomplete! ${afterStatus.scheduled} matches still scheduled.`);
+            toast({
+              title: "⚠️ Matchday Incomplete",
+              description: `${afterStatus.finished}/${afterStatus.total} matches completed. ${afterStatus.scheduled} still pending.`,
+              variant: "destructive"
+            });
+          }
         }
-
-        toast({
-          title: "✅ Matchday Complete!",
-          description: `All ${aiMatchesSimulated + 1} matches completed. League table updated.`,
-        });
       } else {
         toast({
           title: "Match Result Saved",

@@ -12,6 +12,8 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentSave } from "@/hooks/useCurrentSave";
 import { MatchdaySummary } from "@/components/MatchdaySummary";
+import { MatchdayStatusBar } from "@/components/MatchdayStatusBar";
+import { FixtureScheduler } from "@/services/fixtureScheduler";
 
 interface Fixture {
   id: string;
@@ -22,7 +24,8 @@ interface Fixture {
   date: string;
   competition: string;
   status: string;
-  matchweek: number;
+  matchweek?: number;
+  matchday?: number; // Allow both for compatibility
   homeScore?: number;
   awayScore?: number;
 }
@@ -544,6 +547,24 @@ const CalendarPage = () => {
             <Button onClick={() => handleAdvanceDays(7)} variant="outline" size="sm" className="text-xs" disabled={loading}>+1 Week</Button>
           </div>
         </div>
+
+        {/* Matchday Status Bar */}
+        {(() => {
+          const matchdayFixtures = fixtures.map(f => ({
+            ...f,
+            matchday: f.matchday || f.matchweek || 1
+          }));
+          const matchdayStatus = FixtureScheduler.getMatchdayStatus(matchdayFixtures as any, currentMatchweek);
+          return matchdayStatus.total > 0 ? (
+            <MatchdayStatusBar
+              matchday={currentMatchweek}
+              total={matchdayStatus.total}
+              finished={matchdayStatus.finished}
+              scheduled={matchdayStatus.scheduled}
+              isComplete={matchdayStatus.isComplete}
+            />
+          ) : null;
+        })()}
 
         <Tabs defaultValue="calendar" className="space-y-4">
           <TabsList className="text-xs">
