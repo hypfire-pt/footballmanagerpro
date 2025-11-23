@@ -8,7 +8,7 @@ import PlayerPerformanceTracker from "@/components/PlayerPerformanceTracker";
 import TacticalAdjustmentPanel from "@/components/TacticalAdjustmentPanel";
 import CrowdAtmosphere from "@/components/CrowdAtmosphere";
 import { MatchEventNotifications } from "@/components/MatchEventNotification";
-import { AttackDefenseBar } from "@/components/AttackDefenseBar";
+import { ImprovedAttackDefenseBar } from "@/components/ImprovedAttackDefenseBar";
 import { MatchResultSummary } from "@/components/MatchResultSummary";
 import { HalfTimeModal } from "@/components/HalfTimeModal";
 import { GoalCelebration } from "@/components/GoalCelebration";
@@ -348,6 +348,8 @@ const PlayMatch = () => {
             setTenseMoment('dangerous_attack');
           } else if (event.type === 'corner') {
             matchSounds.corner();
+          } else if (event.type === 'injury') {
+            matchSounds.whistle(); // Use whistle sound for injuries
           }
 
           // Final minutes tension
@@ -355,7 +357,7 @@ const PlayMatch = () => {
             setTenseMoment('final_minutes');
           }
           
-          if (['goal', 'yellow_card', 'red_card', 'shot_on_target', 'substitution'].includes(event.type)) {
+          if (['goal', 'yellow_card', 'red_card', 'injury', 'shot_on_target', 'substitution'].includes(event.type)) {
             setActiveEventNotifications(prev => [...prev, event]);
           }
           
@@ -560,6 +562,10 @@ const PlayMatch = () => {
             result={result}
             open={showResultSummary}
             onContinue={handleContinueToNextMatch}
+            homeLogoUrl={teamColors.home.logoUrl}
+            awayLogoUrl={teamColors.away.logoUrl}
+            homeColor={teamColors.home.primary}
+            awayColor={teamColors.away.primary}
           />
         )}
 
@@ -725,15 +731,25 @@ const PlayMatch = () => {
 
             {/* Attack/Defense */}
             <Card className="glass p-2 border-border/50 flex-shrink-0">
-              <h3 className="text-xs font-heading font-semibold mb-2">Attack/Defense</h3>
-              <AttackDefenseBar 
-                homeTeam={isHome ? userTeamName : opponentTeamName}
-                awayTeam={isHome ? opponentTeamName : userTeamName}
-                homeAttack={isHome ? momentum.home : momentum.away}
-                awayAttack={isHome ? momentum.away : momentum.home}
+              <h3 className="text-xs font-heading font-semibold mb-2">Field Progression</h3>
+              <ImprovedAttackDefenseBar 
+                homeTeam={homeTeamName}
+                awayTeam={awayTeamName}
+                homeAttack={momentum.home}
+                awayAttack={momentum.away}
                 currentMinute={currentMinute}
-                homeColor={isHome ? teamColors.home.primary : teamColors.away.primary}
-                awayColor={isHome ? teamColors.away.primary : teamColors.home.primary}
+                homeColor={teamColors.home.primary}
+                awayColor={teamColors.away.primary}
+                homeLogoUrl={teamColors.home.logoUrl}
+                awayLogoUrl={teamColors.away.logoUrl}
+                homeScore={currentHomeScore}
+                awayScore={currentAwayScore}
+                matchPeriod={
+                  currentMinute === 0 ? 'first_half' :
+                  currentMinute === 45 ? 'half_time' :
+                  currentMinute > 45 && currentMinute < 90 ? 'second_half' :
+                  'full_time'
+                }
               />
             </Card>
 

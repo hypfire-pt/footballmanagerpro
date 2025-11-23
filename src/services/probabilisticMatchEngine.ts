@@ -594,6 +594,42 @@ export class ProbabilisticMatchEngine {
     });
   }
 
+  private generateInjury(team: 'home' | 'away', minute: number, context: MatchContext): void {
+    const lineup = team === 'home' ? this.homeLineup : this.awayLineup;
+    const player = lineup.players[Math.floor(Math.random() * lineup.players.length)];
+    
+    // Injury severity
+    const severityRoll = Math.random();
+    let injuryType = '';
+    let expectedReturn = '';
+    
+    if (severityRoll < 0.6) {
+      injuryType = 'minor knock';
+      expectedReturn = '1-2 weeks';
+    } else if (severityRoll < 0.85) {
+      injuryType = 'muscle strain';
+      expectedReturn = '3-4 weeks';
+    } else if (severityRoll < 0.95) {
+      injuryType = 'serious injury';
+      expectedReturn = '6-8 weeks';
+    } else {
+      injuryType = 'season-ending injury';
+      expectedReturn = 'rest of season';
+    }
+    
+    this.events.push({
+      id: `event_${Date.now()}_${Math.random()}`,
+      minute,
+      type: 'injury',
+      team,
+      player: player.name,
+      description: `🤕 INJURY! ${player.name} is down with a ${injuryType} (${expectedReturn})`,
+    });
+    
+    // Momentum shift due to injury
+    this.updateMomentum(team === 'home' ? 'away' : 'home', 8);
+  }
+
   private generateFoul(team: 'home' | 'away', minute: number, context: MatchContext): void {
     const lineup = team === 'home' ? this.homeLineup : this.awayLineup;
     const defenders = lineup.players.filter(p => ['CB', 'LB', 'RB', 'CDM'].includes(p.position));
@@ -621,19 +657,19 @@ export class ProbabilisticMatchEngine {
     // Referee bias - away team 60% more likely to get cards (home advantage)
     const homeAdvantageBias = team === 'away' ? 1.6 : 1.0;
     
-    // Calculate card probability
-    let cardProbability = 0.15 * homeAdvantageBias; // Base 15% chance
+    // Calculate card probability - INCREASED for more realistic matches
+    let cardProbability = 0.25 * homeAdvantageBias; // Increased from 15% to 25%
     
     // Modifiers for card probability
-    if (foulSeverity > 0.7) cardProbability += 0.15; // Severe foul
-    if (minute > 80) cardProbability += 0.1; // Late match = stricter refereeing
-    if (context.isDerby) cardProbability += 0.1; // Derby = stricter control
-    if (player.morale < 50) cardProbability += 0.05; // Low morale = poor discipline
+    if (foulSeverity > 0.7) cardProbability += 0.20; // Increased from 0.15
+    if (minute > 80) cardProbability += 0.15; // Increased from 0.1
+    if (context.isDerby) cardProbability += 0.15; // Increased from 0.1
+    if (player.morale < 50) cardProbability += 0.08; // Increased from 0.05
     
     const cardRoll = Math.random();
     
-    // Red card probability (much lower)
-    const redCardProbability = cardProbability * 0.05; // 5% of card probability
+    // Red card probability - INCREASED
+    const redCardProbability = cardProbability * 0.08; // Increased from 0.05 (5%) to 0.08 (8%)
     
     if (cardRoll < redCardProbability) {
       // RED CARD
@@ -721,6 +757,16 @@ export class ProbabilisticMatchEngine {
     const totalMinutes = 90 + Math.floor(Math.random() * 5); // 0-4 minutes injury time
     
     for (let minute = 1; minute <= totalMinutes; minute++) {
+      // Build match context for this minute
+      const context: MatchContext = {
+        minute,
+        homeScore: this.homeScore,
+        awayScore: this.awayScore,
+        momentum: this.momentum,
+        weather: this.weather,
+        isDerby: this.isDerby
+      };
+      
       // Determine if this is a key moment
       const isKeyMoment = 
         minute < 5 ||  // Opening minutes
@@ -738,6 +784,29 @@ export class ProbabilisticMatchEngine {
       if (Math.random() < eventProbability) {
         const attackingTeam = Math.random() * 100 < this.stats.possession.home ? 'home' : 'away';
         this.simulateAttack(attackingTeam, minute);
+      }
+      
+      // INJURY CHECK - happens randomly throughout the match
+      const injuryBaseProbability = 0.03; // 3% base chance per minute
+      let injuryProbability = injuryBaseProbability;
+      
+      // Factors increasing injury probability
+      if (minute > 70) injuryProbability += 0.02; // Fatigue in late match
+      if (context.isDerby) injuryProbability += 0.01; // Derby intensity
+      if (this.weather === 'heavy_rain') injuryProbability += 0.01; // Slippery conditions
+      
+      // Check for injury
+      if (Math.random() < injuryProbability) {
+        const injuredTeam = Math.random() < 0.5 ? 'home' : 'away';
+        const lineup = injuredTeam === 'home' ? this.homeLineup : this.awayLineup;
+        const injuredPlayer = lineup.players[Math.floor(Math.random() * lineup.players.length)];
+        
+        // Lower fitness increases injury risk
+        const fitnessModifier = injuredPlayer.fitness < 70 ? 1.5 : 1.0;
+        
+        if (Math.random() < fitnessModifier) {
+          this.generateInjury(injuredTeam, minute, context);
+        }
       }
       
       // Store momentum for this minute (cap at 90 for display)

@@ -1,7 +1,7 @@
 export interface MatchEvent {
   id: string;
   minute: number;
-  type: 'goal' | 'shot' | 'shot_on_target' | 'save' | 'foul' | 'yellow_card' | 'red_card' | 'substitution' | 'corner' | 'offside';
+  type: 'goal' | 'shot' | 'shot_on_target' | 'save' | 'foul' | 'yellow_card' | 'red_card' | 'substitution' | 'corner' | 'offside' | 'injury';
   team: 'home' | 'away';
   player?: string;
   playerOut?: string;
