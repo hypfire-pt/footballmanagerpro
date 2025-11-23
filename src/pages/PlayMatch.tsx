@@ -461,16 +461,6 @@ const PlayMatch = () => {
                 stadiumCapacity={stadiumCapacity}
                 homeReputation={homeReputation}
               />
-              <div className="mt-2">
-                <h4 className="text-xs font-semibold mb-1">Momentum</h4>
-                <MomentumVisualizer 
-                  homeTeam={homeTeamName}
-                  awayTeam={awayTeamName}
-                  homeMomentum={momentum.home}
-                  awayMomentum={momentum.away}
-                  currentMinute={currentMinute}
-                />
-              </div>
             </Card>
           </div>
 
@@ -490,6 +480,18 @@ const PlayMatch = () => {
                 momentum={momentum}
                 />
               </ScrollArea>
+            </Card>
+
+            {/* Momentum */}
+            <Card className="glass p-2 border-border/50 flex-shrink-0">
+              <h3 className="text-xs font-heading font-semibold mb-2">Momentum</h3>
+              <MomentumVisualizer 
+                homeTeam={homeTeamName}
+                awayTeam={awayTeamName}
+                homeMomentum={momentum.home}
+                awayMomentum={momentum.away}
+                currentMinute={currentMinute}
+              />
             </Card>
 
             {/* Substitutions */}
