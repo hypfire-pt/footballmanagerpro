@@ -18,6 +18,7 @@ export class ProbabilisticMatchEngine {
   private homeScore: number = 0;
   private awayScore: number = 0;
   private momentum: number = 0;
+  private momentumByMinute: Record<number, number> = {};
   private weather: WeatherCondition;
   private isDerby: boolean = false;
   private homeAdvantage: number = 0;
@@ -517,6 +518,9 @@ export class ProbabilisticMatchEngine {
         const attackingTeam = Math.random() * 100 < this.stats.possession.home ? 'home' : 'away';
         this.simulateAttack(attackingTeam, minute);
       }
+      
+      // Store momentum for this minute
+      this.momentumByMinute[minute] = this.momentum;
     }
 
     this.calculatePassAccuracy();
@@ -526,6 +530,7 @@ export class ProbabilisticMatchEngine {
       awayScore: this.awayScore,
       events: this.events.sort((a, b) => a.minute - b.minute),
       stats: this.stats,
+      momentumByMinute: this.momentumByMinute,
       playerRatings: { home: {}, away: {} },
       playerPerformance: { home: [], away: [] }
     };

@@ -509,6 +509,7 @@ export class MatchEngine {
       awayScore: this.awayScore,
       events: this.events.sort((a, b) => a.minute - b.minute),
       stats: this.stats,
+      momentumByMinute: {}, // Empty for old engine - not tracking momentum
       playerRatings,
       playerPerformance: {
         home: homePerformance,
