@@ -614,22 +614,7 @@ const PlayMatch = () => {
             <div className="absolute inset-0 bg-gradient-to-b from-background/95 via-background/90 to-background/95" />
           </div>
         )}
-        {/* Tense Moment Effects */}
-        {tenseMoment && (
-          <TenseMomentEffect
-            type={tenseMoment}
-            onComplete={() => setTenseMoment(null)}
-          />
-        )}
-
-        {/* Goal Celebration */}
-        {goalCelebration && (
-          <GoalCelebration
-            team={goalCelebration.team}
-            playerName={goalCelebration.playerName}
-            onComplete={() => setGoalCelebration(null)}
-          />
-        )}
+        {/* All match events display in match events box only - no overlays */}
 
         {/* Half Time Modal */}
         {result && showHalfTime && (isHome ? homeLineupState : awayLineupState) && (
