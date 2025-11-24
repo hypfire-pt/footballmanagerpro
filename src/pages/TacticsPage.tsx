@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -92,6 +93,7 @@ const formations = {
 };
 
 const TacticsPage = () => {
+  const navigate = useNavigate();
   const [selectedFormation, setSelectedFormation] = useState<keyof typeof formations>("4-4-2");
   const [mentality, setMentality] = useState([50]);
   const [tempo, setTempo] = useState([50]);
@@ -223,10 +225,10 @@ const TacticsPage = () => {
             <p className="text-muted-foreground">Configure your team's formation and playing style</p>
           </div>
           <div className="flex gap-2">
-            <Button onClick={() => window.location.href = '/dashboard'} variant="outline" size="lg">
+            <Button onClick={() => navigate('/dashboard')} variant="outline" size="lg">
               Back to Dashboard
             </Button>
-            <Button onClick={() => window.location.href = '/match'} variant="outline" size="lg">
+            <Button onClick={() => navigate('/match')} variant="outline" size="lg">
               Play Match
             </Button>
             <Button onClick={handleSaveTactics} size="lg">
