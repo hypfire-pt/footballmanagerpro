@@ -48,13 +48,8 @@ const MatchCommentary = ({
       case 'goal':
         lines.push({
           minute: event.minute,
-          text: `${mainText} ${event.player}! ${team} score!`,
+          text: `⚽ GOAL! ${event.player} scores for ${team}!`,
           type: 'event'
-        });
-        lines.push({
-          minute: event.minute,
-          text: `The stadium erupts! That's a crucial moment. ${team} showing their quality!`,
-          type: 'tactical'
         });
         break;
 
@@ -99,10 +94,17 @@ const MatchCommentary = ({
         break;
 
       case 'yellow_card':
+        lines.push({
+          minute: event.minute,
+          text: `🟨 ${event.player} receives a yellow card (${team})`,
+          type: 'event'
+        });
+        break;
+
       case 'red_card':
         lines.push({
           minute: event.minute,
-          text: `${event.player} - ${mainText}`,
+          text: `🟥 ${event.player} sent off! Red card for ${team}!`,
           type: 'event'
         });
         break;
