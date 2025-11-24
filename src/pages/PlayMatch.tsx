@@ -7,6 +7,7 @@ import MatchCommentary from "@/components/MatchCommentary";
 import PlayerPerformanceTracker from "@/components/PlayerPerformanceTracker";
 import TacticalAdjustmentPanel from "@/components/TacticalAdjustmentPanel";
 import CrowdAtmosphere from "@/components/CrowdAtmosphere";
+import MatchEventOverlay from "@/components/MatchEventOverlay";
 import { MatchEventNotifications } from "@/components/MatchEventNotification";
 import { ImprovedAttackDefenseBar } from "@/components/ImprovedAttackDefenseBar";
 import { MatchResultSummary } from "@/components/MatchResultSummary";
@@ -66,6 +67,7 @@ const PlayMatch = () => {
   const [benchPlayers, setBenchPlayers] = useState<any[]>([]);
   const [goalCelebration, setGoalCelebration] = useState<{ team: 'home' | 'away'; playerName: string } | null>(null);
   const [tenseMoment, setTenseMoment] = useState<'close_call' | 'final_minutes' | 'dangerous_attack' | null>(null);
+  const [currentOverlay, setCurrentOverlay] = useState<{ type: 'goal' | 'yellow_card' | 'red_card' | 'shot' | 'save'; playerName: string; team: string } | null>(null);
   const [teamColors, setTeamColors] = useState<{ home: { primary: string; secondary: string; logoUrl?: string }; away: { primary: string; secondary: string; logoUrl?: string } }>({
     home: { primary: '#22c55e', secondary: '#ffffff' },
     away: { primary: '#3b82f6', secondary: '#ffffff' }
@@ -417,27 +419,48 @@ const PlayMatch = () => {
             });
           }
           
-          // Play sound effects and visual effects
+          // Play sound effects and visual overlays
           if (event.type === 'goal') {
             matchSounds.goal();
-            setGoalCelebration({
-              team: event.team,
-              playerName: event.player || 'Unknown'
+            setCurrentOverlay({
+              type: 'goal',
+              playerName: event.player || 'Unknown',
+              team: event.team === 'home' ? homeTeamName : awayTeamName
             });
           } else if (event.type === 'shot_on_target') {
             matchSounds.shotOnTarget();
-            if (Math.random() < 0.3) {
-              setTenseMoment('close_call');
-            }
           } else if (event.type === 'shot') {
             matchSounds.missedShot();
+            if (Math.random() < 0.4) {
+              setCurrentOverlay({
+                type: 'shot',
+                playerName: event.player || 'Unknown',
+                team: event.team === 'home' ? homeTeamName : awayTeamName
+              });
+            }
           } else if (event.type === 'yellow_card') {
             matchSounds.yellowCard();
+            setCurrentOverlay({
+              type: 'yellow_card',
+              playerName: event.player || 'Unknown',
+              team: event.team === 'home' ? homeTeamName : awayTeamName
+            });
           } else if (event.type === 'red_card') {
             matchSounds.redCard();
+            setCurrentOverlay({
+              type: 'red_card',
+              playerName: event.player || 'Unknown',
+              team: event.team === 'home' ? homeTeamName : awayTeamName
+            });
           } else if (event.type === 'save') {
             matchSounds.save();
-            setTenseMoment('dangerous_attack');
+            if (Math.random() < 0.5) {
+              setCurrentOverlay({
+                type: 'save',
+                playerName: event.player || 'Unknown',
+                team: event.team === 'home' ? homeTeamName : awayTeamName
+              });
+            }
           } else if (event.type === 'corner') {
             matchSounds.corner();
           } else if (event.type === 'injury') {
@@ -614,7 +637,15 @@ const PlayMatch = () => {
             <div className="absolute inset-0 bg-gradient-to-b from-background/95 via-background/90 to-background/95" />
           </div>
         )}
-        {/* All match events display in match events box only - no overlays */}
+        {/* Match Event Overlays */}
+        {currentOverlay && (
+          <MatchEventOverlay
+            type={currentOverlay.type}
+            playerName={currentOverlay.playerName}
+            team={currentOverlay.team}
+            onComplete={() => setCurrentOverlay(null)}
+          />
+        )}
 
         {/* Half Time Modal */}
         {result && showHalfTime && (isHome ? homeLineupState : awayLineupState) && (
