@@ -110,8 +110,16 @@ const MatchCommentary = ({
       case 'substitution':
         lines.push({
           minute: event.minute,
-          text: `🔄 ${event.playerIn} replaces ${event.playerOut}. ${team} making a change!`,
-          type: 'tactical'
+          text: `🔄 Substitution: ${event.playerIn} replaces ${event.playerOut} (${team})`,
+          type: 'event'
+        });
+        break;
+
+      case 'injury':
+        lines.push({
+          minute: event.minute,
+          text: `🚑 Injury: ${event.player} is down and receiving treatment (${team})`,
+          type: 'event'
         });
         break;
 
