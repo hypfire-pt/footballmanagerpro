@@ -854,6 +854,8 @@ const PlayMatch = () => {
                 awayColor={teamColors.away.primary}
                 homeSecondaryColor={teamColors.home.secondary}
                 awaySecondaryColor={teamColors.away.secondary}
+                homeLogoUrl={teamColors.home.logoUrl}
+                awayLogoUrl={teamColors.away.logoUrl}
               />
               )}
             </Card>
