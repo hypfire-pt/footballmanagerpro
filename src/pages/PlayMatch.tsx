@@ -716,9 +716,8 @@ const PlayMatch = () => {
           homeScore={currentHomeScore}
           awayScore={currentAwayScore}
           matchPeriod={
-            currentMinute === 0 ? 'first_half' :
-            currentMinute === 45 ? 'half_time' :
-            currentMinute > 45 && currentMinute < 90 ? 'second_half' :
+            currentMinute <= 45 ? 'first_half' :
+            currentMinute > 45 && currentMinute <= 90 ? 'second_half' :
             'full_time'
           }
         />
