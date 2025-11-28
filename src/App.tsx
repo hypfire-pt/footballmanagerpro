@@ -30,6 +30,7 @@ import MatchHistoryPage from "./pages/MatchHistoryPage";
 import PlayerStatsPage from "./pages/PlayerStatsPage";
 import LeagueStandingsPage from "./pages/LeagueStandingsPage";
 import AIMatchSimulatorTest from "./pages/AIMatchSimulatorTest";
+import AdminPage from "./pages/AdminPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -72,6 +73,7 @@ const App = () => {
                 <Route path="/player-stats" element={<ProtectedRoute><PlayerStatsPage /></ProtectedRoute>} />
                 <Route path="/standings" element={<ProtectedRoute><LeagueStandingsPage /></ProtectedRoute>} />
                 <Route path="/ai-simulator" element={<ProtectedRoute><AIMatchSimulatorTest /></ProtectedRoute>} />
+                <Route path="/admin" element={<ProtectedRoute><AdminPage /></ProtectedRoute>} />
                   {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                   <Route path="*" element={<NotFound />} />
                 </Routes>

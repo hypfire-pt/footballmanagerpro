@@ -8,3 +8,7 @@ verify_jwt = false
 
 [functions.ai-match-commentary]
 verify_jwt = false
+
+[functions.populate-real-players]
+verify_jwt = true
+
