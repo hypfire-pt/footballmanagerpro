@@ -358,12 +358,12 @@ const PitchVisualization = ({
     animate();
   };
 
-  // Enhanced ball movement with passing sequences
+  // Enhanced ball movement across entire field
   useEffect(() => {
     if (!isPlaying) return;
 
     let passCount = 0;
-    const maxPassesBeforeAction = 3 + Math.floor(Math.random() * 4); // 3-6 passes
+    const maxPassesBeforeAction = 2 + Math.floor(Math.random() * 3); // 2-4 passes
     
     const moveBall = () => {
       passCount++;
@@ -375,44 +375,53 @@ const PitchVisualization = ({
       let targetX: number;
       let targetY: number;
       
+      // Calculate which team has possession based on momentum
+      const homePossession = homeAttackStrength > awayAttackStrength;
+      
       if (passCount >= maxPassesBeforeAction) {
-        // Build-up complete - move towards goal
-        if (homeAttackStrength > awayAttackStrength) {
-          // Home attacking
-          targetX = 40 + Math.random() * 20; // Center attacking third
-          targetY = 15 + Math.random() * 25; // Move towards away goal
+        // Build-up complete - move towards goal or create chances
+        if (homePossession) {
+          // Home attacking - can be anywhere in attacking zones
+          targetX = 15 + Math.random() * 70; // Wide spread across attacking width
+          targetY = 10 + Math.random() * 40; // Deep into attacking third, towards away goal
         } else {
-          // Away attacking
-          targetX = 40 + Math.random() * 20;
-          targetY = 60 + Math.random() * 25; // Move towards home goal
+          // Away attacking - can be anywhere in their attacking zones
+          targetX = 15 + Math.random() * 70; // Wide spread
+          targetY = 50 + Math.random() * 40; // Deep into attacking third, towards home goal
         }
         passCount = 0; // Reset for next sequence
       } else {
-        // Passing in build-up
-        if (homeAttackStrength > awayAttackStrength) {
-          // Home possession - midfield passing
-          targetX = 25 + Math.random() * 50;
-          targetY = 45 + Math.random() * 30;
+        // Passing across entire field - more dynamic movement
+        if (homePossession) {
+          // Home possession - can be anywhere from defense to attack
+          targetX = 10 + Math.random() * 80; // Full width of pitch
+          targetY = 30 + Math.random() * 50; // From home defense to away penalty area
         } else {
-          // Away possession - midfield passing
-          targetX = 25 + Math.random() * 50;
-          targetY = 25 + Math.random() * 30;
+          // Away possession - can be anywhere from their defense to attack
+          targetX = 10 + Math.random() * 80; // Full width of pitch
+          targetY = 20 + Math.random() * 50; // From away defense to home penalty area
         }
       }
       
-      // Smooth interpolation
+      // Add some randomness for crosses and long balls
+      if (Math.random() < 0.15) {
+        // Occasional wide ball to flanks
+        targetX = Math.random() < 0.5 ? 5 + Math.random() * 15 : 80 + Math.random() * 15;
+      }
+      
+      // Smooth interpolation with faster response
       setBallPosition(prev => ({
-        x: prev.x + (targetX - prev.x) * 0.15, // Faster movement for better flow
-        y: prev.y + (targetY - prev.y) * 0.15,
+        x: prev.x + (targetX - prev.x) * 0.2,
+        y: prev.y + (targetY - prev.y) * 0.2,
         visible: true,
       }));
       
       if (isPlaying) {
-        setTimeout(moveBall, 150); // Slightly faster updates
+        setTimeout(moveBall, 120); // Faster updates for more dynamic movement
       }
     };
 
-    const timer = setTimeout(moveBall, 150);
+    const timer = setTimeout(moveBall, 120);
     return () => clearTimeout(timer);
   }, [isPlaying, attackMomentum]);
 

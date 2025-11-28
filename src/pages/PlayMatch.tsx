@@ -702,70 +702,26 @@ const PlayMatch = () => {
           <Badge variant="outline" className="text-xs">{competition}</Badge>
         </div>
 
-        {/* Match Progress - Integrated in Layout */}
-        <Card className="glass p-3 border-border/50 mb-2">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <TeamLogo
-                teamName={homeTeamName}
-                primaryColor={teamColors.home.primary}
-                secondaryColor={teamColors.home.secondary}
-                logoUrl={teamColors.home.logoUrl}
-                size="sm"
-              />
-              <span className="text-2xl font-heading font-bold gradient-text">{currentHomeScore}</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <Clock className="h-3 w-3 text-accent" />
-              <span className="text-sm font-medium text-accent">{currentMinute}'</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-2xl font-heading font-bold gradient-text">{currentAwayScore}</span>
-              <TeamLogo
-                teamName={awayTeamName}
-                primaryColor={teamColors.away.primary}
-                secondaryColor={teamColors.away.secondary}
-                logoUrl={teamColors.away.logoUrl}
-                size="sm"
-              />
-            </div>
-          </div>
-          
-          {/* Field Position Progression - Shows attacking direction */}
-          <div className="space-y-1">
-            <div className="flex justify-between text-xs font-medium text-muted-foreground">
-              <span>Defense</span>
-              <span className="text-accent">Field Position</span>
-              <span>Defense</span>
-            </div>
-            <div className="relative h-3 bg-gradient-to-r from-green-950 via-green-900 to-green-950 rounded-full overflow-hidden border border-green-800/50">
-              {/* Ball position indicator */}
-              <div 
-                className="absolute top-0 bottom-0 w-3 h-3 rounded-full bg-white shadow-lg shadow-white/50 transition-all duration-500"
-                style={{
-                  left: `calc(${momentum.home}% - 6px)`,
-                }}
-              />
-              {/* Attack direction overlay */}
-              <div 
-                className="absolute inset-0 opacity-30"
-                style={{
-                  background: momentum.home > 50 
-                    ? `linear-gradient(to right, transparent ${momentum.home - 20}%, ${teamColors.away.primary} ${momentum.home}%, transparent ${momentum.home + 20}%)`
-                    : `linear-gradient(to right, transparent ${momentum.home - 20}%, ${teamColors.home.primary} ${momentum.home}%, transparent ${momentum.home + 20}%)`
-                }}
-              />
-            </div>
-            <div className="flex justify-between text-xs text-muted-foreground">
-              <span className={momentum.home < 30 ? 'text-red-500 font-semibold' : ''}>
-                {momentum.home < 30 && '← Under Pressure'}
-              </span>
-              <span className={momentum.home > 70 ? 'text-red-500 font-semibold' : ''}>
-                {momentum.home > 70 && 'Under Pressure →'}
-              </span>
-            </div>
-          </div>
-        </Card>
+        {/* Match Progress with Animated Attack/Defense Bar */}
+        <ImprovedAttackDefenseBar
+          homeTeam={homeTeamName}
+          awayTeam={awayTeamName}
+          homeAttack={momentum.home}
+          awayAttack={momentum.away}
+          currentMinute={currentMinute}
+          homeColor={teamColors.home.primary}
+          awayColor={teamColors.away.primary}
+          homeLogoUrl={teamColors.home.logoUrl}
+          awayLogoUrl={teamColors.away.logoUrl}
+          homeScore={currentHomeScore}
+          awayScore={currentAwayScore}
+          matchPeriod={
+            currentMinute === 0 ? 'first_half' :
+            currentMinute === 45 ? 'half_time' :
+            currentMinute > 45 && currentMinute < 90 ? 'second_half' :
+            'full_time'
+          }
+        />
 
         {/* Main Layout: 3 Columns */}
         <div className="grid grid-cols-[1fr_2fr_1fr] gap-2 flex-1 min-h-0">
