@@ -14,6 +14,8 @@ interface PitchVisualizationProps {
   awayColor?: string;
   homeSecondaryColor?: string;
   awaySecondaryColor?: string;
+  homeLogoUrl?: string;
+  awayLogoUrl?: string;
 }
 
 interface PlayerPosition {
@@ -58,15 +60,38 @@ const PitchVisualization = ({
   homeColor = '#22c55e',
   awayColor = '#3b82f6',
   homeSecondaryColor = '#ffffff',
-  awaySecondaryColor = '#ffffff'
+  awaySecondaryColor = '#ffffff',
+  homeLogoUrl,
+  awayLogoUrl
 }: PitchVisualizationProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [ballPosition, setBallPosition] = useState<BallPosition>({ x: 50, y: 50, visible: true });
   const [activePlayer, setActivePlayer] = useState<string | null>(null);
   const [dynamicPositions, setDynamicPositions] = useState<Map<string, DynamicPlayerPosition>>(new Map());
   const [heatMapData, setHeatMapData] = useState<Map<string, HeatMapPoint[]>>(new Map());
+  const [homeLogoImage, setHomeLogoImage] = useState<HTMLImageElement | null>(null);
+  const [awayLogoImage, setAwayLogoImage] = useState<HTMLImageElement | null>(null);
   const animationRef = useRef<number>();
   const movementAnimationRef = useRef<number>();
+
+  // Load team logos
+  useEffect(() => {
+    if (homeLogoUrl) {
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      img.onload = () => setHomeLogoImage(img);
+      img.src = homeLogoUrl;
+    }
+  }, [homeLogoUrl]);
+
+  useEffect(() => {
+    if (awayLogoUrl) {
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      img.onload = () => setAwayLogoImage(img);
+      img.src = awayLogoUrl;
+    }
+  }, [awayLogoUrl]);
 
   // Formation position mappings (percentage-based)
   const getFormationPositions = (formation: string, isHome: boolean): Record<string, { x: number; y: number }> => {
@@ -188,6 +213,25 @@ const PitchVisualization = ({
     // Bottom goal
     ctx.fillRect(width / 2 - 40, height - 20, 80, 10);
     ctx.strokeRect(width / 2 - 40, height - 20, 80, 10);
+
+    // Draw team logos
+    const logoSize = 50;
+    
+    // Away team logo (top)
+    if (awayLogoImage) {
+      ctx.save();
+      ctx.globalAlpha = 0.6;
+      ctx.drawImage(awayLogoImage, width / 2 - logoSize / 2, 35, logoSize, logoSize);
+      ctx.restore();
+    }
+
+    // Home team logo (bottom)
+    if (homeLogoImage) {
+      ctx.save();
+      ctx.globalAlpha = 0.6;
+      ctx.drawImage(homeLogoImage, width / 2 - logoSize / 2, height - 85, logoSize, logoSize);
+      ctx.restore();
+    }
   };
 
   const drawPlayer = (
@@ -358,7 +402,7 @@ const PitchVisualization = ({
     animate();
   };
 
-  // Enhanced ball movement across entire field
+  // Enhanced ball movement - faster passing between players
   useEffect(() => {
     if (!isPlaying) return;
 
@@ -391,7 +435,7 @@ const PitchVisualization = ({
         }
         passCount = 0; // Reset for next sequence
       } else {
-        // Passing across entire field - more dynamic movement
+        // Fast passing across entire field
         if (homePossession) {
           // Home possession - can be anywhere from defense to attack
           targetX = 10 + Math.random() * 80; // Full width of pitch
@@ -409,19 +453,19 @@ const PitchVisualization = ({
         targetX = Math.random() < 0.5 ? 5 + Math.random() * 15 : 80 + Math.random() * 15;
       }
       
-      // Smooth interpolation with faster response
+      // Fast ball movement with smooth interpolation
       setBallPosition(prev => ({
-        x: prev.x + (targetX - prev.x) * 0.2,
-        y: prev.y + (targetY - prev.y) * 0.2,
+        x: prev.x + (targetX - prev.x) * 0.3, // Faster interpolation
+        y: prev.y + (targetY - prev.y) * 0.3,
         visible: true,
       }));
       
       if (isPlaying) {
-        setTimeout(moveBall, 120); // Faster updates for more dynamic movement
+        setTimeout(moveBall, 80); // Faster ball updates for quicker passing
       }
     };
 
-    const timer = setTimeout(moveBall, 120);
+    const timer = setTimeout(moveBall, 80);
     return () => clearTimeout(timer);
   }, [isPlaying, attackMomentum]);
 
@@ -500,12 +544,12 @@ const PitchVisualization = ({
     };
   }, [currentEvent]);
 
-  // Initialize static player positions (no movement)
+  // Initialize player positions with subtle tactical movement
   useEffect(() => {
     const homePositions = getFormationPositions(homeLineup.formation, true);
     const awayPositions = getFormationPositions(awayLineup.formation, false);
 
-    // Initialize static positions
+    // Initialize positions with subtle movement capability
     const newPositions = new Map<string, DynamicPlayerPosition>();
 
     homeLineup.players.slice(0, 11).forEach((player, idx) => {
@@ -548,6 +592,48 @@ const PitchVisualization = ({
 
     setDynamicPositions(newPositions);
   }, [homeLineup, awayLineup]);
+
+  // Subtle tactical player movement effect
+  useEffect(() => {
+    if (!isPlaying) return;
+
+    const movePlayers = () => {
+      setDynamicPositions(prev => {
+        const updated = new Map(prev);
+        
+        updated.forEach((pos, id) => {
+          // Small tactical adjustments - players shift slightly
+          const randomShiftX = (Math.random() - 0.5) * 2; // ±1% movement
+          const randomShiftY = (Math.random() - 0.5) * 2; // ±1% movement
+          
+          // Keep players close to their base position
+          const targetX = pos.baseX + randomShiftX;
+          const targetY = pos.baseY + randomShiftY;
+          
+          // Slow, strategic movement toward target
+          const newX = pos.x + (targetX - pos.x) * 0.03; // Very slow movement
+          const newY = pos.y + (targetY - pos.y) * 0.03;
+          
+          updated.set(id, {
+            ...pos,
+            x: newX,
+            y: newY,
+            currentX: newX,
+            currentY: newY,
+          });
+        });
+        
+        return updated;
+      });
+      
+      if (isPlaying) {
+        setTimeout(movePlayers, 1000); // Update every second for slow movement
+      }
+    };
+
+    const timer = setTimeout(movePlayers, 1000);
+    return () => clearTimeout(timer);
+  }, [isPlaying]);
 
   // Render pitch and players continuously
   useEffect(() => {
