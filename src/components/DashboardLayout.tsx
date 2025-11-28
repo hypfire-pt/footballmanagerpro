@@ -7,6 +7,7 @@ import gameLogo from "@/assets/game-logo.png";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { HowItWorksDialog } from "@/components/HowItWorksDialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -150,6 +151,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                   </Button>
                 </>
               )}
+              <HowItWorksDialog />
               <Button variant="outline" size="icon" className="relative hover:bg-primary/10 transition-all hover:scale-105">
                 <Bell className="h-4 w-4" />
                 <Badge 
