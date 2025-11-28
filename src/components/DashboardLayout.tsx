@@ -1,7 +1,7 @@
 import { ReactNode } from "react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
-import { Bell, User, LogOut, CloudUpload, Check, Inbox, Search, FolderOpen, Settings } from "lucide-react";
+import { Bell, User, LogOut, CloudUpload, Check, Inbox, Search, FolderOpen, Settings, Database } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import gameLogo from "@/assets/game-logo.png";
 import { Button } from "@/components/ui/button";
@@ -203,6 +203,10 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                   <DropdownMenuItem onClick={() => navigate("/options")} className="cursor-pointer">
                     <Settings className="mr-2 h-4 w-4" />
                     Settings
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => navigate("/admin")} className="cursor-pointer">
+                    <Database className="mr-2 h-4 w-4" />
+                    Admin Panel
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={signOut} className="text-destructive cursor-pointer">
