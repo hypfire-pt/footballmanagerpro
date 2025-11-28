@@ -1,7 +1,7 @@
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { MatchStats } from "@/types/match";
-import { Activity, Target, Circle, Flag, AlertTriangle, Users } from "lucide-react";
+import { Activity, Target, Circle, Flag, AlertTriangle, Users, Shield, CreditCard } from "lucide-react";
 
 interface MatchStatisticsComparisonProps {
   stats: MatchStats;
@@ -128,6 +128,20 @@ export const MatchStatisticsComparison = ({
           homeValue={stats.offsides.home}
           awayValue={stats.offsides.away}
           icon={Flag}
+        />
+
+        <StatRow
+          label="Yellow Cards"
+          homeValue={stats.yellowCards.home}
+          awayValue={stats.yellowCards.away}
+          icon={CreditCard}
+        />
+
+        <StatRow
+          label="Red Cards"
+          homeValue={stats.redCards.home}
+          awayValue={stats.redCards.away}
+          icon={CreditCard}
         />
       </div>
     </Card>
