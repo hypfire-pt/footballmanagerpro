@@ -74,8 +74,8 @@ export const MatchStatisticsComparison = ({
       <div className="space-y-4">
         <StatRow
           label="Possession"
-          homeValue={stats.possession.home}
-          awayValue={stats.possession.away}
+          homeValue={Math.round(stats.possession.home)}
+          awayValue={Math.round(stats.possession.away)}
           icon={Circle}
           isPercentage
         />
