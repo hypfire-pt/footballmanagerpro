@@ -13,9 +13,9 @@ export const GoalCelebration = ({ team, playerName, onComplete }: GoalCelebratio
 
   useEffect(() => {
     // Trigger confetti
-    const duration = 1500; // Reduced from 3000
+    const duration = 800;
     const animationEnd = Date.now() + duration;
-    const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 9999 };
+    const defaults = { startVelocity: 30, spread: 360, ticks: 40, zIndex: 9999 };
 
     const interval = setInterval(() => {
       const timeLeft = animationEnd - Date.now();
@@ -32,12 +32,12 @@ export const GoalCelebration = ({ team, playerName, onComplete }: GoalCelebratio
         particleCount,
         origin: { x: Math.random(), y: Math.random() - 0.2 }
       });
-    }, 250);
+    }, 200);
 
     const timer = setTimeout(() => {
       setIsVisible(false);
-      setTimeout(onComplete, 300); // Reduced from 500
-    }, 1500); // Reduced from 3000
+      setTimeout(onComplete, 200);
+    }, 800);
 
     return () => {
       clearTimeout(timer);
@@ -60,8 +60,8 @@ export const GoalCelebration = ({ team, playerName, onComplete }: GoalCelebratio
           rotate: [0, 5, -5, 0],
         }}
         transition={{
-          duration: 0.4, // Reduced from 0.5
-          repeat: 2, // Reduced from 3
+          duration: 0.3,
+          repeat: 1,
           repeatType: "reverse"
         }}
         className="text-center"
