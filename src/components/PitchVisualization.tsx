@@ -304,14 +304,14 @@ const PitchVisualization = ({
     ctx.lineWidth = 2;
     ctx.stroke();
 
-    // Player name (abbreviated)
+    // Player name (full last name)
     ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 10px Arial';
+    ctx.font = 'bold 9px Arial';
     ctx.textAlign = 'center';
     ctx.shadowColor = '#000000';
     ctx.shadowBlur = 3;
-    const shortName = name.split(' ').pop()?.substring(0, 3).toUpperCase() || '';
-    ctx.fillText(shortName, pixelX, pixelY - radius - 6);
+    const lastName = name.split(' ').pop()?.toUpperCase() || '';
+    ctx.fillText(lastName, pixelX, pixelY - radius - 6);
     ctx.shadowBlur = 0;
   };
 
