@@ -355,40 +355,46 @@ const PlayMatch = () => {
       const intervalTime = speed === 'fast' ? 200 : 1000;
 
       const updateMatch = () => {
-        if (isPaused) return;
-        
-        minute += speed === 'fast' ? 2 : 1;
-        setCurrentMinute(minute);
+        // Don't update game state when paused, but keep interval chain alive
+        if (!isPaused) {
+          minute += speed === 'fast' ? 2 : 1;
+          setCurrentMinute(minute);
 
-        // Pause match at half-time (minute 45)
-        if (minute === 45 && !showHalfTime) {
-          setIsPaused(true);
-          setShowHalfTime(true);
+          // Pause match at half-time (minute 45)
+          if (minute === 45 && !showHalfTime) {
+            setIsPaused(true);
+            setShowHalfTime(true);
+            // Continue to schedule next update even when paused
+            scheduleNext();
+            return;
+          }
         }
 
-        // Execute planned substitutions
-        plannedSubstitutions.forEach((sub) => {
-          if (sub.minute === minute || (sub.minute === 'auto' && minute >= 60 && minute <= 75 && Math.random() < 0.1)) {
-            toast({
-              title: "Substitution",
-              description: `${sub.playerIn} replaces ${sub.playerOut}`,
+        // Only process events and updates if not paused
+        if (!isPaused) {
+          // Execute planned substitutions
+          plannedSubstitutions.forEach((sub) => {
+            if (sub.minute === minute || (sub.minute === 'auto' && minute >= 60 && minute <= 75 && Math.random() < 0.1)) {
+              toast({
+                title: "Substitution",
+                description: `${sub.playerIn} replaces ${sub.playerOut}`,
+              });
+            }
+          });
+
+          // Update momentum from simulation data
+          if (hybridResult.momentumByMinute[minute] !== undefined) {
+            const engineMomentum = hybridResult.momentumByMinute[minute];
+            const homeAttackPercentage = Math.min(80, Math.max(20, 50 + engineMomentum * 0.3));
+            const awayAttackPercentage = Math.min(80, Math.max(20, 50 - engineMomentum * 0.3));
+            
+            setMomentum({
+              home: homeAttackPercentage,
+              away: awayAttackPercentage
             });
           }
-        });
 
-        // Update momentum from simulation data
-        if (hybridResult.momentumByMinute[minute] !== undefined) {
-          const engineMomentum = hybridResult.momentumByMinute[minute];
-          const homeAttackPercentage = Math.min(80, Math.max(20, 50 + engineMomentum * 0.3));
-          const awayAttackPercentage = Math.min(80, Math.max(20, 50 - engineMomentum * 0.3));
-          
-          setMomentum({
-            home: homeAttackPercentage,
-            away: awayAttackPercentage
-          });
-        }
-
-        while (eventIndex < hybridResult.events.length && hybridResult.events[eventIndex].minute <= minute) {
+          while (eventIndex < hybridResult.events.length && hybridResult.events[eventIndex].minute <= minute) {
           const event = hybridResult.events[eventIndex];
           setCurrentEventIndex(eventIndex);
           
@@ -467,37 +473,39 @@ const PlayMatch = () => {
             matchSounds.whistle();
           }
 
-          if (minute >= 85 && minute <= 90 && event.type === 'shot_on_target') {
-            setTenseMoment('final_minutes');
+            if (minute >= 85 && minute <= 90 && event.type === 'shot_on_target') {
+              setTenseMoment('final_minutes');
+            }
+            
+            // All events now appear in the match events box only
+            
+            eventIndex++;
           }
-          
-          // All events now appear in the match events box only
-          
-          eventIndex++;
-        }
 
-        if (minute >= 90) {
-          if (intervalRef.current) clearTimeout(intervalRef.current);
-          setIsSimulating(false);
-          setMatchEnded(true);
-          
-          processMatchResult(matchId, homeTeamName, awayTeamName, hybridResult);
-          
-          setShowResultSummary(true);
+          if (minute >= 90) {
+            if (intervalRef.current) clearTimeout(intervalRef.current);
+            setIsSimulating(false);
+            setMatchEnded(true);
+            
+            processMatchResult(matchId, homeTeamName, awayTeamName, hybridResult);
+            
+            setShowResultSummary(true);
+            return; // Don't schedule next update after match ends
+          }
         }
+        
+        // Always schedule next update to keep interval chain alive (even when paused)
+        scheduleNext();
       };
 
       const scheduleNext = () => {
         const intervalTime = speed === 'fast' ? 200 : 1000;
         intervalRef.current = setTimeout(() => {
           updateMatch();
-          if (minute < 90) {
-            scheduleNext();
-          }
         }, intervalTime);
       };
 
-      scheduleNext();
+      updateMatch();
     } catch (error) {
       console.error('Hybrid simulation error:', error);
       toast({
@@ -511,10 +519,20 @@ const PlayMatch = () => {
 
 
   const togglePause = () => {
-    setIsPaused(!isPaused);
-    toast({
-      title: isPaused ? "▶️ Match Resumed" : "⏸️ Match Paused",
-    });
+    const newPausedState = !isPaused;
+    setIsPaused(newPausedState);
+    
+    if (newPausedState) {
+      toast({
+        title: "⏸️ Match Paused",
+        description: "Click Resume to continue"
+      });
+    } else {
+      toast({
+        title: "▶️ Match Resumed",
+        description: "Match continues"
+      });
+    }
   };
 
   const handleSubstitution = (playerOut: any, playerIn: any) => {
