@@ -1,6 +1,7 @@
 import { Card } from "./ui/card";
 import { Badge } from "./ui/badge";
-import { TrendingUp, TrendingDown, Minus, Target, Shield } from "lucide-react";
+import { Button } from "./ui/button";
+import { TrendingUp, TrendingDown, Minus, Target, Shield, Play, Pause, FastForward, ArrowRight, Calculator, Sparkles } from "lucide-react";
 import { motion } from "framer-motion";
 import { TeamLogo } from "./TeamLogo";
 
@@ -17,6 +18,18 @@ interface ImprovedAttackDefenseBarProps {
   homeScore: number;
   awayScore: number;
   matchPeriod?: 'first_half' | 'half_time' | 'second_half' | 'full_time';
+  
+  // Control props
+  isSimulating?: boolean;
+  isPaused?: boolean;
+  speed?: 'normal' | 'fast' | 'instant';
+  loading?: boolean;
+  matchEnded?: boolean;
+  canStart?: boolean;
+  onStartMatch?: () => void;
+  onTogglePause?: () => void;
+  onSpeedChange?: (speed: 'normal' | 'fast' | 'instant') => void;
+  onNextMatch?: () => void;
 }
 
 export const ImprovedAttackDefenseBar = ({
@@ -31,7 +44,17 @@ export const ImprovedAttackDefenseBar = ({
   awayLogoUrl,
   homeScore,
   awayScore,
-  matchPeriod = 'first_half'
+  matchPeriod = 'first_half',
+  isSimulating = false,
+  isPaused = false,
+  speed = 'normal',
+  loading = false,
+  matchEnded = false,
+  canStart = false,
+  onStartMatch,
+  onTogglePause,
+  onSpeedChange,
+  onNextMatch
 }: ImprovedAttackDefenseBarProps) => {
   // Normalize to 0-100 scale
   const total = homeAttack + awayAttack;
@@ -204,6 +227,92 @@ export const ImprovedAttackDefenseBar = ({
               <span>Away Pressure</span>
             </div>
           </div>
+        </div>
+
+        {/* Match Controls */}
+        <div className="flex items-center justify-between gap-2 pt-2 border-t border-border/30">
+          {/* Pre-match: Show Play Match button */}
+          {!isSimulating && !matchEnded && (
+            <div className="flex items-center gap-2 flex-1">
+              <Button 
+                onClick={onStartMatch} 
+                disabled={loading || !canStart} 
+                className="flex-1 gap-1 btn-glow text-xs h-7"
+              >
+                <Play className="h-3 w-3" />
+                {loading ? 'Loading...' : 'Play Match'}
+              </Button>
+              
+              {/* Hybrid Engine Badge */}
+              <div className="flex items-center gap-1">
+                <div className="flex items-center gap-0.5 px-1.5 py-0.5 bg-primary/10 text-primary rounded text-xs">
+                  <Calculator className="h-3 w-3" />
+                  <span className="font-semibold">Math</span>
+                </div>
+                <span className="text-xs text-muted-foreground">+</span>
+                <div className="flex items-center gap-0.5 px-1.5 py-0.5 bg-accent/10 text-accent-foreground rounded text-xs">
+                  <Sparkles className="h-3 w-3" />
+                  <span className="font-semibold">AI</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* During match: Show speed and pause controls */}
+          {isSimulating && !matchEnded && (
+            <>
+              <div className="flex gap-1">
+                <Button 
+                  variant={speed === 'normal' ? 'default' : 'outline'} 
+                  size="sm" 
+                  onClick={() => onSpeedChange?.('normal')} 
+                  className="text-xs h-7 px-2"
+                >
+                  1x
+                </Button>
+                <Button 
+                  variant={speed === 'fast' ? 'default' : 'outline'} 
+                  size="sm" 
+                  onClick={() => onSpeedChange?.('fast')} 
+                  className="text-xs h-7 px-2"
+                >
+                  2x
+                </Button>
+              </div>
+              
+              <Button 
+                onClick={onTogglePause} 
+                variant="outline" 
+                size="sm" 
+                className="gap-1 text-xs h-7"
+              >
+                {isPaused ? (
+                  <>
+                    <Play className="h-3 w-3" />
+                    Resume
+                  </>
+                ) : (
+                  <>
+                    <Pause className="h-3 w-3" />
+                    Pause
+                  </>
+                )}
+              </Button>
+              
+              <div className="flex-1" />
+            </>
+          )}
+
+          {/* Post-match: Show Next Match button */}
+          {matchEnded && (
+            <Button 
+              onClick={onNextMatch} 
+              className="flex-1 gap-1 text-xs h-7"
+            >
+              <ArrowRight className="h-3 w-3" />
+              Next Match
+            </Button>
+          )}
         </div>
       </div>
     </Card>

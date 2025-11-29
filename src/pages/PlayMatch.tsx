@@ -755,104 +755,22 @@ const PlayMatch = () => {
             currentMinute > 45 && currentMinute <= 90 ? 'second_half' :
             'full_time'
           }
+          isSimulating={isSimulating}
+          isPaused={isPaused}
+          speed={speed}
+          loading={loading}
+          matchEnded={matchEnded}
+          canStart={!!homeLineupState && !!awayLineupState}
+          onStartMatch={startSimulation}
+          onTogglePause={togglePause}
+          onSpeedChange={setSpeed}
+          onNextMatch={() => navigate('/dashboard')}
         />
 
         {/* Main Layout: 3 Columns */}
         <div className="grid grid-cols-[1fr_2fr_1fr] gap-2 flex-1 min-h-0">
-          {/* Left Column: Controls + Tactics */}
+          {/* Left Column: Tactics */}
           <div className="space-y-2 overflow-auto">
-
-            {/* Controls */}
-            <Card className="glass p-2 border-border/50 flex-shrink-0">
-              <h3 className="text-xs font-heading font-semibold mb-2">Controls</h3>
-              <div className="space-y-1.5">
-                {!matchEnded && (
-                  <>
-                    {isSimulating && (
-                      <>
-                        <div className="space-y-1">
-                          <label className="text-xs font-medium text-muted-foreground">Game Speed</label>
-                          <div className="flex gap-1">
-                            <Button 
-                              variant={speed === 'normal' ? 'default' : 'outline'} 
-                              size="sm" 
-                              onClick={() => setSpeed('normal')} 
-                              className="flex-1 text-xs h-7"
-                              disabled={!isSimulating}
-                            >
-                              <Play className="h-3 w-3" />
-                              <span className="ml-1">1x</span>
-                            </Button>
-                            <Button 
-                              variant={speed === 'fast' ? 'default' : 'outline'} 
-                              size="sm" 
-                              onClick={() => setSpeed('fast')} 
-                              className="flex-1 text-xs h-7"
-                              disabled={!isSimulating}
-                            >
-                              <FastForward className="h-3 w-3" />
-                              <span className="ml-1">2x</span>
-                            </Button>
-                          </div>
-                        </div>
-                        <Button onClick={togglePause} variant="outline" size="sm" className="w-full gap-1 text-xs h-7">
-                          {isPaused ? <><Play className="h-3 w-3" />Resume</> : <><Pause className="h-3 w-3" />Pause</>}
-                        </Button>
-                      </>
-                    )}
-                    {!isSimulating && !result && (
-                      <div className="space-y-1">
-                        <label className="text-xs font-medium text-muted-foreground">Match Mode</label>
-                        <div className="flex gap-1">
-                          <Button variant={speed === 'normal' ? 'default' : 'outline'} size="sm" onClick={() => setSpeed('normal')} className="flex-1 text-xs h-7">
-                            <Play className="h-3 w-3" />
-                            <span className="ml-1">Normal</span>
-                          </Button>
-                          <Button variant={speed === 'fast' ? 'default' : 'outline'} size="sm" onClick={() => setSpeed('fast')} className="flex-1 text-xs h-7">
-                            <FastForward className="h-3 w-3" />
-                            <span className="ml-1">Fast</span>
-                          </Button>
-                          <Button variant={speed === 'instant' ? 'default' : 'outline'} size="sm" onClick={() => setSpeed('instant')} className="flex-1 text-xs h-7">
-                            <Zap className="h-3 w-3" />
-                            <span className="ml-1">Instant</span>
-                          </Button>
-                        </div>
-                      </div>
-                    )}
-                  </>
-                )}
-                
-                {/* Hybrid Engine Info */}
-                {!result && (
-                  <div className="space-y-1 py-2 border-t border-border/30">
-                    <div className="flex items-center gap-1.5 text-xs">
-                      <div className="flex items-center gap-1 px-2 py-1 bg-primary/10 text-primary rounded">
-                        <Calculator className="h-3 w-3" />
-                        <span className="font-semibold">Math</span>
-                      </div>
-                      <span className="text-muted-foreground">+</span>
-                      <div className="flex items-center gap-1 px-2 py-1 bg-accent/10 text-accent-foreground rounded">
-                        <Sparkles className="h-3 w-3" />
-                        <span className="font-semibold">AI</span>
-                      </div>
-                    </div>
-                    <p className="text-xs text-muted-foreground">Hybrid engine for realistic results</p>
-                  </div>
-                )}
-                
-                <Button onClick={startSimulation} disabled={isSimulating || loading || !homeLineupState || !awayLineupState} className="w-full gap-1 btn-glow text-xs h-7">
-                  <Play className="h-3 w-3" />
-                  {loading ? 'Loading...' : 'Play Match'}
-                </Button>
-                {result && (
-                  <Button onClick={() => navigate('/calendar')} className="w-full gap-1 text-xs h-7">
-                    <ArrowRight className="h-3 w-3" />
-                    Next Match
-                  </Button>
-                )}
-              </div>
-            </Card>
-
             {/* Tactics */}
             {(isHome ? homeLineupState : awayLineupState) && (
               <Card className="glass p-2 border-border/50">
