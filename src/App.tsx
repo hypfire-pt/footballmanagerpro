@@ -23,6 +23,7 @@ import CompetitionsPage from "./pages/CompetitionsPage";
 import WorldPage from "./pages/WorldPage";
 import InboxPage from "./pages/InboxPage";
 import SearchPage from "./pages/SearchPage";
+import PlayerSearchPage from "./pages/PlayerSearchPage";
 import OptionsPage from "./pages/OptionsPage";
 import League from "./pages/League";
 import PlayMatch from "./pages/PlayMatch";
@@ -66,6 +67,7 @@ const App = () => {
                 <Route path="/world" element={<ProtectedRoute><WorldPage /></ProtectedRoute>} />
                 <Route path="/inbox" element={<ProtectedRoute><InboxPage /></ProtectedRoute>} />
                 <Route path="/search" element={<ProtectedRoute><SearchPage /></ProtectedRoute>} />
+                <Route path="/players" element={<ProtectedRoute><PlayerSearchPage /></ProtectedRoute>} />
                 <Route path="/options" element={<ProtectedRoute><OptionsPage /></ProtectedRoute>} />
                 <Route path="/league" element={<ProtectedRoute><League /></ProtectedRoute>} />
                 <Route path="/match" element={<ProtectedRoute><PlayMatch /></ProtectedRoute>} />

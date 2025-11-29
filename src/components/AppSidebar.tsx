@@ -1,4 +1,4 @@
-import { Home, Users, Zap, ArrowLeftRight, Building, DollarSign, Trophy, Briefcase, ChevronDown, History, BarChart3, Table } from "lucide-react";
+import { Home, Users, Zap, ArrowLeftRight, Building, DollarSign, Trophy, Briefcase, ChevronDown, History, BarChart3, Table, Search } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
 import {
@@ -113,6 +113,20 @@ export function AppSidebar() {
                   </CollapsibleContent>
                 </SidebarMenuItem>
               </Collapsible>
+
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild>
+                  <NavLink 
+                    to="/players" 
+                    end 
+                    className="hover:bg-muted/50" 
+                    activeClassName="bg-muted text-primary font-medium"
+                  >
+                    <Search className="h-4 w-4" />
+                    {open && <span>Players</span>}
+                  </NavLink>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
