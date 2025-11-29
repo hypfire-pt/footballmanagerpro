@@ -10,7 +10,7 @@ interface MatchEventOverlayProps {
 
 const MatchEventOverlay = ({ type, playerName, team, onComplete }: MatchEventOverlayProps) => {
   useEffect(() => {
-    const timer = setTimeout(onComplete, 1500);
+    const timer = setTimeout(onComplete, 3000);
     return () => clearTimeout(timer);
   }, [onComplete]);
 
