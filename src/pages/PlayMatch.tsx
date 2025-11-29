@@ -76,6 +76,7 @@ const PlayMatch = () => {
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const speedRef = useRef(speed);
   const isPausedRef = useRef(isPaused);
+  const showHalfTimeRef = useRef(showHalfTime);
   const minuteRef = useRef(0);
   const eventIndexRef = useRef(0);
 
@@ -87,6 +88,10 @@ const PlayMatch = () => {
   useEffect(() => {
     isPausedRef.current = isPaused;
   }, [isPaused]);
+
+  useEffect(() => {
+    showHalfTimeRef.current = showHalfTime;
+  }, [showHalfTime]);
 
   // Restart interval when speed changes during simulation
   useEffect(() => {
@@ -383,16 +388,23 @@ const PlayMatch = () => {
         console.log('[Clock Debug]', {
           minute: minuteRef.current,
           isPaused: isPausedRef.current,
-          showHalfTime,
+          showHalfTime: showHalfTimeRef.current,
           speed: speedRef.current
         });
 
         // Pause match at half-time (minute 45)
-        if (minuteRef.current === 45 && !showHalfTime) {
+        if (minuteRef.current === 45 && !showHalfTimeRef.current) {
           setIsPaused(true);
           setShowHalfTime(true);
           scheduleNext();
           return;
+        }
+
+        // Skip to 46 if we somehow land exactly on 45 during second half resume
+        if (minuteRef.current === 45 && showHalfTimeRef.current === false && isPausedRef.current === false) {
+          console.log('[Clock Debug] Skipping minute 45 to prevent re-pause');
+          minuteRef.current = 46;
+          setCurrentMinute(46);
         }
 
         // Execute planned substitutions
