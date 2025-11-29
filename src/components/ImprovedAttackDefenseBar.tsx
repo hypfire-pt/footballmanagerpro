@@ -54,7 +54,7 @@ export const ImprovedAttackDefenseBar = ({
       case 'half_time':
         return 'HT';
       case 'second_half':
-        return `2nd Half - ${currentMinute}'`;
+        return `2nd Half - ${currentMinute - 45}'`;
       case 'full_time':
         return 'FT';
       default:
