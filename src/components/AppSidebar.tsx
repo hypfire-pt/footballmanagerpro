@@ -22,7 +22,6 @@ const managerBoardItems = [
   { title: "Squad", url: "/squad", icon: Users },
   { title: "Tactics", url: "/tactics", icon: Zap },
   { title: "Club", url: "/club", icon: Building },
-  { title: "Match History", url: "/match-history", icon: History },
   { title: "Finances", url: "/finances", icon: DollarSign },
   { title: "Transfers", url: "/transfers", icon: ArrowLeftRight },
 ];
