@@ -11,7 +11,6 @@ import MatchEventOverlay from "@/components/MatchEventOverlay";
 import { MatchEventNotifications } from "@/components/MatchEventNotification";
 import { ImprovedAttackDefenseBar } from "@/components/ImprovedAttackDefenseBar";
 import { MatchResultSummary } from "@/components/MatchResultSummary";
-import { HalfTimeModal } from "@/components/HalfTimeModal";
 import { GoalCelebration } from "@/components/GoalCelebration";
 import { TenseMomentEffect } from "@/components/TenseMomentEffect";
 import { TeamLogo } from "@/components/TeamLogo";
@@ -62,8 +61,6 @@ const PlayMatch = () => {
   const [activeEventNotifications, setActiveEventNotifications] = useState<MatchEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [showResultSummary, setShowResultSummary] = useState(false);
-  const [showHalfTime, setShowHalfTime] = useState(false);
-  const [plannedSubstitutions, setPlannedSubstitutions] = useState<any[]>([]);
   const [benchPlayers, setBenchPlayers] = useState<any[]>([]);
   const [goalCelebration, setGoalCelebration] = useState<{ team: 'home' | 'away'; playerName: string } | null>(null);
   const [tenseMoment, setTenseMoment] = useState<'close_call' | 'final_minutes' | 'dangerous_attack' | null>(null);
@@ -76,7 +73,6 @@ const PlayMatch = () => {
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const speedRef = useRef(speed);
   const isPausedRef = useRef(isPaused);
-  const showHalfTimeRef = useRef(showHalfTime);
   const minuteRef = useRef(0);
   const eventIndexRef = useRef(0);
 
@@ -88,10 +84,6 @@ const PlayMatch = () => {
   useEffect(() => {
     isPausedRef.current = isPaused;
   }, [isPaused]);
-
-  useEffect(() => {
-    showHalfTimeRef.current = showHalfTime;
-  }, [showHalfTime]);
 
   // Restart interval when speed changes during simulation
   useEffect(() => {
@@ -388,33 +380,7 @@ const PlayMatch = () => {
         console.log('[Clock Debug]', {
           minute: minuteRef.current,
           isPaused: isPausedRef.current,
-          showHalfTime: showHalfTimeRef.current,
           speed: speedRef.current
-        });
-
-        // Pause match at half-time (minute 45)
-        if (minuteRef.current === 45 && !showHalfTimeRef.current) {
-          setIsPaused(true);
-          setShowHalfTime(true);
-          scheduleNext();
-          return;
-        }
-
-        // Skip to 46 if we somehow land exactly on 45 during second half resume
-        if (minuteRef.current === 45 && showHalfTimeRef.current === false && isPausedRef.current === false) {
-          console.log('[Clock Debug] Skipping minute 45 to prevent re-pause');
-          minuteRef.current = 46;
-          setCurrentMinute(46);
-        }
-
-        // Execute planned substitutions
-        plannedSubstitutions.forEach((sub) => {
-          if (sub.minute === minuteRef.current || (sub.minute === 'auto' && minuteRef.current >= 60 && minuteRef.current <= 75 && Math.random() < 0.1)) {
-            toast({
-              title: "Substitution",
-              description: `${sub.playerIn} replaces ${sub.playerOut}`,
-            });
-          }
         });
 
         // Update momentum from simulation data
@@ -634,42 +600,6 @@ const PlayMatch = () => {
     });
   };
 
-  const handleHalfTimeContinue = (substitutions: any[], tacticsChanges: any) => {
-    console.log('[Half-time Continue] Resuming second half');
-    setPlannedSubstitutions(substitutions);
-    
-    // Apply tactical changes to user's team
-    const userLineup = isHome ? homeLineupState : awayLineupState;
-    const setUserLineup = isHome ? setHomeLineupState : setAwayLineupState;
-    
-    if (userLineup && Object.keys(tacticsChanges).length > 0) {
-      const updatedLineup = { ...userLineup };
-      
-      // Update formation if changed
-      if (tacticsChanges.formation) {
-        updatedLineup.formation = tacticsChanges.formation;
-      }
-      
-      // Update tactics
-      updatedLineup.tactics = { ...userLineup.tactics };
-      if (tacticsChanges.mentality) updatedLineup.tactics.mentality = tacticsChanges.mentality;
-      if (tacticsChanges.tempo) updatedLineup.tactics.tempo = tacticsChanges.tempo;
-      if (tacticsChanges.width) updatedLineup.tactics.width = tacticsChanges.width;
-      if (tacticsChanges.pressing) updatedLineup.tactics.pressing = tacticsChanges.pressing;
-      
-      setUserLineup(updatedLineup);
-    }
-    
-    setShowHalfTime(false);
-    setIsPaused(false); // Resume the match
-    console.log('[Half-time Continue] States updated - isPaused set to false');
-    
-    toast({
-      title: "⚽ Second Half Started",
-      description: `${substitutions.length > 0 ? `${substitutions.length} substitution(s) planned. ` : ''}${Object.keys(tacticsChanges).length > 0 ? 'Tactical changes applied.' : 'No changes made.'}`,
-    });
-  };
-
   if (loading) {
     return (
       <DashboardLayout>
@@ -700,39 +630,6 @@ const PlayMatch = () => {
             playerName={currentOverlay.playerName}
             team={currentOverlay.team}
             onComplete={() => setCurrentOverlay(null)}
-          />
-        )}
-
-        {/* Half Time Modal */}
-        {result && showHalfTime && (isHome ? homeLineupState : awayLineupState) && (
-          <HalfTimeModal
-            homeTeam={homeTeamName}
-            awayTeam={awayTeamName}
-            partialResult={{
-              homeScore: result.events.filter(e => e.type === 'goal' && e.team === 'home' && e.minute <= 45).length,
-              awayScore: result.events.filter(e => e.type === 'goal' && e.team === 'away' && e.minute <= 45).length,
-              events: result.events.filter(e => e.minute <= 45),
-              stats: {
-                possession: result.stats.possession,
-                shotsOnTarget: result.stats.shotsOnTarget,
-                corners: result.stats.corners,
-              },
-            }}
-            availablePlayers={benchPlayers}
-            currentPlayers={(isHome ? homeLineupState : awayLineupState)!.players.map(p => ({
-              id: p.id,
-              name: p.name,
-              position: p.position,
-            }))}
-            currentTactics={{
-              formation: (isHome ? homeLineupState : awayLineupState)!.formation,
-              mentality: (isHome ? homeLineupState : awayLineupState)!.tactics.mentality,
-              tempo: (isHome ? homeLineupState : awayLineupState)!.tactics.tempo,
-              width: (isHome ? homeLineupState : awayLineupState)!.tactics.width,
-              pressing: (isHome ? homeLineupState : awayLineupState)!.tactics.pressing,
-            }}
-            open={showHalfTime}
-            onContinue={handleHalfTimeContinue}
           />
         )}
 
