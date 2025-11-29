@@ -453,19 +453,19 @@ const PitchVisualization = ({
         targetX = Math.random() < 0.5 ? 5 + Math.random() * 15 : 80 + Math.random() * 15;
       }
       
-      // Ball movement with smooth interpolation
+      // Fast ball movement with smooth interpolation
       setBallPosition(prev => ({
-        x: prev.x + (targetX - prev.x) * 0.18, // Slower interpolation
-        y: prev.y + (targetY - prev.y) * 0.18,
+        x: prev.x + (targetX - prev.x) * 0.3, // Faster interpolation
+        y: prev.y + (targetY - prev.y) * 0.3,
         visible: true,
       }));
       
       if (isPlaying) {
-        setTimeout(moveBall, 150); // Slower ball updates for more visible passing
+        setTimeout(moveBall, 80); // Faster ball updates for quicker passing
       }
     };
 
-    const timer = setTimeout(moveBall, 150);
+    const timer = setTimeout(moveBall, 80);
     return () => clearTimeout(timer);
   }, [isPlaying, attackMomentum]);
 
