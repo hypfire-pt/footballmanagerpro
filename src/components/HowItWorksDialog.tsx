@@ -110,6 +110,30 @@ export function HowItWorksDialog() {
               player development, and making smart decisions to climb the league table!
             </p>
           </div>
+
+          <div className="mt-6">
+            <h3 className="text-lg font-heading font-bold mb-4">Subscription Plans</h3>
+            <div className="grid grid-cols-3 gap-3">
+              <div className="bg-card border border-border rounded-lg p-4 text-center">
+                <div className="text-2xl font-bold text-primary mb-2">FREE</div>
+                <div className="text-sm text-muted-foreground mb-3">1 Week Trial</div>
+                <div className="text-xs text-muted-foreground">Full access to all features</div>
+              </div>
+              
+              <div className="bg-card border border-border rounded-lg p-4 text-center">
+                <div className="text-2xl font-bold text-primary mb-2">€1.99</div>
+                <div className="text-sm text-muted-foreground mb-3">1 Week</div>
+                <div className="text-xs text-muted-foreground">Continue your career</div>
+              </div>
+              
+              <div className="bg-card border border-primary/50 rounded-lg p-4 text-center relative">
+                <div className="absolute -top-2 right-2 bg-primary text-primary-foreground text-xs px-2 py-0.5 rounded-full">Best Value</div>
+                <div className="text-2xl font-bold text-primary mb-2">€4.99</div>
+                <div className="text-sm text-muted-foreground mb-3">1 Month</div>
+                <div className="text-xs text-muted-foreground">Save 60%</div>
+              </div>
+            </div>
+          </div>
         </div>
       </DialogContent>
     </Dialog>
