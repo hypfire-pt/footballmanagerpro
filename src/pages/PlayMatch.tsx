@@ -379,6 +379,13 @@ const PlayMatch = () => {
         const increment = speedRef.current === 'fast' ? 2 : 1;
         minuteRef.current += increment;
         setCurrentMinute(minuteRef.current);
+        
+        console.log('[Clock Debug]', {
+          minute: minuteRef.current,
+          isPaused: isPausedRef.current,
+          showHalfTime,
+          speed: speedRef.current
+        });
 
         // Pause match at half-time (minute 45)
         if (minuteRef.current === 45 && !showHalfTime) {
@@ -616,6 +623,7 @@ const PlayMatch = () => {
   };
 
   const handleHalfTimeContinue = (substitutions: any[], tacticsChanges: any) => {
+    console.log('[Half-time Continue] Resuming second half');
     setPlannedSubstitutions(substitutions);
     
     // Apply tactical changes to user's team
@@ -642,6 +650,7 @@ const PlayMatch = () => {
     
     setShowHalfTime(false);
     setIsPaused(false); // Resume the match
+    console.log('[Half-time Continue] States updated - isPaused set to false');
     
     toast({
       title: "⚽ Second Half Started",
