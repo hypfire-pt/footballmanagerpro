@@ -142,11 +142,51 @@ export function generatePlayer(
   const technical = overall + Math.floor(Math.random() * 10) - 5;
   const mental = overall + Math.floor(Math.random() * 10) - 5;
   
-  // Market value based on overall, age, and potential
-  const baseValue = Math.pow(overall / 10, 3) * 100000;
-  const ageMultiplier = playerAge < 23 ? 1.5 : playerAge < 27 ? 1.3 : playerAge < 30 ? 1.0 : 0.6;
-  const potentialMultiplier = potential > overall + 10 ? 1.4 : 1.0;
-  const marketValue = Math.floor(baseValue * ageMultiplier * potentialMultiplier);
+  // Enhanced realistic market value calculation
+  // Base value with exponential growth for elite players
+  let baseValue: number;
+  if (overall >= 85) {
+    baseValue = Math.pow(overall / 10, 4) * 500000; // Elite players: 50M-150M+
+  } else if (overall >= 80) {
+    baseValue = Math.pow(overall / 10, 3.5) * 250000; // Top players: 20M-50M
+  } else if (overall >= 75) {
+    baseValue = Math.pow(overall / 10, 3) * 150000; // Good players: 8M-20M
+  } else if (overall >= 70) {
+    baseValue = Math.pow(overall / 10, 2.8) * 100000; // Decent players: 3M-8M
+  } else {
+    baseValue = Math.pow(overall / 10, 2.5) * 50000; // Squad players: 0.5M-3M
+  }
+  
+  // Age multiplier - realistic peak years
+  let ageMultiplier: number;
+  if (playerAge <= 20) {
+    ageMultiplier = 1.8; // Young talents with high upside
+  } else if (playerAge <= 23) {
+    ageMultiplier = 2.0; // Peak young player premium
+  } else if (playerAge <= 26) {
+    ageMultiplier = 1.7; // Prime years entering peak
+  } else if (playerAge <= 28) {
+    ageMultiplier = 1.5; // Peak prime years
+  } else if (playerAge <= 30) {
+    ageMultiplier = 1.1; // Still prime but declining value
+  } else if (playerAge <= 32) {
+    ageMultiplier = 0.7; // Experienced but aging
+  } else {
+    ageMultiplier = 0.4; // Veterans
+  }
+  
+  // Potential multiplier for young players
+  const potentialGap = potential - overall;
+  const potentialMultiplier = playerAge < 24 && potentialGap > 10 ? 1.6 :
+                               playerAge < 24 && potentialGap > 5 ? 1.3 :
+                               potentialGap > 5 ? 1.15 : 1.0;
+  
+  // Position premium - attackers and creative players cost more
+  const positionMultiplier = ["ST", "LW", "RW"].includes(position) ? 1.3 :
+                              ["CAM", "CM"].includes(position) ? 1.1 :
+                              position === "GK" ? 0.8 : 1.0;
+  
+  const marketValue = Math.floor(baseValue * ageMultiplier * potentialMultiplier * positionMultiplier);
   
   const wage = Math.floor(marketValue * 0.05); // Roughly 5% of market value per year
   
