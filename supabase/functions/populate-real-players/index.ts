@@ -6,7 +6,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Real player data for major European teams (2024-25 season)
+// Real player data for Premier League teams (2024-25 season)
 const REAL_PLAYER_DATA: Record<string, any[]> = {
   "arsenal": [
     { name: "David Raya", position: "GK", nationality: "Spain", overall: 85 },
@@ -107,84 +107,6 @@ const REAL_PLAYER_DATA: Record<string, any[]> = {
     { name: "Noni Madueke", position: "RW", nationality: "England", overall: 77 },
     { name: "Christopher Nkunku", position: "ST", nationality: "France", overall: 85 },
     { name: "Nicolas Jackson", position: "ST", nationality: "Senegal", overall: 78 }
-  ],
-  "real-madrid": [
-    { name: "Thibaut Courtois", position: "GK", nationality: "Belgium", overall: 89 },
-    { name: "Andriy Lunin", position: "GK", nationality: "Ukraine", overall: 79 },
-    { name: "Dani Carvajal", position: "RB", nationality: "Spain", overall: 84 },
-    { name: "Éder Militão", position: "CB", nationality: "Brazil", overall: 85 },
-    { name: "Antonio Rüdiger", position: "CB", nationality: "Germany", overall: 87 },
-    { name: "David Alaba", position: "CB", nationality: "Austria", overall: 85 },
-    { name: "Ferland Mendy", position: "LB", nationality: "France", overall: 82 },
-    { name: "Fran García", position: "LB", nationality: "Spain", overall: 78 },
-    { name: "Eduardo Camavinga", position: "CDM", nationality: "France", overall: 84 },
-    { name: "Aurélien Tchouaméni", position: "CDM", nationality: "France", overall: 85 },
-    { name: "Federico Valverde", position: "CM", nationality: "Uruguay", overall: 87 },
-    { name: "Luka Modrić", position: "CM", nationality: "Croatia", overall: 87 },
-    { name: "Jude Bellingham", position: "CAM", nationality: "England", overall: 88 },
-    { name: "Brahim Díaz", position: "CAM", nationality: "Morocco", overall: 81 },
-    { name: "Vinícius Júnior", position: "LW", nationality: "Brazil", overall: 90 },
-    { name: "Rodrygo", position: "RW", nationality: "Brazil", overall: 85 },
-    { name: "Kylian Mbappé", position: "ST", nationality: "France", overall: 92 },
-    { name: "Endrick", position: "ST", nationality: "Brazil", overall: 77 }
-  ],
-  "barcelona": [
-    { name: "Marc-André ter Stegen", position: "GK", nationality: "Germany", overall: 88 },
-    { name: "Iñaki Peña", position: "GK", nationality: "Spain", overall: 75 },
-    { name: "Jules Koundé", position: "RB", nationality: "France", overall: 84 },
-    { name: "Ronald Araújo", position: "CB", nationality: "Uruguay", overall: 85 },
-    { name: "Andreas Christensen", position: "CB", nationality: "Denmark", overall: 82 },
-    { name: "Iñigo Martínez", position: "CB", nationality: "Spain", overall: 83 },
-    { name: "Alejandro Balde", position: "LB", nationality: "Spain", overall: 79 },
-    { name: "Marcos Alonso", position: "LB", nationality: "Spain", overall: 80 },
-    { name: "Frenkie de Jong", position: "CM", nationality: "Netherlands", overall: 87 },
-    { name: "Gavi", position: "CM", nationality: "Spain", overall: 85 },
-    { name: "Pedri", position: "CAM", nationality: "Spain", overall: 87 },
-    { name: "İlkay Gündoğan", position: "CM", nationality: "Germany", overall: 85 },
-    { name: "Fermín López", position: "CM", nationality: "Spain", overall: 76 },
-    { name: "Raphinha", position: "RW", nationality: "Brazil", overall: 84 },
-    { name: "Lamine Yamal", position: "RW", nationality: "Spain", overall: 81 },
-    { name: "Ferran Torres", position: "LW", nationality: "Spain", overall: 82 },
-    { name: "Robert Lewandowski", position: "ST", nationality: "Poland", overall: 90 },
-    { name: "João Félix", position: "ST", nationality: "Portugal", overall: 83 }
-  ],
-  "bayern": [
-    { name: "Manuel Neuer", position: "GK", nationality: "Germany", overall: 88 },
-    { name: "Sven Ulreich", position: "GK", nationality: "Germany", overall: 79 },
-    { name: "Joshua Kimmich", position: "RB", nationality: "Germany", overall: 88 },
-    { name: "Dayot Upamecano", position: "CB", nationality: "France", overall: 84 },
-    { name: "Kim Min-jae", position: "CB", nationality: "South Korea", overall: 86 },
-    { name: "Matthijs de Ligt", position: "CB", nationality: "Netherlands", overall: 85 },
-    { name: "Alphonso Davies", position: "LB", nationality: "Canada", overall: 84 },
-    { name: "Leon Goretzka", position: "CDM", nationality: "Germany", overall: 85 },
-    { name: "Konrad Laimer", position: "CDM", nationality: "Austria", overall: 82 },
-    { name: "João Palhinha", position: "CDM", nationality: "Portugal", overall: 84 },
-    { name: "Jamal Musiala", position: "CAM", nationality: "Germany", overall: 87 },
-    { name: "Thomas Müller", position: "CAM", nationality: "Germany", overall: 85 },
-    { name: "Leroy Sané", position: "RW", nationality: "Germany", overall: 86 },
-    { name: "Serge Gnabry", position: "RW", nationality: "Germany", overall: 84 },
-    { name: "Kingsley Coman", position: "LW", nationality: "France", overall: 84 },
-    { name: "Michael Olise", position: "RW", nationality: "France", overall: 81 },
-    { name: "Harry Kane", position: "ST", nationality: "England", overall: 90 },
-    { name: "Mathys Tel", position: "ST", nationality: "France", overall: 77 }
-  ],
-  "psg": [
-    { name: "Gianluigi Donnarumma", position: "GK", nationality: "Italy", overall: 88 },
-    { name: "Keylor Navas", position: "GK", nationality: "Costa Rica", overall: 83 },
-    { name: "Achraf Hakimi", position: "RB", nationality: "Morocco", overall: 86 },
-    { name: "Marquinhos", position: "CB", nationality: "Brazil", overall: 87 },
-    { name: "Milan Škriniar", position: "CB", nationality: "Slovakia", overall: 85 },
-    { name: "Lucas Hernández", position: "CB", nationality: "France", overall: 84 },
-    { name: "Nuno Mendes", position: "LB", nationality: "Portugal", overall: 81 },
-    { name: "Warren Zaïre-Emery", position: "CM", nationality: "France", overall: 78 },
-    { name: "Vitinha", position: "CM", nationality: "Portugal", overall: 83 },
-    { name: "Fabián Ruiz", position: "CM", nationality: "Spain", overall: 84 },
-    { name: "Lee Kang-in", position: "CAM", nationality: "South Korea", overall: 80 },
-    { name: "Marco Asensio", position: "CAM", nationality: "Spain", overall: 83 },
-    { name: "Ousmane Dembélé", position: "RW", nationality: "France", overall: 86 },
-    { name: "Bradley Barcola", position: "LW", nationality: "France", overall: 77 },
-    { name: "Randal Kolo Muani", position: "ST", nationality: "France", overall: 82 },
-    { name: "Gonçalo Ramos", position: "ST", nationality: "Portugal", overall: 81 }
   ],
   "tottenham": [
     { name: "Guglielmo Vicario", position: "GK", nationality: "Italy", overall: 82 },
